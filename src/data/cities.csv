@@ -10,8 +10,10 @@ Carlisle,Cumbria
 Chelmsford,Essex
 Chester,Cheshire
 Chichester,West Sussex
+Colchester,Essex
 Coventry,West Midlands (county)
 Derby,Derbyshire
+Doncaster,South Yorkshire
 Durham,County Durham
 Ely,Cambridgeshire
 Exeter,Devon
@@ -26,6 +28,7 @@ Lincoln,Lincolnshire
 Liverpool,Merseyside
 City of London,City of London
 Manchester,Greater Manchester
+Milton Keynes,Buckinghamshire
 Newcastle upon Tyne,Tyne and Wear
 Norwich,Norfolk
 Nottingham,Nottinghamshire
@@ -39,6 +42,7 @@ Salford,Greater Manchester
 Salisbury,Wiltshire
 Sheffield,South Yorkshire
 Southampton,Hampshire
+Southend-on-Sea,Essex
 St Albans,Hertfordshire
 Stoke-on-Trent,Staffordshire
 Sunderland,Tyne and Wear
@@ -52,6 +56,7 @@ Worcester,Worcestershire
 York,North Yorkshire
 Aberdeen,Aberdeen
 Dundee,Dundee
+Dunfermline,Fife
 Edinburgh,Edinburgh
 Glasgow,Glasgow
 Inverness,Highland (council area)
@@ -63,7 +68,9 @@ Newport,Gwent (county)
 St Asaph,Clwyd
 St Davids,Dyfed
 Swansea,West Glamorgan
+Wrexham,Clwyd
 Armagh,County Armagh
+Bangor,County Down
 Belfast,County Antrim / County Down
 Lisburn,County Antrim / County Down
 Newry,County Armagh / County Down
