@@ -30,12 +30,15 @@
             County: County
             Region: Region
             BoW: BoW
+            Info: Info
 
           personal_fields: [ ]
 
       file_mappings:
         - file: src/data/uk_geog.csv
           note_model: UK Geog
+          derivatives:
+            - file: src/data/city_info.csv
 
 
 - generate_crowd_anki:

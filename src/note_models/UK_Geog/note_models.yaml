@@ -8,6 +8,7 @@ fields:
   - name: County
   - name: Region
   - name: BoW
+  - name: Info
 templates:
   - name: BoW - Map
     html_file: src/note_models/UK_Geog/templates/Bow - Map.html

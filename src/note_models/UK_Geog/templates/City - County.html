@@ -3,10 +3,19 @@
     [id='Cities'], [id='Bodies of Water']{
       visibility: hidden;
     }
+    .info {
+      max-width: 30em;
+      margin: 0.75em auto;
+      color: #333;
+      font-size: 90%;
+      font-style: italic;
+    }
+
   </style>
     <header>
       <div class="type">City</div>
       <div class="value value--top">{{City}}</div>
+      {{#Info}}<div class="info">Hint: {{Info}}</div>{{/Info}}
 
       <hr>
 
@@ -566,11 +575,19 @@
     transform-box: fill-box;
     transform-origin: center;
   }
+  .info {
+    max-width: 30em;
+    margin: 0.75em auto;
+    color: #333;
+    font-size: 90%;
+    font-style: italic;
+  }
 </style>
 
 <header>
   <div class="type">City</div>
   <div class="value value--top">{{City}}</div>
+  {{#Info}}<div class="info">{{Info}}</div>{{/Info}}
 
   <hr>
 
