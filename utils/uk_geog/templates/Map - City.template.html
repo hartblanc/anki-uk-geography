@@ -1,8 +1,6 @@
 {{#City}}
   <style>
-    [id='Cities'] > :not([id='{{MacroLocation}}']),
-    [id='Cities'] [id='{{MacroLocation}}'] > :not([id='{{City}}']),
-    [id='Bodies of Water'] {
+    [id='Cities'] > :not([id='{{Location}}']), [id='Bodies of Water'] {
       visibility: hidden;
     }
   </style>
@@ -25,9 +23,7 @@
 --
 
 <style>
-  [id='Cities'] > :not([id='{{MacroLocation}}']),
-  [id='Cities'] [id='{{MacroLocation}}'] > :not([id='{{City}}']),
-  [id='Bodies of Water'] {
+  [id='Cities'] > :not([id='{{Location}}']), [id='Bodies of Water'] {
     visibility: hidden;
   }
   .info {

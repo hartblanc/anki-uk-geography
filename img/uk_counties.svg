@@ -148,385 +148,285 @@
     </g>
   </g>
   <g id="Cities">
-    <g id="Somerset">
-      <g id="Bath">
-        <circle cx="63.13" cy="119.28" r="1"/>
-        <circle cx="63.13" cy="119.28" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Wells">
-        <circle cx="60.87" cy="120.41" r="1"/>
-        <circle cx="60.87" cy="120.41" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Bath">
+      <circle cx="63.13" cy="119.28" r="1"/>
+      <circle cx="63.13" cy="119.28" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Cornwall">
-      <g id="Truro">
-        <circle cx="42.77" cy="132.85" r="1"/>
-        <circle cx="42.77" cy="132.85" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Truro">
+      <circle cx="42.77" cy="132.85" r="1"/>
+      <circle cx="42.77" cy="132.85" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Decon">
-      <g id="Plymouth">
-        <circle cx="50.12" cy="130.59" r="1"/>
-        <circle cx="50.12" cy="130.59" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Exeter">
-        <circle cx="54.08" cy="127.2" r="1"/>
-        <circle cx="54.08" cy="127.2" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Plymouth">
+      <circle cx="50.12" cy="130.59" r="1"/>
+      <circle cx="50.12" cy="130.59" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Wiltshire">
-      <g id="Salisbury">
-        <circle cx="67.66" cy="122.1" r="1"/>
-        <circle cx="67.66" cy="122.1" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Exeter">
+      <circle cx="54.08" cy="127.2" r="1"/>
+      <circle cx="54.08" cy="127.2" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Hampshire">
-      <g id="Southampton">
-        <circle cx="71.5" cy="125" r="1"/>
-        <circle cx="71.5" cy="125" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Portsmouth">
-        <circle cx="73.5" cy="125.5" r="1"/>
-        <circle cx="73.5" cy="125.5" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Winchester">
-        <circle cx="72.3" cy="122.1" r="1"/>
-        <circle cx="72.3" cy="122.1" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Wells">
+      <circle cx="60.87" cy="120.41" r="1"/>
+      <circle cx="60.87" cy="120.41" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="West Sussex">
-      <g id="Chichester">
-        <circle cx="75.58" cy="124.93" r="1"/>
-        <circle cx="75.58" cy="124.93" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Salisbury">
+      <circle cx="67.66" cy="122.1" r="1"/>
+      <circle cx="67.66" cy="122.1" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="East Sussex">
-      <g id="Brighton and Hove">
-        <circle cx="80.67" cy="124.93" r="1"/>
-        <circle cx="80.67" cy="124.93" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Southampton">
+      <circle cx="71.5" cy="125" r="1"/>
+      <circle cx="71.5" cy="125" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Kent">
-      <g id="Canterbury">
-        <circle cx="89.94" cy="119.84" r="1"/>
-        <circle cx="89.94" cy="119.84" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Portsmouth">
+      <circle cx="73.5" cy="125.5" r="1"/>
+      <circle cx="73.5" cy="125.5" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Greater London">
-      <g id="City of Westminster">
-        <circle cx="79.54" cy="117.01" r="1"/>
-        <circle cx="79.54" cy="117.01" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Chichester">
+      <circle cx="75.58" cy="124.93" r="1"/>
+      <circle cx="75.58" cy="124.93" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Oxfordshire">
-      <g id="Oxford">
-        <circle cx="71.62" cy="113.62" r="1"/>
-        <circle cx="71.62" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Winchester">
+      <circle cx="72.3" cy="122.1" r="1"/>
+      <circle cx="72.3" cy="122.1" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Hertfordshire">
-      <g id="St Albans">
-        <circle cx="78.97" cy="113.62" r="1"/>
-        <circle cx="78.97" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Brighton and Hove">
+      <circle cx="80.67" cy="124.93" r="1"/>
+      <circle cx="80.67" cy="124.93" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Essex">
-      <g id="Chelmsford">
-        <circle cx="85.19" cy="113.62" r="1"/>
-        <circle cx="85.19" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Colchester">
-        <circle cx="88.03" cy="112.06" r="1"/>
-        <circle cx="88.03" cy="112.06" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Southend-on-Sea">
-        <circle cx="86.81" cy="116.72" r="1"/>
-        <circle cx="86.81" cy="116.72" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Canterbury">
+      <circle cx="89.94" cy="119.84" r="1"/>
+      <circle cx="89.94" cy="119.84" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Gloucestershire">
-      <g id="Gloucester">
-        <circle cx="64.26" cy="113.05" r="1"/>
-        <circle cx="64.26" cy="113.05" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="City of Westminster">
+      <circle cx="79.54" cy="117.01" r="1"/>
+      <circle cx="79.54" cy="117.01" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Dyfed">
-      <g id="St Davids">
-        <circle cx="43.67" cy="112.49" r="1"/>
-        <circle cx="43.67" cy="112.49" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Southend-on-Sea">
+      <circle cx="86.81" cy="116.72" r="1"/>
+      <circle cx="86.81" cy="116.72" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Herefordshire">
-      <g id="Hereford">
-        <circle cx="61.1" cy="110.79" r="1"/>
-        <circle cx="61.1" cy="110.79" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Oxford">
+      <circle cx="71.62" cy="113.62" r="1"/>
+      <circle cx="71.62" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Worcestershire">
-      <g id="Worcester">
-        <circle cx="64.83" cy="109.09" r="1"/>
-        <circle cx="64.83" cy="109.09" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="St Albans">
+      <circle cx="78.97" cy="113.62" r="1"/>
+      <circle cx="78.97" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Cambridgeshire">
-      <g id="Cambridge">
-        <circle cx="81.23" cy="108.53" r="1"/>
-        <circle cx="81.23" cy="108.53" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Ely">
-        <circle cx="81.57" cy="106.27" r="1"/>
-        <circle cx="81.57" cy="106.27" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Peterborough">
-        <circle cx="78.97" cy="104" r="1"/>
-        <circle cx="78.97" cy="104" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Chelmsford">
+      <circle cx="85.19" cy="113.62" r="1"/>
+      <circle cx="85.19" cy="113.62" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="West Midlands (county)">
-      <g id="Coventry">
-        <circle cx="69.35" cy="106.27" r="1"/>
-        <circle cx="69.35" cy="106.27" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Birmingham">
-        <circle cx="67.09" cy="105.14" r="1"/>
-        <circle cx="67.09" cy="105.14" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Wolverhampton">
-        <circle cx="65.39" cy="104" r="1"/>
-        <circle cx="65.39" cy="104" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Newport">
+      <circle cx="58.04" cy="115.88" r="1"/>
+      <circle cx="58.04" cy="115.88" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g if="Norfolk">
-      <g id="Norwich">
-        <circle cx="89.72" cy="103.44" r="1"/>
-        <circle cx="89.72" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Cardiff">
+      <circle cx="56.91" cy="117.01" r="1"/>
+      <circle cx="56.91" cy="117.01" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Leicestershire">
-      <g id="Leicester">
-        <circle cx="72.52" cy="103.44" r="1"/>
-        <circle cx="72.52" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Swansea">
+      <circle cx="52.95" cy="114.75" r="1"/>
+      <circle cx="52.95" cy="114.75" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Staffordshire">
-      <g id="Lichfield">
-        <circle cx="67.88" cy="103.44" r="1"/>
-        <circle cx="67.88" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Stoke-on-Trent">
-        <circle cx="65.39" cy="98.91" r="1"/>
-        <circle cx="65.39" cy="98.91" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Gloucester">
+      <circle cx="64.26" cy="113.05" r="1"/>
+      <circle cx="64.26" cy="113.05" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Nottinghamshire">
-      <g id="Nottingham">
-        <circle cx="72.52" cy="100.04" r="1"/>
-        <circle cx="72.52" cy="100.04" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Colchester">
+      <circle cx="88.03" cy="112.06" r="1"/>
+      <circle cx="88.03" cy="112.06" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Derbyshire">
-      <g id="Derby">
-        <circle cx="69.92" cy="99.48" r="1"/>
-        <circle cx="69.92" cy="99.48" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="St Davids">
+      <circle cx="43.67" cy="112.49" r="1"/>
+      <circle cx="43.67" cy="112.49" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Lincolnshire">
-      <g id="Lincoln">
-        <circle cx="77.27" cy="97.78" r="1"/>
-        <circle cx="77.27" cy="97.78" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Milton Keynes">
+      <circle cx="75.50" cy="110.91" r="1"/>
+      <circle cx="75.50" cy="110.91" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="South Yorkshire">
-      <g id="Doncaster">
-        <circle cx="72.613" cy="92.65" r="1"/>
-        <circle cx="72.613" cy="92.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Sheffield">
-        <circle cx="69.35" cy="94.39" r="1"/>
-        <circle cx="69.35" cy="94.39" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Hereford">
+      <circle cx="61.1" cy="110.79" r="1"/>
+      <circle cx="61.1" cy="110.79" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Greater Manchester">
-      <g id="Manchester">
-        <circle cx="64.83" cy="93.26" r="1"/>
-        <circle cx="64.83" cy="93.26" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Salford">
-        <circle cx="63.92" cy="93.48" r="1"/>
-        <circle cx="63.92" cy="93.48" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Worcester">
+      <circle cx="64.83" cy="109.09" r="1"/>
+      <circle cx="64.83" cy="109.09" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Merseyside">
-      <g id="Liverpool">
-        <circle cx="59.17" cy="94.39" r="1"/>
-        <circle cx="59.17" cy="94.39" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Cambridge">
+      <circle cx="81.23" cy="108.53" r="1"/>
+      <circle cx="81.23" cy="108.53" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Cheshire">
-      <g id="Chester">
-        <circle cx="60.3" cy="96.65" r="1"/>
-        <circle cx="60.3" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Ely">
+      <circle cx="81.57" cy="106.27" r="1"/>
+      <circle cx="81.57" cy="106.27" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Clwyd">
-      <g id="St Asaph">
-        <circle cx="56.91" cy="96.65" r="1"/>
-        <circle cx="56.91" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Wrexham">
-        <circle cx="59.30" cy="97.79" r="1"/>
-        <circle cx="59.30" cy="97.79" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Coventry">
+      <circle cx="69.35" cy="106.27" r="1"/>
+      <circle cx="69.35" cy="106.27" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Gwynedd">
-      <g id="Bangor">
-        <circle cx="50.69" cy="96.65" r="1"/>
-        <circle cx="50.69" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Birmingham">
+      <circle cx="67.09" cy="105.14" r="1"/>
+      <circle cx="67.09" cy="105.14" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="East Riding of Yorkshire">
-      <g id="Kingston upon Hull">
-        <circle cx="78.4" cy="89.3" r="1"/>
-        <circle cx="78.4" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Wolverhampton">
+      <circle cx="65.39" cy="104" r="1"/>
+      <circle cx="65.39" cy="104" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="West Yorkshire">
-      <g id="Wakefield">
-        <circle cx="70.49" cy="90.99" r="1"/>
-        <circle cx="70.49" cy="90.99" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Leeds">
-        <circle cx="69.35" cy="89.3" r="1"/>
-        <circle cx="69.35" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Bradford">
-        <circle cx="67.09" cy="89.3" r="1"/>
-        <circle cx="67.09" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Norwich">
+      <circle cx="89.72" cy="103.44" r="1"/>
+      <circle cx="89.72" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Lancashire">
-      <g id="Preston">
-        <circle cx="61.43" cy="89.3" r="1"/>
-        <circle cx="61.43" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Lancaster">
-        <circle cx="61.43" cy="86.47" r="1"/>
-        <circle cx="61.43" cy="86.47" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Peterborough">
+      <circle cx="78.97" cy="104" r="1"/>
+      <circle cx="78.97" cy="104" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="North Yorkshire">
-      <g id="York">
-        <circle cx="72.75" cy="87.6" r="1"/>
-        <circle cx="72.75" cy="87.6" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Ripon">
-        <circle cx="69.92" cy="85.34" r="1"/>
-        <circle cx="69.92" cy="85.34" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Leicester">
+      <circle cx="72.52" cy="103.44" r="1"/>
+      <circle cx="72.52" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Durham">
-      <g id="Durham">
-        <circle cx="69.35" cy="78.55" r="1"/>
-        <circle cx="69.35" cy="78.55" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Lichfield">
+      <circle cx="67.88" cy="103.44" r="1"/>
+      <circle cx="67.88" cy="103.44" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Tyne and Wear">
-      <g id="Sunderland">
-        <circle cx="69.92" cy="76.29" r="1"/>
-        <circle cx="69.92" cy="76.29" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Newcastle upon Tyne">
-        <circle cx="68.79" cy="75.15" r="1"/>
-        <circle cx="68.79" cy="75.15" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Nottingham">
+      <circle cx="72.52" cy="100.04" r="1"/>
+      <circle cx="72.52" cy="100.04" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Cumbria">
-      <g id="Carlisle">
-        <circle cx="60.3" cy="75.72" r="1"/>
-        <circle cx="60.3" cy="75.72" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Derby">
+      <circle cx="69.92" cy="99.48" r="1"/>
+      <circle cx="69.92" cy="99.48" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Buckinghamshire">
-      <g id="Milton Keynes">
-        <circle cx="75.50" cy="110.91" r="1"/>
-        <circle cx="75.50" cy="110.91" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Stoke-on-Trent">
+      <circle cx="65.39" cy="98.91" r="1"/>
+      <circle cx="65.39" cy="98.91" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Gwent (county)">
-      <g id="Newport">
-        <circle cx="58.04" cy="115.88" r="1"/>
-        <circle cx="58.04" cy="115.88" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Lincoln">
+      <circle cx="77.27" cy="97.78" r="1"/>
+      <circle cx="77.27" cy="97.78" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="South Glamorgan">
-      <g id="Cardiff">
-        <circle cx="56.91" cy="117.01" r="1"/>
-        <circle cx="56.91" cy="117.01" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Sheffield">
+      <circle cx="69.35" cy="94.39" r="1"/>
+      <circle cx="69.35" cy="94.39" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="West Glamorgan">
-      <g id="Swansea">
-        <circle cx="52.95" cy="114.75" r="1"/>
-        <circle cx="52.95" cy="114.75" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Doncaster">
+      <circle cx="72.613" cy="92.65" r="1"/>
+      <circle cx="72.613" cy="92.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Stirling (council area)">
-      <g id="Stirling">
-        <circle cx="51.35" cy="61.00" r="1"/>
-        <circle cx="51.35" cy="61.00" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Manchester">
+      <circle cx="64.83" cy="93.26" r="1"/>
+      <circle cx="64.83" cy="93.26" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Perth and Kinross">
-      <g id="Perth">
-        <circle cx="54.72" cy="58.42" r="1"/>
-        <circle cx="54.72" cy="58.42" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Salford">
+      <circle cx="63.92" cy="93.48" r="1"/>
+      <circle cx="63.92" cy="93.48" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Highland (council area)">
-      <g id="Inverness">
-        <circle cx="49.39" cy="44.2" r="1"/>
-        <circle cx="49.39" cy="44.2" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Liverpool">
+      <circle cx="59.17" cy="94.39" r="1"/>
+      <circle cx="59.17" cy="94.39" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="Fife">
-      <g id="Dunfermline">
-        <circle cx="55.61" cy="61.85" r="1"/>
-        <circle cx="55.61" cy="61.85" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Chester">
+      <circle cx="60.3" cy="96.65" r="1"/>
+      <circle cx="60.3" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Down">
-      <g id="Bangor">
-        <circle cx="39.00" cy="79.86" r="1"/>
-        <circle cx="39.00" cy="79.86" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="St Asaph">
+      <circle cx="56.91" cy="96.65" r="1"/>
+      <circle cx="56.91" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Londonderry">
-      <g id="Derry">
-        <circle cx="27.11" cy="75.92" r="1"/>
-        <circle cx="27.11" cy="75.92" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Wrexham">
+      <circle cx="59.30" cy="97.79" r="1"/>
+      <circle cx="59.30" cy="97.79" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Armagh / County Down">
-      <g id="Newry">
-        <circle cx="33.87" cy="86.58" r="1"/>
-        <circle cx="33.87" cy="86.58" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Bangor, Gwynedd">
+      <circle cx="50.69" cy="96.65" r="1"/>
+      <circle cx="50.69" cy="96.65" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Armagh">
-      <g id="Armagh">
-        <circle cx="31.45" cy="84.59" r="1"/>
-        <circle cx="31.45" cy="84.59" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Kingston upon Hull">
+      <circle cx="78.4" cy="89.3" r="1"/>
+      <circle cx="78.4" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
-    <g id="County Antrim / County Down">
-      <g id="Belfast">
-        <circle cx="36.41" cy="80.88" r="1"/>
-        <circle cx="36.41" cy="80.88" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
-      <g id="Lisburn">
-        <circle cx="34.64" cy="81.71" r="1"/>
-        <circle cx="34.64" cy="81.71" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
-      </g>
+    <g id="Wakefield">
+      <circle cx="70.49" cy="90.99" r="1"/>
+      <circle cx="70.49" cy="90.99" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Leeds">
+      <circle cx="69.35" cy="89.3" r="1"/>
+      <circle cx="69.35" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Bradford">
+      <circle cx="67.09" cy="89.3" r="1"/>
+      <circle cx="67.09" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Preston">
+      <circle cx="61.43" cy="89.3" r="1"/>
+      <circle cx="61.43" cy="89.3" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Lancaster">
+      <circle cx="61.43" cy="86.47" r="1"/>
+      <circle cx="61.43" cy="86.47" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="York">
+      <circle cx="72.75" cy="87.6" r="1"/>
+      <circle cx="72.75" cy="87.6" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Ripon">
+      <circle cx="69.92" cy="85.34" r="1"/>
+      <circle cx="69.92" cy="85.34" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Durham">
+      <circle cx="69.35" cy="78.55" r="1"/>
+      <circle cx="69.35" cy="78.55" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Sunderland">
+      <circle cx="69.92" cy="76.29" r="1"/>
+      <circle cx="69.92" cy="76.29" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Newcastle upon Tyne">
+      <circle cx="68.79" cy="75.15" r="1"/>
+      <circle cx="68.79" cy="75.15" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Carlisle">
+      <circle cx="60.3" cy="75.72" r="1"/>
+      <circle cx="60.3" cy="75.72" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Dunfermline">
+      <circle cx="55.61" cy="61.85" r="1"/>
+      <circle cx="55.61" cy="61.85" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Stirling">
+      <circle cx="51.35" cy="61.00" r="1"/>
+      <circle cx="51.35" cy="61.00" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Perth">
+      <circle cx="54.72" cy="58.42" r="1"/>
+      <circle cx="54.72" cy="58.42" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Inverness">
+      <circle cx="49.39" cy="44.2" r="1"/>
+      <circle cx="49.39" cy="44.2" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Derry">
+      <circle cx="27.11" cy="75.92" r="1"/>
+      <circle cx="27.11" cy="75.92" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Newry">
+      <circle cx="33.87" cy="86.58" r="1"/>
+      <circle cx="33.87" cy="86.58" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Bangor, County Down">
+      <circle cx="39.00" cy="79.86" r="1"/>
+      <circle cx="39.00" cy="79.86" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Armagh">
+      <circle cx="31.45" cy="84.59" r="1"/>
+      <circle cx="31.45" cy="84.59" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Belfast">
+      <circle cx="36.41" cy="80.88" r="1"/>
+      <circle cx="36.41" cy="80.88" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
+    </g>
+    <g id="Lisburn">
+      <circle cx="34.64" cy="81.71" r="1"/>
+      <circle cx="34.64" cy="81.71" r=".6" fill-opacity="0" stroke="#fff" stroke-width=".2"/>
     </g>
   </g>
   <rect id="zoomfocus" style="stroke:#F43;stroke-width:0.25;fill-opacity:0" x="40" y="59.5" width="25" height="10"/>
