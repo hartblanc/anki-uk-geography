@@ -4,6 +4,7 @@ SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 # TODO: Add a feature to mapshaper which enables reading a zip from stdin via specifying the format.
+# TODO: probably have to think about Manchester/Salford for Map - City
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
