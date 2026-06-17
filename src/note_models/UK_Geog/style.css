@@ -1,55 +1,60 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
 }
-.center {
-  margin-top: 5px;
+
+html,
+body,
+.card {
+  margin: 0 !important; /* Forces the margin to 0, matching your layout */
+  padding: 0;
+  height: 100%;
+}
+
+/* 1. Update your existing #fitcontent rule */
+#fitcontent {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-}
-#fitcontent { 
-  display: inline-block;
-  position: relative;
-}
-[id="uk_counties"]{
-  height: 100vh;
-  max-height: 70vh;
-  max-width: 90vw;
-}
-[id="zoombox"]{
-  visibility: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-  max-width: 60%;
-}
-[id="zoomfocus"]{
-  visibility: hidden;
+  justify-content: flex-start; /* Changed from center to top-align the flow */
+  width: 100%;
+  height: 100dvh;
+  box-sizing: border-box;
 }
 
-#typeans {
-  text-align: center;
+/* 2. Target the .center div that wraps your SVG */
+#fitcontent > .center {
+  flex: 1;             /* Forces this container to take up all remaining vertical space */
+  width: 100%;         /* Spans full width */
+  display: flex;       /* Allows neat centering of the SVG inside it */
+  justify-content: center;
+  align-items: center;
+  min-height: 0;       /* CRITICAL: Allows flex child to shrink/scale down without overflowing */
+}
+
+/* 3. Force the SVG to fill the newly expanded container */
+#fitcontent svg {
+  width: 100%;
+  height: 100%;
+}
+
+.land {
+  paint-order: stroke fill;
+}
+
+.night_mode #extra_land, .nightMode #extra_land {
+  fill:  #555;
 }
 
 .card {
-  padding: 1em 0;
   background-color: white;
   font-family: Tahoma;
   font-size: 16px;
   text-align: center;
 }
 
-.type {
-  margin-bottom: 0.25em;
-  font-size: 70%;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
 .info {
   max-width: 30em;
-  margin: 0.75em auto;
   font-size: 90%;
   font-style: italic;
 }
@@ -57,32 +62,3 @@ body {
 .value {
   font-size: 150%;
 }
-
-.value--top {
-  margin-top: 1em;
-}
-
-hr {
-  margin: 1.5em 0;
-}
-
-@keyframes jump {
-  0%   { transform: scale(2) translateY(0); }
-  10%  { transform: scale(2) translateY(0); }
-  30%  { transform: scale(2) translateY(-1px); }
-  50%  { transform: scale(2) translateY(0); }
-  57%  { transform: scale(2) translateY(-0.4px); }
-  64%  { transform: scale(2) translateY(0); }
-  100% { transform: scale(2) translateY(0); }
-}
-
-@media (prefers-color-scheme: dark) {
-  [id="Republic of Ireland"] { fill:  #555;}
-  .type { color: #00BFFF;}
-}
-
-.night_mode [id="Republic of Ireland"], .nightMode [id="Republic of Ireland"] {
-  fill:  #555;
-}
-
-.night_mode .type, .nightMode .type { color: #00BFFF;}

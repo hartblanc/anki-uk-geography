@@ -1,13 +1,13 @@
 
 - generate_guids_in_csv:
-    source: src/data/uk_geog.csv
+    source: build/uk_geog.csv
     columns: [ guid ]
 
 - build_parts:
   - note_model_from_yaml_part:
       part_id: UK Geog
       file: src/note_models/UK_Geog/note_models.yaml
-  
+
   - headers_from_yaml_part:
       part_id: default header
       file: src/headers/UK_Geog/default.yaml
@@ -34,7 +34,7 @@
           personal_fields: [ ]
 
       file_mappings:
-        - file: src/data/uk_geog.csv
+        - file: build/uk_geog.csv
           note_model: UK Geog
 
 

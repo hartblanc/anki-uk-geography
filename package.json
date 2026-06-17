@@ -1,0 +1,15 @@
+{
+  "name": "anki-uk-geography",
+  "version": "1.0.0",
+  "description": "Anki deck for UK geography",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "mapshaper": "^0.7",
+    "svgo": "^4.0"
+  },
+  "author": "hartblanc",
+  "license": "MIT"
+}

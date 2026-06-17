@@ -1,8 +1,9 @@
 <script>
-  selectedCountiesNames = "{{MacroLocation}}".split(" / ")
+  selectedCountiesNames = "{{MacroLocation}}".split(" / ");
 
   for (countyName of selectedCountiesNames) {
-    county = document.getElementById(countyName)
-    county.style.fill = "#2ECC40"
+    county = document.getElementById(countyName);
+    county.style.fill = "#d00";
+    county.style["fill-opacity"] = 0.5;
   }
 </script>

@@ -1,9 +1,0 @@
-# node
-node_modules
-
-# maps
-*.svg
-*shapefiles
-*.zip
-*.geojson
-*.topojson

@@ -1,0 +1,25 @@
+<style>
+  [id="cities"] > :not([id="{{City}}"]) {
+    visibility: hidden;
+  }
+  [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
+    visibility: hidden;
+  }
+  [id="{{City}}"] {
+    fill: #d00;
+  }
+</style>
+
+<div id="fitcontent">
+  <header>
+    <div class="type">City</div>
+    <div class="value value--top">{{City}}</div>
+
+    <hr />
+
+    <div class="type">County?</div>
+    <div class="center">{{MacroLocation}}</div>
+  </header>
+  <div class="center">@[build/maps/cities.min.svg]</div>
+</div>
+@[utils/uk_geog/snippets/highlight_multiple_counties.html]

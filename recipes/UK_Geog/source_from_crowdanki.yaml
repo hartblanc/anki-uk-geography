@@ -2,9 +2,9 @@
   - notes_from_crowd_anki:
       source: &deck_name "build/United Kingdom Geography - Regions Counties and Cities"
       part_id: uk geog notes
-      sort_order: [Location]
+      sort_order: [guid]
 
-  - note_models_from_crowd_anki:
+  - note_model_from_crowd_anki:
     - source: *deck_name
       part_id: UK Geog
 
@@ -33,3 +33,4 @@
     file_mappings:
     - file: src/data/uk_geog.csv
       note_model: UK Geog
+      sort_by_columns: [guid]

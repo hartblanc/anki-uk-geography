@@ -1,5 +1,27 @@
-body {
-  margin: 0;
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.card {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  background-color: white;
+  color: black;
+  font-family: Verdana;
+  font-size: 16px;
+  text-align: center;
+  overflow: hidden !important;
 }
 
 .mobile svg {
@@ -7,38 +29,34 @@ body {
   text-rendering: optimizeSpeed;
 }
 
+svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
 #center { 
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 #fitcontent {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
+  height: 100%;
+  width: 100%;
 }
 
-[id="zoombox"]{
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.card {
-  padding: 1em 0;
-  background-color: white;
-  color: black;
-  font-family: Verdana;
-  font-size: 16px;
-  text-align: center;
-}
-
-.type {
-  margin-bottom: 0.25em;
-  color: #333;
-  font-size: 70%;
-  font-weight: bold;
-  text-transform: uppercase;
+header, .type, .info, .value, hr {
+  flex: 0 0 auto;
 }
 
 .info {

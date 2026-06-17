@@ -1,0 +1,47 @@
+<style>
+  [id="{{MacroLocation}}"] {
+    fill: #d00;
+    fill-opacity: 0.5;
+  }
+
+  #svg-counties {
+    display: none;
+  }
+</style>
+
+<div id="fitcontent">
+  <header>
+    <div class="type">County</div>
+    <div class="value value--top">{{County}}</div>
+
+    <hr />
+
+    <div class="type">Region?</div>
+    <div class="center">{{MacroLocation}}</div>
+  </header>
+  <div class="center">@[build/maps/regions.min.svg]</div>
+</div>
+<div id="svg-counties">@[build/maps/counties.min.svg]</div>
+
+<script>
+  (function () {
+    var countyId = "{{County}}";
+    var countyEl = document.getElementById(countyId);
+    var regionsSvg = document.getElementById("regions").parentNode;
+
+    if (countyEl && regionsSvg) {
+      // Clone and append the county, highlighting it red so that we can see it.
+      var clonedCounty = countyEl.cloneNode(true);
+      // change the ID to avoid any conflicts between counties and regions
+      clonedCounty.id = "selected-county";
+      clonedCounty.style.fill = "#d00";
+      regionsSvg.appendChild(clonedCounty);
+    }
+    if (countyId == "City of London") {
+      var ringEl = document.getElementById("ring_city");
+      var clonedRing = ringEl.cloneNode(true);
+      clonedRing.id = "selected-ring";
+      regionsSvg.appendChild(clonedRing);
+    }
+  })();
+</script>

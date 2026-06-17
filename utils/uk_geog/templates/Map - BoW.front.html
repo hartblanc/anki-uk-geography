@@ -1,0 +1,25 @@
+{{#BoW}}
+<style>
+  [id="water"] {
+    stroke: none;
+  }
+  [id="{{BoW}}"] {
+    fill: #07b;
+  }
+</style>
+<script>
+  @[utils/uk_geog/snippets/move_to_front.js]
+  moveToFront("{{BoW}}");
+</script>
+
+<div id="fitcontent">
+  <header>
+    <div class="type">Body of Water?</div>
+
+    <hr />
+
+    <div class="type">Location on the map</div>
+  </header>
+  <div class="center">@[build/maps/bodies_of_water.min.svg]</div>
+</div>
+{{/BoW}}

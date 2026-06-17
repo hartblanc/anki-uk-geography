@@ -7,8 +7,6 @@ verify_ssl = true
 pre-commit = "*"
 
 [packages]
-requests = "*"
-lxml = ">=4.6.3"
 brain-brew = "*"
 
 [requires]

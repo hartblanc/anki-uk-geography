@@ -10,23 +10,23 @@ fields:
   - name: BoW
 templates:
   - name: BoW - Map
-    html_file: src/note_models/UK_Geog/templates/Bow - Map.html
+    html_file: build/resolved_templates/Bow - Map.html
   - name: City - County
-    html_file: src/note_models/UK_Geog/templates/City - County.html
+    html_file: build/resolved_templates/City - County.html
   - name: City - Map
-    html_file: src/note_models/UK_Geog/templates/City - Map.html
+    html_file: build/resolved_templates/City - Map.html
   - name: County - Map
-    html_file: src/note_models/UK_Geog/templates/County - Map.html
+    html_file: build/resolved_templates/County - Map.html
   - name: County - Region
-    html_file: src/note_models/UK_Geog/templates/County - Region.html
+    html_file: build/resolved_templates/County - Region.html
   - name: Map - BoW
-    html_file: src/note_models/UK_Geog/templates/Map - BoW.html
+    html_file: build/resolved_templates/Map - BoW.html
   - name: Map - City
-    html_file: src/note_models/UK_Geog/templates/Map - City.html
+    html_file: build/resolved_templates/Map - City.html
   - name: Map - County
-    html_file: src/note_models/UK_Geog/templates/Map - County.html
+    html_file: build/resolved_templates/Map - County.html
   - name: Map - Region
-    html_file: src/note_models/UK_Geog/templates/Map - Region.html
+    html_file: build/resolved_templates/Map - Region.html
   - name: Region - Map
-    html_file: src/note_models/UK_Geog/templates/Region - Map.html
+    html_file: build/resolved_templates/Region - Map.html
 
