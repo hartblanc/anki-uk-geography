@@ -25,6 +25,9 @@ The deck will help you to learn:
 
 ## Sample Cards
 
+<img width="990" height="2445" alt="card_previews" src="https://github.com/user-attachments/assets/a4cae084-373b-4fb4-aed7-1f06282b6eaf" />
+
+
 ## Acknowledgments
 
 This deck has benefited massively from the excellent work of others including:
