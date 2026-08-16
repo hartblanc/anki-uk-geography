@@ -3,10 +3,9 @@ MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
 # TODO: Sort out details that are too small to distinguish including City of London / City of Westminster, Salford / Manchester, the County of the City of London
-# TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
-# TODO: probably have to think about Manchester/Salford for Map - City
-# TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 # TODO: sort out janky isle of man boundaries
+# TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
+# TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
