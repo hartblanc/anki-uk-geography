@@ -13,6 +13,7 @@
       file: src/headers/UK_Geog/default.yaml
       override:
         deck_description_html_file: src/headers/UK_Geog/desc.html
+        crowdanki_uuid: 9767622e-998e-11f1-a0e6-ae68d1863a7f
 
   - notes_from_csvs:
       part_id: uk_geog

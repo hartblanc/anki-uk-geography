@@ -2,9 +2,11 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
-# TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
-# TODO: Add a feature to mapshaper which enables reading a zip from stdin via specifying the format.
+# TODO: Sort out details that are too small to distinguish including City of London / City of Westminster, Salford / Manchester, the County of the City of London
+# TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
 # TODO: probably have to think about Manchester/Salford for Map - City
+# TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
+# TODO: sort out janky isle of man boundaries
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
@@ -82,23 +84,8 @@ build/maps/base_27700/seavox.topojson:
 		--data-urlencode 'request=GetFeature' \
 		--data-urlencode 'typeName=MarineRegions:seavox_v19' \
 		--data-urlencode 'outputFormat=application/json' \
-		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,24196)' | \
+		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' | \
 		$(MAPSHAPER) -i - -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
-
-build/maps/base_27700/seavox.csv:
-	mkdir -p build/maps/base_27700
-	curl -L \
-		-G 'https://geo.vliz.be/geoserver/MarineRegions/ows' \
-		--data-urlencode 'service=WFS' \
-		--data-urlencode 'version=1.0.0' \
-		--data-urlencode 'request=GetFeature' \
-		--data-urlencode 'typeName=MarineRegions:seavox_v19' \
-		--data-urlencode 'outputFormat=application/json' \
-		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,24196)' | \
-		$(MAPSHAPER) -i - -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
-
-
-
 
 # ==============================================================================
 # 2. DOWNSTREAM GEOPROCESSING
@@ -114,9 +101,8 @@ build/maps/canvas.topojson: build/maps/base_27700/nuts_all.topojson build/maps/u
 		-i name=roi $< \
 		-filter target=roi 'CNTR_CODE == "IE"' \
 		-i name=uk build/maps/uk.topojson \
-		-buffer 20000 + name=temp target=uk \
-		-merge-layers name=temproi target=temp,roi \
-		-rectangle + name=canvas target=temproi \
+		-merge-layers name=ukroi target=uk,roi \
+		-rectangle + name=canvas target=ukroi \
 		-o $@ target=canvas
 
 build/maps/extra_land.topojson: build/maps/base_27700/nuts_all.topojson build/maps/base_27700/isle_of_man.topojson build/maps/canvas.topojson
@@ -180,29 +166,29 @@ build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_bounda
 build/maps/bodies_of_water.topojson build/bodies_of_water.csv: build/maps/base_27700/seavox.topojson build/maps/uk.topojson build/maps/extra_land.topojson build/maps/canvas.topojson src/data/mrgid_name_mapping.csv
 	$(MAPSHAPER) \
 		-i build/maps/base_27700/seavox.topojson name=seavox \
+		-dissolve + name=l2 target=seavox mrgid_l2 \
 		-dissolve + name=l3 target=seavox mrgid_l3 \
 		-dissolve + name=l4 target=seavox mrgid_l4 \
+		-filter target=l2 '"23637,".indexOf(mrgid_l2) > -1' \
 		-filter target=l3 '"23647,23649,23728,23729,23731".indexOf(mrgid_l3) > -1' \
-		-filter target=seavox '"24188,24192,24193,24196,24195,24210,24218".indexOf(mrgid_sr) > -1' \
-		-filter target=l4 '"23738,23739,23742".indexOf(mrgid_l4) > -1' \
+		-filter target=seavox '"24188,24192,24193,24195,24210,24218".indexOf(mrgid_sr) > -1' \
+		-filter target=l4 '"23738,23739,23742,23735".indexOf(mrgid_l4) > -1' \
 		-each 'mrgid=Number(mrgid_sr)' target=seavox \
+		-each 'mrgid=Number(mrgid_l2)' target=l2 \
 		-each 'mrgid=Number(mrgid_l3)' target=l3 \
 		-each 'mrgid=Number(mrgid_l4)' target=l4 \
-		-merge-layers force target=l3,l4,seavox name=water \
+		-merge-layers force target=l2,l3,l4,seavox name=water \
 		-filter-fields mrgid target=water\
 		-join src/data/mrgid_name_mapping.csv keys=mrgid,mrgid target=water \
 		-i build/maps/uk.topojson name=uk \
 		-i build/maps/canvas.topojson name=canvas \
 		-clip canvas target=water \
-		-each 'name="Atlantic Ocean"' target=canvas \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-merge-layers force name=land target=extra_land,uk \
-		-proj init=EPSG:27700 target=* \
+		-proj init=EPSG:27700 target="*" \
 		-dissolve2 gap-fill-area=1km2 target=land \
-		-erase source=land target=canvas \
 		-erase source=land target=water \
 		-each "if (name == 'St George\'s Channel') name = 'St Georges Channel'" target=water \
-		-merge-layers force name=water target=canvas,water \
 		-o build/maps/bodies_of_water.topojson target=water \
 		-filter-fields name target=water\
 		-o build/bodies_of_water.csv target=water
@@ -220,7 +206,7 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 		-filter-fields name target=cities \
 		-i name=canvas build/maps/canvas.topojson \
 		-i name=extra_land build/maps/extra_land.topojson \
-		-proj init=EPSG:27700 target=* \
+		-proj init=EPSG:27700 target="*" \
 		-o build/maps/cities.topojson target=cities,counties,canvas,extra_land \
 		-o build/cities.csv target=cities
 
@@ -369,8 +355,8 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/City\ -\ County.html \
 	build/resolved_templates/Bow\ -\ Map.html \
 	build/resolved_templates/Map\ -\ BoW.html
-	mkdir -p "build/United Kingdom Geography - Regions Counties and Cities/media"
-	brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
+	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
+	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 
 clean:
 	find build -mindepth 1 -not -path "build/maps/base_27700*" -delete
