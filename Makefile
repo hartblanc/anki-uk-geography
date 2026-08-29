@@ -3,10 +3,10 @@ MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
-# TODO: 1. For City of London and City of Westminster the zoombox should include, and be centered on, the whole of Greater London.
-# TODO: 2. For Salford and Manchester the zoombox should include, and be centered on, the whole of Greater Manchester.
-# TODO: 3. The city markers in the zoombox should not appear bigger than on the main map, just normal size.
-
+# TODO: update screenshots on in readme/ankihub to account for cities not being hidden on Map - City  - think about a way to automate this.
+# TODO: motorways
+# TODO: more BoWs
+# TODO: see if we can optimise the size of the deck much
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
