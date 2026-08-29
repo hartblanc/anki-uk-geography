@@ -7,16 +7,6 @@ SIMPLIFY_INTERVAL := 100m
 # TODO: motorways
 # TODO: more BoWs
 
-define SPARQL_QUERY
-SELECT DISTINCT ?itemLabel ?location WHERE {
-    ?item wdt:P31 wd:Q515;
-    (wdt:P131/(wdt:P131*)) wd:Q26;
-    wdt:P625 ?location.
-    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-}
-endef
-export SPARQL_QUERY
-
 .PHONY: all
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 
