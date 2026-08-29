@@ -286,13 +286,8 @@ build/maps/layers/water.min.svg: build/maps/layers/water.svg src/svgo.config.js
 
 # maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
 # templates inject composed maps into the DOM at render time instead of inlining them.
-build/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
+build/media/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
-
-# Staging dir; the CrowdAnki recipe copies these into the deck's media folder.
-build/media/maps.js: build/maps.js
-	mkdir -p build/media
-	cp build/maps.js "$@"
 
 build/media/zoombox.js: utils/uk_geog/media/zoombox.js
 	mkdir -p build/media

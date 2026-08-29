@@ -37,7 +37,7 @@ MAP_SVG_IDS = {
     "bodies_of_water": None,
 }
 
-OUTPUT = "build/maps.js"
+OUTPUT = "build/media/maps.js"
 
 
 def extract_layer(svg: str, layer_id: str) -> str:
@@ -127,7 +127,9 @@ def main() -> None:
         + "  }\n"
         + "}\n"
     )
-    Path(OUTPUT).write_text(js)
+    output = Path(OUTPUT)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(js)
 
 
 if __name__ == "__main__":
