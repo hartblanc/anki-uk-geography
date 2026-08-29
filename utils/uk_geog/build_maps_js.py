@@ -1,35 +1,97 @@
-"""Generate the maps.js media file from the minified map SVGs.
+"""Generate the maps.js media file from per-layer SVG building blocks.
 
-maps.js stores each map SVG exactly once as a JavaScript string. Templates
-inject the relevant SVG into the DOM at render time (via injectMap()), which
-keeps the SVG accessible to the existing CSS/JS (highlighting, zoombox,
-move-to-front) while avoiding duplicating the SVG in every note type template.
+The Makefile renders each layer as its own SVG (build/maps/layers/*.min.svg),
+all sharing the same viewBox (fit-extent=canvas). maps.js stores each layer
+once and injectMap() composes the full SVG for a map from its layers at render
+time, so shared geometry (counties, extra_land) is not duplicated.
 """
 
 import json
+import re
 from pathlib import Path
 
-MAPS = {
-    "cities": "build/maps/cities.min.svg",
-    "counties": "build/maps/counties.min.svg",
-    "regions": "build/maps/regions.min.svg",
-    "bodies_of_water": "build/maps/bodies_of_water.min.svg",
+LAYER_FILES = {
+    "extra_land": "build/maps/layers/extra_land.min.svg",
+    "counties": "build/maps/layers/counties.min.svg",
+    "cities": "build/maps/layers/cities.min.svg",
+    "ring_cities": "build/maps/layers/ring_cities.min.svg",
+    "regions": "build/maps/layers/regions.min.svg",
+    "water": "build/maps/layers/water.min.svg",
+}
+
+# Which layers each map is composed of, in paint order (DOM order).
+MAP_LAYERS = {
+    "cities": ["extra_land", "counties", "cities", "ring_cities"],
+    "counties": ["extra_land", "counties"],
+    "regions": ["extra_land", "regions"],
+    "bodies_of_water": ["water"],
+}
+
+# Root <svg> id used for each map (matches the ids in the old full SVGs).
+MAP_SVG_IDS = {
+    "cities": "map",
+    "counties": "map",
+    "regions": "regions_map",
+    "bodies_of_water": None,
 }
 
 OUTPUT = "build/maps.js"
 
 
+def extract_layer(svg: str, layer_id: str) -> str:
+    match = re.search(
+        r'<g id="' + re.escape(layer_id) + r'"[^>]*>.*?</g>', svg, re.S
+    )
+    if not match:
+        raise ValueError(f"layer {layer_id!r} not found")
+    return match.group(0)
+
+
+def extract_root_attrs(svg: str) -> str:
+    match = re.search(r"<svg\b([^>]*)>", svg)
+    if not match:
+        raise ValueError("root <svg> tag not found")
+    # Remove the id; injectMap sets the per-map id on the composed root.
+    return re.sub(r'\sid="[^"]*"', "", match.group(1)).strip()
+
+
 def main() -> None:
-    data = {name: Path(path).read_text() for name, path in MAPS.items()}
+    layers = {}
+    root_attrs = None
+    for layer_id, path in LAYER_FILES.items():
+        svg = Path(path).read_text()
+        layers[layer_id] = extract_layer(svg, layer_id)
+        if root_attrs is None:
+            root_attrs = extract_root_attrs(svg)
+
     js = (
         "var MAPS = "
-        + json.dumps(data)
+        + json.dumps(layers)
+        + ";\n\n"
+        + "var MAP_LAYERS = "
+        + json.dumps(MAP_LAYERS)
+        + ";\n\n"
+        + "var MAP_SVG_IDS = "
+        + json.dumps(MAP_SVG_IDS)
+        + ";\n\n"
+        + "var SVG_ROOT_ATTRS = "
+        + json.dumps(root_attrs)
         + ";\n\n"
         + "function injectMap(containerId, mapName) {\n"
         + "  var container = document.getElementById(containerId);\n"
-        + "  if (container) {\n"
-        + "    container.innerHTML = MAPS[mapName];\n"
+        + "  if (!container) {\n"
+        + "    return;\n"
         + "  }\n"
+        + "  var layerNames = MAP_LAYERS[mapName];\n"
+        + "  var layers = \"\";\n"
+        + "  for (var i = 0; i < layerNames.length; i++) {\n"
+        + "    layers += MAPS[layerNames[i]];\n"
+        + "  }\n"
+        + "  var idAttr = MAP_SVG_IDS[mapName]\n"
+        + "    ? ' id=\"' + MAP_SVG_IDS[mapName] + '\"'\n"
+        + "    : \"\";\n"
+        + "  container.innerHTML =\n"
+        + "    '<svg ' + SVG_ROOT_ATTRS + idAttr + '>' + layers + '</svg>';\n"
         + "}\n"
     )
     Path(OUTPUT).write_text(js)

@@ -225,8 +225,22 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 # 3. RENDER ASSETS (SVG generation & Optimization)
 # ==============================================================================
 
-build/maps/counties.svg : build/maps/counties.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
-	mkdir -p build/maps
+# Each layer is rendered as its own SVG with a shared viewBox (fit-extent=canvas),
+# so maps.js can compose the full maps from these building blocks at runtime.
+MAP_LAYER_DIR := build/maps/layers
+
+build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canvas.topojson
+	mkdir -p $(MAP_LAYER_DIR)
+	$(MAPSHAPER) \
+		-i build/maps/extra_land.topojson name=extra_land \
+		-i build/maps/canvas.topojson name=canvas \
+		-style target=extra_land fill="#eee" class="extra-land" \
+		-style target=canvas fill-opacity=0 \
+		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+
+build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
+	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-i build/maps/canvas.topojson name=canvas \
@@ -234,13 +248,11 @@ build/maps/counties.svg : build/maps/counties.topojson build/maps/extra_land.top
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		-style target=counties fill="#ffe" stroke="#000" class="land" \
-		-o $@ target=extra_land,counties,canvas format=svg id-field=name
-	sed -i '' 's/<svg /<svg id="map" preserveAspectRatio="xMidYMin meet" /' $@
+		-o $@ target=counties format=svg id-field=name fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/counties.min.svg: build/maps/counties.svg src/svgo.config.js
-	$(SVGO) --config=src/svgo.config.js $< -o $@
-
-build/maps/regions.svg : build/maps/regions.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
+build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
+	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-i build/maps/canvas.topojson name=canvas \
@@ -248,14 +260,25 @@ build/maps/regions.svg : build/maps/regions.topojson build/maps/extra_land.topoj
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		-style target=regions fill="#ffe" stroke="#000" class="land" \
-		-o $@ target=extra_land,regions,canvas format=svg id-field=name
-	sed -i '' 's/<svg /<svg id="regions_map" preserveAspectRatio="xMidYMin meet" /' $@
+		-o $@ target=regions format=svg id-field=name fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
+build/maps/layers/cities.svg build/maps/layers/ring_cities.svg: build/maps/cities.topojson
+	mkdir -p $(MAP_LAYER_DIR)
+	$(MAPSHAPER) \
+		-i build/maps/cities.topojson \
+		-filter true target=cities + name=ring_cities \
+		-style target=canvas fill-opacity=0 \
+		-style target=cities fill="#000" r=7 \
+		-style target=ring_cities fill-opacity=0 stroke="#fff" stroke-width=1 r=4 \
+		-rename-fields target=ring_cities city=name \
+		-o $(MAP_LAYER_DIR)/cities.svg target=cities format=svg id-field=name fit-extent=canvas \
+		-o $(MAP_LAYER_DIR)/ring_cities.svg target=ring_cities format=svg id-field=name svg-data=city fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $(MAP_LAYER_DIR)/cities.svg
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $(MAP_LAYER_DIR)/ring_cities.svg
 
-build/maps/regions.min.svg: build/maps/regions.svg src/svgo.config.js
-	$(SVGO) --config=src/svgo.config.js $< -o $@
-
-build/maps/bodies_of_water.svg : build/maps/bodies_of_water.topojson
+build/maps/layers/water.svg: build/maps/bodies_of_water.topojson
+	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i $< name=water \
 		-style fill="#adf" stroke="#07b" \
@@ -263,30 +286,27 @@ build/maps/bodies_of_water.svg : build/maps/bodies_of_water.topojson
 		-o $@ format=svg id-field=name
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/bodies_of_water.min.svg: build/maps/bodies_of_water.svg src/svgo.config.js
+build/maps/layers/extra_land.min.svg: build/maps/layers/extra_land.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/cities.svg : build/maps/cities.topojson
-	$(MAPSHAPER) \
-		-i build/maps/cities.topojson \
-		-filter true target=cities + name=ring_cities \
-		-style target=extra_land fill="#eee" class="extra-land" \
-		-style target=canvas fill-opacity=0 \
-		-style target=counties fill="#ffe" stroke="#000" class="land" \
-		-style target=cities fill="#000" r=7 \
-		-style target=ring_cities fill-opacity=0 stroke="#fff" stroke-width=1 r=4 \
-		-rename-fields target=ring_cities city=name \
-		-o $@ target=extra_land,counties,cities,ring_cities,canvas format=svg id-field=name svg-data=city
-	sed -i '' 's/<svg /<svg id="map" preserveAspectRatio="xMidYMin meet" /' $@
-
-
-build/maps/cities.min.svg: build/maps/cities.svg src/svgo.config.js
+build/maps/layers/counties.min.svg: build/maps/layers/counties.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
+build/maps/layers/regions.min.svg: build/maps/layers/regions.svg src/svgo.config.js
+	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-# maps.js stores each map SVG once as media (see utils/uk_geog/build_maps_js.py);
-# templates inject the SVG into the DOM at render time instead of inlining it.
-build/maps.js: build/maps/cities.min.svg build/maps/counties.min.svg build/maps/regions.min.svg build/maps/bodies_of_water.min.svg utils/uk_geog/build_maps_js.py
+build/maps/layers/cities.min.svg: build/maps/layers/cities.svg src/svgo.config.js
+	$(SVGO) --config=src/svgo.config.js $< -o $@
+
+build/maps/layers/ring_cities.min.svg: build/maps/layers/ring_cities.svg src/svgo.config.js
+	$(SVGO) --config=src/svgo.config.js $< -o $@
+
+build/maps/layers/water.min.svg: build/maps/layers/water.svg src/svgo.config.js
+	$(SVGO) --config=src/svgo.config.js $< -o $@
+
+# maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
+# templates inject composed maps into the DOM at render time instead of inlining them.
+build/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/ring_cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
 
 # Staging dir; the CrowdAnki recipe copies these into the deck's media folder.
