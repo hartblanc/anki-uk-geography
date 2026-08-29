@@ -27,6 +27,38 @@ To import the deck into anki, you will need the CrowdAnki add-on installed.
 1. Click through the menus 'File > CrowdAnki: Import from disk'
 2. select build/Users/callumhart/repos/anki-uk-geography/build/United Kingdom Geography - Regions Counties and Cities
 
+## Generating screenshots
+
+`make screenshots` renders the stitched dark-mode example grid (City - Map and City - County for Gloucester, BoW - Map for Bristol Channel) to `build/screenshots/dark-mode-grid.png`:
+
+```bash
+make screenshots
+```
+
+To render every card type instead, run the script directly:
+
+```bash
+python utils/uk_geog/generate_screenshots.py
+```
+
+For more control (dark mode, specific cards/sample notes, or a stitched grid), use the script directly:
+
+```bash
+python utils/uk_geog/generate_screenshots.py \
+  --dark \
+  --only "City - Map,City - County,BoW - Map" \
+  --sample "City - Map:City=Gloucester" \
+  --sample "City - County:City=Gloucester" \
+  --sample "BoW - Map:BoW=Bristol Channel" \
+  --stitch build/screenshots/dark-mode-grid.png
+```
+
+Additional dependencies beyond the normal build:
+
+- **Google Chrome** – used in headless mode to render the cards
+- **ImageMagick** (`montage`) – only required for `--stitch` grids
+- **Python 3.9+** – standard library only, no extra packages needed
+
 ## SVG IDs and anki templates
 So how does Anki know which region to highlight on each card? and which colour to
 highlight it? and which cards to generate?
