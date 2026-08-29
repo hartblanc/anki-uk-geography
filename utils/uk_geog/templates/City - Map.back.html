@@ -24,7 +24,9 @@
       // pair would cover it.
       (function () {
         var city = "{{City}}";
-        var cityEl = document.getElementById(city);
+        // Scope to #cities: "City of London" is also a county path id, and
+        // getElementById would return that path instead of the city marker.
+        var cityEl = document.querySelector('[id="cities"] > [id="' + city + '"]');
         if (cityEl && cityEl.parentElement) {
           cityEl.parentElement.appendChild(cityEl);
         }
@@ -40,6 +42,9 @@
       var zoomMap = setupZoombox({
         mapId: "map",
         targetId: "{{City}}",
+        // Disambiguate the city marker from a county path with the same id
+        // (City of London appears in both the counties and cities layers).
+        targetSelector: '[id="cities"] > [id="{{City}}"]',
         current: "{{City}}",
         zoomNames: [
           "Salford",
@@ -53,7 +58,9 @@
       // circles in the clone down so they render at the same on-screen size
       // as the markers on the main map, rather than growing with the zoom.
       if (zoomMap) {
-        var cityCircle = document.getElementById("{{City}}");
+        var cityCircle = document.querySelector(
+          '[id="cities"] > [id="{{City}}"]'
+        );
         var ringCircle = document.querySelector('[data-city="{{City}}"]');
         if (cityCircle && ringCircle) {
           var mainScale = document.getElementById("map").getScreenCTM().a;
