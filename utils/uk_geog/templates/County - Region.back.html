@@ -9,7 +9,9 @@
   }
 </style>
 
-<div id="svg-counties">@[build/maps/counties.min.svg]</div>
+<script src="maps.js"></script>
+<div id="svg-counties"></div>
+<script>injectMap("svg-counties", "counties");</script>
 
 <div id="fitcontent">
   <header>
@@ -22,7 +24,8 @@
     <div class="center">{{MacroLocation}}</div>
   </header>
   <div class="center">
-    @[build/maps/regions.min.svg]
+    <div class="map-slot" id="regions-map"></div>
+    <script>injectMap("regions-map", "regions");</script>
     <script>
       (function () {
         var countyId = "{{County}}";

@@ -13,7 +13,9 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    @[build/maps/counties.min.svg]
+    <div class="map-slot" id="counties-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("counties-map", "counties");</script>
     <script>
     @[utils/uk_geog/snippets/zoombox.js]
     </script>

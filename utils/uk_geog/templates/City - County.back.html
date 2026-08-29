@@ -20,6 +20,10 @@
     <div class="type">County?</div>
     <div class="center">{{MacroLocation}}</div>
   </header>
-  <div class="center">@[build/maps/cities.min.svg]</div>
+  <div class="center">
+    <div class="map-slot" id="cities-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("cities-map", "cities");</script>
+  </div>
 </div>
 @[utils/uk_geog/snippets/highlight_multiple_counties.html]

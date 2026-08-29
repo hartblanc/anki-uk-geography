@@ -8,6 +8,10 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/cities.min.svg]</div>
+  <div class="center">
+    <div class="map-slot" id="cities-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("cities-map", "cities");</script>
+  </div>
 </div>
 {{/City}}

@@ -8,6 +8,10 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/counties.min.svg]</div>
+  <div class="center">
+    <div class="map-slot" id="counties-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("counties-map", "counties");</script>
+  </div>
 </div>
 {{/County}}

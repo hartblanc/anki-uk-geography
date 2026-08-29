@@ -39,6 +39,16 @@ body,
   height: 100%;
 }
 
+/* Maps are injected into a container by maps.js; make the container fill the
+   .center area the same way the inline SVG used to. */
+#fitcontent .map-slot {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 #zoombox {
   display: none;
   position: absolute;

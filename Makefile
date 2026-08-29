@@ -284,6 +284,17 @@ build/maps/cities.min.svg: build/maps/cities.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
 
+# maps.js stores each map SVG once as media (see utils/uk_geog/build_maps_js.py);
+# templates inject the SVG into the DOM at render time instead of inlining it.
+build/maps.js: build/maps/cities.min.svg build/maps/counties.min.svg build/maps/regions.min.svg build/maps/bodies_of_water.min.svg utils/uk_geog/build_maps_js.py
+	python utils/uk_geog/build_maps_js.py
+
+# Staging dir; the CrowdAnki recipe copies these into the deck's media folder.
+build/media/maps.js: build/maps.js
+	mkdir -p build/media
+	cp build/maps.js "$@"
+
+
 # ==============================================================================
 # 4. NOTE TEMPLATE COMPILATION & BRAINBREW DECK GENERATION
 # ==============================================================================
@@ -299,34 +310,34 @@ define COMPILE_TEMPLATE
 	rm "build/resolved_templates/$(1).template.html"
 endef
 
-build/resolved_templates/Region\ -\ Map.html: build/maps/regions.min.svg utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Region\ -\ Map.html: utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Region - Map)
 
-build/resolved_templates/Map\ -\ Region.html: build/maps/regions.min.svg utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ Region.html: utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - Region)
 
-build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/County\ -\ Map.html: utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Map)
 
-build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ County.html: utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - County)
 
-build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ Map.html: utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - Map)
 
-build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ City.html: utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - City)
 
-build/resolved_templates/City\ -\ County.html: build/maps/counties.min.svg build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ County.html: utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - County)
 
-build/resolved_templates/County\ -\ Region.html: build/maps/regions.min.svg build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox.js
+build/resolved_templates/County\ -\ Region.html: utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox.js
 	$(call COMPILE_TEMPLATE,County - Region)
 
-build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Bow - Map)
 
-build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/regions.csv build/counties.csv build/cities.csv build/bodies_of_water.csv src/data/cities.csv src/data/uk_geog.csv
@@ -357,7 +368,8 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/County\ -\ Region.html \
 	build/resolved_templates/City\ -\ County.html \
 	build/resolved_templates/Bow\ -\ Map.html \
-	build/resolved_templates/Map\ -\ BoW.html
+	build/resolved_templates/Map\ -\ BoW.html \
+	build/media/maps.js
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 

@@ -7,10 +7,6 @@
     fill: #07b;
   }
 </style>
-<script>
-  @[utils/uk_geog/snippets/move_to_front.js]
-  moveToFront("{{BoW}}");
-</script>
 
 <div id="fitcontent">
   <header>
@@ -20,6 +16,14 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/bodies_of_water.min.svg]</div>
+  <div class="center">
+    <div class="map-slot" id="bow-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("bow-map", "bodies_of_water");</script>
+    <script>
+    @[utils/uk_geog/snippets/move_to_front.js]
+    moveToFront("{{BoW}}");
+    </script>
+  </div>
 </div>
 {{/BoW}}

@@ -19,7 +19,11 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/cities.min.svg]</div>
+  <div class="center">
+    <div class="map-slot" id="cities-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("cities-map", "cities");</script>
+  </div>
 
   <!-- A bit of a hack because you can't tell the difference between these two pairs by just looking a the map. -->
   <!-- The unfortunate side-effect is that you'll get asked to identify them twice as often. -->

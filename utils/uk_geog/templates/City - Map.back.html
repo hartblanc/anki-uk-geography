@@ -13,7 +13,9 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    @[build/maps/cities.min.svg]
+    <div class="map-slot" id="cities-map"></div>
+    <script src="maps.js"></script>
+    <script>injectMap("cities-map", "cities");</script>
     <script>
       // Keep the highlighted city on top of any city it overlaps. A few city
       // pairs sit almost on top of each other (Salford/Manchester, City of
