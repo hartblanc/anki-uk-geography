@@ -6,7 +6,6 @@ SIMPLIFY_INTERVAL := 100m
 # TODO: update screenshots on in readme/ankihub to account for cities not being hidden on Map - City  - think about a way to automate this.
 # TODO: motorways
 # TODO: more BoWs
-# TODO: see if we can optimise the size of the deck much
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
