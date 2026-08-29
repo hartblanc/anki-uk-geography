@@ -9,6 +9,8 @@
   }
 </style>
 
+<div id="svg-counties">@[build/maps/counties.min.svg]</div>
+
 <div id="fitcontent">
   <header>
     <div class="type">County</div>
@@ -19,24 +21,24 @@
     <div class="type">Region?</div>
     <div class="center">{{MacroLocation}}</div>
   </header>
-  <div class="center">@[build/maps/regions.min.svg]</div>
+  <div class="center">
+    @[build/maps/regions.min.svg]
+    <script>
+      (function () {
+        var countyId = "{{County}}";
+        var countyEl = document.getElementById(countyId);
+        var regionsSvg = document.getElementById("regions_map");
+
+        if (countyEl && regionsSvg) {
+          // Clone and append the county, highlighting it red so that we can see it.
+          var clonedCounty = countyEl.cloneNode(true);
+          // change the ID to avoid any conflicts between counties and regions
+          clonedCounty.id = "selected-county";
+          clonedCounty.style.fill = "#d00";
+          regionsSvg.appendChild(clonedCounty);
+        }
+      })();
+    </script>
+    @[utils/uk_geog/snippets/zoombox_region.html]
+  </div>
 </div>
-<div id="svg-counties">@[build/maps/counties.min.svg]</div>
-
-<script>
-  (function () {
-    var countyId = "{{County}}";
-    var countyEl = document.getElementById(countyId);
-    var regionsSvg = document.getElementById("regions_map");
-
-    if (countyEl && regionsSvg) {
-      // Clone and append the county, highlighting it red so that we can see it.
-      var clonedCounty = countyEl.cloneNode(true);
-      // change the ID to avoid any conflicts between counties and regions
-      clonedCounty.id = "selected-county";
-      clonedCounty.style.fill = "#d00";
-      regionsSvg.appendChild(clonedCounty);
-    }
-  })();
-</script>
-@[utils/uk_geog/snippets/zoombox_region.html]
