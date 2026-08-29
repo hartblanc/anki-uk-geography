@@ -19,7 +19,7 @@ The deck will help you to learn:
 - 16 assorted seas, channels, estuaries, straits and oceans
 
 **Deck Features**
-- The deck is light-weight (<1MB, despite containing hundreds of unique images)
+- The deck is light-weight (~100KB, despite containing hundreds of unique images)
 - All images are Scalable Vector Graphics and therefore scale gracefully to any screen size without distortion (tested on AnkiMobile and MacOS desktop app)
 - A map with relevant areas highlighted is provided for every location
 
