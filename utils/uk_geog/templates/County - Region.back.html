@@ -27,7 +27,7 @@
   (function () {
     var countyId = "{{County}}";
     var countyEl = document.getElementById(countyId);
-    var regionsSvg = document.getElementById("regions").parentNode;
+    var regionsSvg = document.getElementById("regions_map");
 
     if (countyEl && regionsSvg) {
       // Clone and append the county, highlighting it red so that we can see it.
@@ -37,11 +37,6 @@
       clonedCounty.style.fill = "#d00";
       regionsSvg.appendChild(clonedCounty);
     }
-    if (countyId == "City of London") {
-      var ringEl = document.getElementById("ring_city");
-      var clonedRing = ringEl.cloneNode(true);
-      clonedRing.id = "selected-ring";
-      regionsSvg.appendChild(clonedRing);
-    }
   })();
 </script>
+@[utils/uk_geog/snippets/zoombox_region.html]

@@ -2,10 +2,13 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
-# TODO: Sort out details that are too small to distinguish including City of London / City of Westminster, Salford / Manchester, the County of the City of London
 # TODO: sort out janky isle of man boundaries
 # TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
+# TODO: 1. For City of London and City of Westminster the zoombox should include, and be centered on, the whole of Greater London.
+# TODO: 2. For Salford and Manchester the zoombox should include, and be centered on, the whole of Greater Manchester.
+# TODO: 3. The city markers in the zoombox should not appear bigger than on the main map, just normal size.
+
 
 define SPARQL_QUERY
 SELECT DISTINCT ?itemLabel ?location WHERE {
@@ -167,7 +170,7 @@ build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_bounda
 		-clean \
 		-clip regions target=counties \
 		-proj init=EPSG:27700 target=counties \
-		-simplify interval=$(SIMPLIFY_INTERVAL) target=counties \
+		-simplify keep-shapes variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=counties \
 		-o build/maps/counties.topojson target=counties \
 		-o build/counties.csv target=counties
 
@@ -230,18 +233,11 @@ build/maps/counties.svg : build/maps/counties.topojson build/maps/extra_land.top
 		-i build/maps/extra_land.topojson name=extra_land \
 		-i build/maps/canvas.topojson name=canvas \
 		-i build/maps/counties.topojson name=counties \
-		-filter "name == 'City of London'" target=counties + name=city_of_london \
-		-filter "name == 'City of London'" invert target=counties \
-		-points target=city_of_london \
-		-filter true target=city_of_london + name=ring_city \
-		-style target=city_of_london fill="#d00" r=7 \
-		-style target=ring_city fill-opacity=0 stroke="#fff" stroke-width=1 r=4 \
-		-rename-fields target=ring_city city=name \
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		-style target=counties fill="#ffe" stroke="#000" class="land" \
-		-o $@ target=extra_land,counties,canvas,city_of_london,ring_city format=svg id-field=name svg-data=city
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+		-o $@ target=extra_land,counties,canvas format=svg id-field=name
+	sed -i '' 's/<svg /<svg id="map" preserveAspectRatio="xMidYMin meet" /' $@
 
 build/maps/counties.min.svg: build/maps/counties.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
@@ -255,7 +251,7 @@ build/maps/regions.svg : build/maps/regions.topojson build/maps/extra_land.topoj
 		-style target=canvas fill-opacity=0 \
 		-style target=regions fill="#ffe" stroke="#000" class="land" \
 		-o $@ target=extra_land,regions,canvas format=svg id-field=name
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed -i '' 's/<svg /<svg id="regions_map" preserveAspectRatio="xMidYMin meet" /' $@
 
 
 build/maps/regions.min.svg: build/maps/regions.svg src/svgo.config.js
@@ -283,7 +279,7 @@ build/maps/cities.svg : build/maps/cities.topojson
 		-style target=ring_cities fill-opacity=0 stroke="#fff" stroke-width=1 r=4 \
 		-rename-fields target=ring_cities city=name \
 		-o $@ target=extra_land,counties,cities,ring_cities,canvas format=svg id-field=name svg-data=city
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed -i '' 's/<svg /<svg id="map" preserveAspectRatio="xMidYMin meet" /' $@
 
 
 build/maps/cities.min.svg: build/maps/cities.svg src/svgo.config.js
@@ -311,22 +307,22 @@ build/resolved_templates/Region\ -\ Map.html: build/maps/regions.min.svg utils/u
 build/resolved_templates/Map\ -\ Region.html: build/maps/regions.min.svg utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - Region)
 
-build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Map)
 
-build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox_optional.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - County)
 
-build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox_city.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - Map)
 
-build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/snippets/zoombox_city.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - City)
 
 build/resolved_templates/City\ -\ County.html: build/maps/counties.min.svg build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - County)
 
-build/resolved_templates/County\ -\ Region.html: build/maps/regions.min.svg build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/snippets/zoombox_optional.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/County\ -\ Region.html: build/maps/regions.min.svg build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox_region.html
 	$(call COMPILE_TEMPLATE,County - Region)
 
 build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/build_note_templates.py

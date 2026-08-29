@@ -2,12 +2,6 @@
   [id="{{County}}"] {
     fill: #d00;
   }
-  #city_of_london > :not(circle[id="{{County}}"]) {
-    visibility: hidden;
-  }
-  #ring_city:not([data-city="{{County}}"]) {
-    visibility: hidden;
-  }
 </style>
 <div id="fitcontent">
   <header>
@@ -18,5 +12,8 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/counties.min.svg]</div>
+  <div class="center">
+    @[build/maps/counties.min.svg]
+    @[utils/uk_geog/snippets/zoombox_county.html]
+  </div>
 </div>

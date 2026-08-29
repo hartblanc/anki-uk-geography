@@ -1,0 +1,77 @@
+<svg id="zoombox" viewBox="0 0 800 1159">
+  <use href="#map" xlink:href="#map" width="800" height="1159" />
+</svg>
+<style>
+  #zoombox [id="Salford"],
+  #zoombox [id="Manchester"],
+  #zoombox [id="City of London"],
+  #zoombox [id="City of Westminster"] {
+    visibility: visible;
+    fill: #000;
+  }
+  #zoombox [id="{{City}}"] {
+    fill: #d00;
+  }
+  #zoombox [id="ring_cities"] > circle[data-city="Salford"],
+  #zoombox [id="ring_cities"] > circle[data-city="Manchester"],
+  #zoombox [id="ring_cities"] > circle[data-city="City of London"],
+  #zoombox [id="ring_cities"] > circle[data-city="City of Westminster"] {
+    visibility: visible;
+  }
+</style>
+<script>
+  (function () {
+    var zoomCities = [
+      "Salford",
+      "Manchester",
+      "City of London",
+      "City of Westminster",
+    ];
+    var currentCity = "{{City}}";
+    if (zoomCities.indexOf(currentCity) !== -1) {
+      var targetEl = document.getElementById(currentCity);
+      var zoombox = document.getElementById("zoombox");
+      var mapSvg = document.getElementById("map");
+      if (targetEl && zoombox && mapSvg) {
+        // Move active city circle and its ring to front so it renders cleanly on top of its twin
+        if (targetEl.parentElement) {
+          targetEl.parentElement.appendChild(targetEl);
+        }
+        var ringEl = document.querySelector(
+          '[data-city="' + currentCity + '"]',
+        );
+        if (ringEl && ringEl.parentElement) {
+          ringEl.parentElement.appendChild(ringEl);
+        }
+
+        zoombox.style.display = "block";
+        var bbox = targetEl.getBBox();
+        var centerX = bbox.x + bbox.width / 2;
+        var centerY = bbox.y + bbox.height / 2;
+        var zsize = 40;
+        zoombox.setAttribute(
+          "viewBox",
+          centerX -
+            zsize / 2 +
+            " " +
+            (centerY - zsize / 2) +
+            " " +
+            zsize +
+            " " +
+            zsize,
+        );
+
+        var rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        rect.setAttribute("class", "zoom-indicator");
+        rect.setAttribute("x", centerX - zsize / 2);
+        rect.setAttribute("y", centerY - zsize / 2);
+        rect.setAttribute("width", zsize);
+        rect.setAttribute("height", zsize);
+        mapSvg.appendChild(rect);
+      }
+    }
+  })();
+</script>

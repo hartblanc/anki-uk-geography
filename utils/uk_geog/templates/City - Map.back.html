@@ -1,10 +1,4 @@
 <style>
-  [id="cities"] > :not([id="{{City}}"]) {
-    visibility: hidden;
-  }
-  [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
-    visibility: hidden;
-  }
   [id="{{City}}"] {
     fill: #d00;
   }
@@ -18,5 +12,8 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">@[build/maps/cities.min.svg]</div>
+  <div class="center">
+    @[build/maps/cities.min.svg]
+    @[utils/uk_geog/snippets/zoombox_city.html]
+  </div>
 </div>
