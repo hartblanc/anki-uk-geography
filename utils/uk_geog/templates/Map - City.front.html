@@ -6,7 +6,7 @@
   [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
     visibility: hidden;
   }
-  [id="{{City}}"] {
+  [id="cities"] > [id="{{City}}"] {
     fill: #d00;
   }
 </style>
@@ -19,8 +19,6 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">
-    @[build/maps/cities.min.svg]
-  </div>
+  <div class="center">@[build/maps/cities.min.svg]</div>
 </div>
 {{/City}}

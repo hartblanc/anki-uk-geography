@@ -2,7 +2,6 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
-# TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 # TODO: 1. For City of London and City of Westminster the zoombox should include, and be centered on, the whole of Greater London.
 # TODO: 2. For Salford and Manchester the zoombox should include, and be centered on, the whole of Greater Manchester.

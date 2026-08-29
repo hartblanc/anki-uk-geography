@@ -5,7 +5,7 @@
   [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
     visibility: hidden;
   }
-  [id="{{City}}"] {
+  [id="cities"] > [id="{{City}}"] {
     fill: #d00;
   }
 </style>
@@ -19,27 +19,26 @@
 
     <div class="type">Location on the map</div>
   </header>
-  <div class="center">
-    @[build/maps/cities.min.svg]
-</div>
+  <div class="center">@[build/maps/cities.min.svg]</div>
 
-<!-- A bit of a hack because you can't tell the difference between these two pairs by just looking a the map. -->
-<!-- The unfortunate side-effect is that you'll get asked to identify them twice as often. -->
-<!-- will sort this out at some point when the zoombox is a little better -->
-<script>
-  var cityAnswer = document.getElementById("city-answer");
-  if (cityAnswer) {
-    if (cityAnswer.textContent == "City of London") {
-      cityAnswer.textContent = "City of London + City of Westminster";
+  <!-- A bit of a hack because you can't tell the difference between these two pairs by just looking a the map. -->
+  <!-- The unfortunate side-effect is that you'll get asked to identify them twice as often. -->
+  <!-- will sort this out at some point when the zoombox is a little better -->
+  <script>
+    var cityAnswer = document.getElementById("city-answer");
+    if (cityAnswer) {
+      if (cityAnswer.textContent == "City of London") {
+        cityAnswer.textContent = "City of London + City of Westminster";
+      }
+      if (cityAnswer.textContent == "City of Westminster") {
+        cityAnswer.textContent = "City of London + City of Westminster";
+      }
+      if (cityAnswer.textContent == "Manchester") {
+        cityAnswer.textContent = "Manchester + Salford";
+      }
+      if (cityAnswer.textContent == "Salford") {
+        cityAnswer.textContent = "Manchester + Salford";
+      }
     }
-    if (cityAnswer.textContent == "City of Westminster") {
-      cityAnswer.textContent = "City of London + City of Westminster";
-    }
-    if (cityAnswer.textContent == "Manchester") {
-      cityAnswer.textContent = "Manchester + Salford";
-    }
-    if (cityAnswer.textContent == "Salford") {
-      cityAnswer.textContent = "Manchester + Salford";
-    }
-  }
-</script>
+  </script>
+</div>
