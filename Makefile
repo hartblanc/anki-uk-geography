@@ -58,12 +58,21 @@ build/maps/base_27700/n_ire_counties.topojson:
 
 build/maps/base_27700/ni_cities.topojson:
 	mkdir -p build/maps/base_27700
-	echo "name,GEOMETRY_X,GEOMETRY_Y" > build/maps/ni_cities.csv
-	curl 'https://query.wikidata.org/sparql?format=json' --data-urlencode query="$$SPARQL_QUERY" | \
-		jq -r '.results.bindings[] | [.itemLabel.value, .location.value] | @csv' | \
-		sed 's/"//g' | sed -r 's/Point\((.*) (.*)\)/\1,\2/g' >> build/maps/ni_cities.csv
-	$(MAPSHAPER) -i build/maps/ni_cities.csv -points x=GEOMETRY_X y=GEOMETRY_Y -proj init=EPSG:4326 -proj EPSG:27700 -clean -o $@
-	rm build/maps/ni_cities.csv
+	curl -s --data-urlencode 'data=[out:json][timeout:25]; area["ISO3166-2"="GB-NIR"]->.a; node["place"="city"](area.a); out body;' "https://overpass-api.de/api/interpreter" | \
+		jq '{ \
+			type: "FeatureCollection", \
+			features: [.elements[] | { \
+				type: "Feature", \
+				geometry: { type: "Point", coordinates: [.lon, .lat] }, \
+				properties: { name: .tags.name, GEOMETRY_X: .lon, GEOMETRY_Y: .lat } \
+			}] \
+		}' | \
+		$(MAPSHAPER) \
+			-i - \
+			-proj EPSG:27700 \
+			-rename-layers ni_cities \
+			-clean \
+			-o format=topojson $@
 
 build/maps/base_27700/gb_cities.topojson:
 	mkdir -p build/maps/base_27700 build/maps/raw_gb_cities
@@ -198,6 +207,7 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 		-i name=gb_cities build/maps/base_27700/gb_cities.topojson \
 		-each "name = (NAME2_LANG == 'eng') ? NAME2 : NAME1" target=gb_cities \
 		-each "name = (name == 'Bangor') ? 'Bangor (Northern Ireland)' : name " target=ni_cities \
+		-each "name = (name == 'Derry/Londonderry') ? 'Derry' : name " target=ni_cities \
 		-each "name = (name == 'Bangor') ? 'Bangor (Wales)' : name " target=gb_cities \
 		-filter "name != 'London'" target=gb_cities \
 		-i build/maps/counties.topojson \
