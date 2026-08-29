@@ -2,7 +2,6 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 1km
-# TODO: sort out janky isle of man boundaries
 # TODO: 'City Counties' have the County highlighted on the 'Map - City' cards. Make this better.
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 # TODO: 1. For City of London and City of Westminster the zoombox should include, and be centered on, the whole of Greater London.
@@ -37,7 +36,7 @@ build/maps/base_27700/isle_of_man.topojson:
 	mkdir -p build/maps/base_27700
 	echo "hello"
 	curl -L "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/isle-of-man.geojson" | \
-	$(MAPSHAPER) -i - format=geojson -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	$(MAPSHAPER) -i - format=geojson -dissolve -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
 
 build/maps/base_27700/scotland_council_areas.topojson:
 	mkdir -p build/maps/base_27700
