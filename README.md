@@ -25,7 +25,7 @@ The deck will help you to learn:
 
 ## Sample Cards
 
-<img width="990" height="2445" alt="card_previews" src="https://github.com/user-attachments/assets/a4cae084-373b-4fb4-aed7-1f06282b6eaf" />
+<img width="1616" height="3501" alt="dark-mode-grid" src="https://github.com/user-attachments/assets/d1abda4d-9d5b-4201-a352-9790e335f2f9" />
 
 
 ## Acknowledgments
