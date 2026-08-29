@@ -1,4 +1,5 @@
 {{#County}}
+<script src="maps.js"></script>
 <div id="fitcontent">
   <header>
     <div class="type">County</div>
@@ -10,8 +11,22 @@
   </header>
   <div class="center">
     <div class="map-slot" id="counties-map"></div>
-    <script src="maps.js"></script>
-    <script>injectMap("counties-map", "counties");</script>
   </div>
 </div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (typeof injectMap === "function") {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("counties-map", "counties");
+    });
+  })();
+</script>
 {{/County}}

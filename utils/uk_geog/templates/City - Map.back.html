@@ -1,3 +1,5 @@
+<script src="maps.js"></script>
+<script src="zoombox.js"></script>
 <style>
   [id="cities"] > [id="{{City}}"] {
     fill: #d00;
@@ -14,9 +16,26 @@
   </header>
   <div class="center">
     <div class="map-slot" id="cities-map"></div>
-    <script src="maps.js"></script>
-    <script>injectMap("cities-map", "cities");</script>
-    <script>
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+  </div>
+</div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (
+        typeof injectMap === "function" &&
+        typeof setupZoombox === "function"
+      ) {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("cities-map", "cities");
+
       // Keep the highlighted city on top of any city it overlaps. A few city
       // pairs sit almost on top of each other (Salford/Manchester, City of
       // London/City of Westminster). SVG paints in DOM order, so without moving
@@ -35,10 +54,7 @@
           ringEl.parentElement.appendChild(ringEl);
         }
       })();
-    </script>
-    <script src="zoombox.js"></script>
-    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
-    <script>
+
       var zoomMap = setupZoombox({
         mapId: "map",
         targetId: "{{City}}",
@@ -84,6 +100,6 @@
             });
         }
       }
-    </script>
-  </div>
-</div>
+    });
+  })();
+</script>

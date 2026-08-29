@@ -1,3 +1,5 @@
+<script src="maps.js"></script>
+<script src="zoombox.js"></script>
 <style>
   [id="{{County}}"] {
     fill: #d00;
@@ -15,17 +17,32 @@
   </header>
   <div class="center">
     <div class="map-slot" id="counties-map"></div>
-    <script src="maps.js"></script>
-    <script>injectMap("counties-map", "counties");</script>
-    <script src="zoombox.js"></script>
     <svg id="zoombox" viewBox="0 0 800 1159"></svg>
-    <script>
+  </div>
+</div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (
+        typeof injectMap === "function" &&
+        typeof setupZoombox === "function"
+      ) {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("counties-map", "counties");
+
       setupZoombox({
         mapId: "map",
         targetId: "{{County}}",
         current: "{{County}}",
         zoomNames: ["City of London"],
       });
-    </script>
-  </div>
-</div>
+    });
+  })();
+</script>

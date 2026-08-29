@@ -1,4 +1,5 @@
 {{#City}}
+<script src="maps.js"></script>
 <style>
   [id="cities"] > :not([id="{{City}}"]) {
     visibility: hidden;
@@ -21,8 +22,22 @@
   </header>
   <div class="center">
     <div class="map-slot" id="cities-map"></div>
-    <script src="maps.js"></script>
-    <script>injectMap("cities-map", "cities");</script>
   </div>
 </div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (typeof injectMap === "function") {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("cities-map", "cities");
+    });
+  })();
+</script>
 {{/City}}

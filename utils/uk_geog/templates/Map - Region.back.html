@@ -1,3 +1,4 @@
+<script src="maps.js"></script>
 <style>
   [id="{{Region}}"] {
     fill: #d00;
@@ -15,7 +16,21 @@
   </header>
   <div class="center">
     <div class="map-slot" id="regions-map"></div>
-    <script src="maps.js"></script>
-    <script>injectMap("regions-map", "regions");</script>
   </div>
 </div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (typeof injectMap === "function") {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("regions-map", "regions");
+    });
+  })();
+</script>

@@ -1,3 +1,5 @@
+<script src="maps.js"></script>
+<script src="zoombox.js"></script>
 <style>
   [id="{{MacroLocation}}"] {
     fill: #d00;
@@ -9,9 +11,7 @@
   }
 </style>
 
-<script src="maps.js"></script>
 <div id="svg-counties"></div>
-<script>injectMap("svg-counties", "counties");</script>
 
 <div id="fitcontent">
   <header>
@@ -25,8 +25,27 @@
   </header>
   <div class="center">
     <div class="map-slot" id="regions-map"></div>
-    <script>injectMap("regions-map", "regions");</script>
-    <script>
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+  </div>
+</div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (
+        typeof injectMap === "function" &&
+        typeof setupZoombox === "function"
+      ) {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("svg-counties", "counties");
+      injectMap("regions-map", "regions");
+
       (function () {
         var countyId = "{{County}}";
         var countyEl = document.getElementById(countyId);
@@ -41,16 +60,13 @@
           regionsSvg.appendChild(clonedCounty);
         }
       })();
-    </script>
-    <script src="zoombox.js"></script>
-    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
-    <script>
+
       setupZoombox({
         mapId: "regions_map",
         targetId: "selected-county",
         current: "{{County}}",
         zoomNames: ["City of London"],
       });
-    </script>
-  </div>
-</div>
+    });
+  })();
+</script>
