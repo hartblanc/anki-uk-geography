@@ -26,4 +26,12 @@
     <script>injectMap("cities-map", "cities");</script>
   </div>
 </div>
-@[utils/uk_geog/snippets/highlight_multiple_counties.html]
+<script>
+  selectedCountiesNames = "{{MacroLocation}}".split(" / ");
+
+  for (countyName of selectedCountiesNames) {
+    county = document.getElementById(countyName);
+    county.style.fill = "#d00";
+    county.style["fill-opacity"] = 0.5;
+  }
+</script>

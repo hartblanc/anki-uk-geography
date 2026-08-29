@@ -294,6 +294,14 @@ build/media/maps.js: build/maps.js
 	mkdir -p build/media
 	cp build/maps.js "$@"
 
+build/media/zoombox.js: utils/uk_geog/media/zoombox.js
+	mkdir -p build/media
+	cp "$<" "$@"
+
+build/media/move_to_front.js: utils/uk_geog/media/move_to_front.js
+	mkdir -p build/media
+	cp "$<" "$@"
+
 
 # ==============================================================================
 # 4. NOTE TEMPLATE COMPILATION & BRAINBREW DECK GENERATION
@@ -306,38 +314,37 @@ define COMPILE_TEMPLATE
 	echo "--" >> "build/resolved_templates/$(1).template.html"
 	echo "" >> "build/resolved_templates/$(1).template.html"
 	cat "utils/uk_geog/templates/$(1).back.html" >> "build/resolved_templates/$(1).template.html"
-	python utils/uk_geog/build_note_templates.py "build/resolved_templates/$(1).template.html" -o=build/resolved_templates
-	rm "build/resolved_templates/$(1).template.html"
+	mv "build/resolved_templates/$(1).template.html" "build/resolved_templates/$(1).html"
 endef
 
-build/resolved_templates/Region\ -\ Map.html: utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Region\ -\ Map.html: utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html
 	$(call COMPILE_TEMPLATE,Region - Map)
 
-build/resolved_templates/Map\ -\ Region.html: utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ Region.html: utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html
 	$(call COMPILE_TEMPLATE,Map - Region)
 
-build/resolved_templates/County\ -\ Map.html: utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/County\ -\ Map.html: utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html
 	$(call COMPILE_TEMPLATE,County - Map)
 
-build/resolved_templates/Map\ -\ County.html: utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ County.html: utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html
 	$(call COMPILE_TEMPLATE,Map - County)
 
-build/resolved_templates/City\ -\ Map.html: utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ Map.html: utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html
 	$(call COMPILE_TEMPLATE,City - Map)
 
-build/resolved_templates/Map\ -\ City.html: utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ City.html: utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html
 	$(call COMPILE_TEMPLATE,Map - City)
 
-build/resolved_templates/City\ -\ County.html: utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ County.html: utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html
 	$(call COMPILE_TEMPLATE,City - County)
 
-build/resolved_templates/County\ -\ Region.html: utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox.js
+build/resolved_templates/County\ -\ Region.html: utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html
 	$(call COMPILE_TEMPLATE,County - Region)
 
-build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html
 	$(call COMPILE_TEMPLATE,Bow - Map)
 
-build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/regions.csv build/counties.csv build/cities.csv build/bodies_of_water.csv src/data/cities.csv src/data/uk_geog.csv
@@ -369,7 +376,9 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/City\ -\ County.html \
 	build/resolved_templates/Bow\ -\ Map.html \
 	build/resolved_templates/Map\ -\ BoW.html \
-	build/media/maps.js
+	build/media/maps.js \
+	build/media/zoombox.js \
+	build/media/move_to_front.js
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 
