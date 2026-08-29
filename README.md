@@ -28,6 +28,39 @@ The deck will help you to learn:
 <img width="1616" height="3501" alt="dark-mode-grid" src="https://github.com/user-attachments/assets/d1abda4d-9d5b-4201-a352-9790e335f2f9" />
 
 
+## Generating Screenshots
+
+`make screenshots` renders the stitched dark-mode example grid (City - Map and City - County for Gloucester, BoW - Map for Bristol Channel) to `build/screenshots/dark-mode-grid.png`:
+
+```bash
+make screenshots
+```
+
+To render every card type instead, run the script directly:
+
+```bash
+python utils/uk_geog/generate_screenshots.py
+```
+
+For more control (dark mode, specific cards/sample notes, or a stitched grid), use the script directly:
+
+```bash
+python utils/uk_geog/generate_screenshots.py \
+  --dark \
+  --only "City - Map,City - County,BoW - Map" \
+  --sample "City - Map:City=Gloucester" \
+  --sample "City - County:City=Gloucester" \
+  --sample "BoW - Map:BoW=Bristol Channel" \
+  --stitch build/screenshots/dark-mode-grid.png
+```
+
+Additional dependencies beyond the normal build:
+
+- **Google Chrome** – used in headless mode to render the cards
+- **ImageMagick** (`montage`) – only required for `--stitch` grids
+- **Python 3.9+** – standard library only, no extra packages needed
+
+
 ## Acknowledgments
 
 This deck has benefited massively from the excellent work of others including:

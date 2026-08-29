@@ -3,12 +3,20 @@ MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 100m
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
-# TODO: update screenshots on in readme/ankihub to account for cities not being hidden on Map - City  - think about a way to automate this.
 # TODO: motorways
 # TODO: more BoWs
 
-.PHONY: all
+.PHONY: all screenshots
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+
+screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+	python utils/uk_geog/generate_screenshots.py \
+		--dark \
+		--only "City - Map,City - County,BoW - Map" \
+		--sample "City - Map:City=Gloucester" \
+		--sample "City - County:City=Gloucester" \
+		--sample "BoW - Map:BoW=Bristol Channel" \
+		--stitch build/screenshots/dark-mode-grid.png
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
