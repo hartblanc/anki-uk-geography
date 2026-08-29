@@ -263,19 +263,13 @@ build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land
 		-o $@ target=regions format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/cities.svg build/maps/layers/ring_cities.svg: build/maps/cities.topojson
+build/maps/layers/cities.svg: build/maps/cities.topojson
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/cities.topojson \
-		-filter true target=cities + name=ring_cities \
-		-style target=canvas fill-opacity=0 \
 		-style target=cities fill="#000" r=7 \
-		-style target=ring_cities fill-opacity=0 stroke="#fff" stroke-width=1 r=4 \
-		-rename-fields target=ring_cities city=name \
-		-o $(MAP_LAYER_DIR)/cities.svg target=cities format=svg id-field=name fit-extent=canvas \
-		-o $(MAP_LAYER_DIR)/ring_cities.svg target=ring_cities format=svg id-field=name svg-data=city fit-extent=canvas
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $(MAP_LAYER_DIR)/cities.svg
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $(MAP_LAYER_DIR)/ring_cities.svg
+		-o $@ target=cities format=svg id-field=name fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
 build/maps/layers/water.svg: build/maps/bodies_of_water.topojson
 	mkdir -p $(MAP_LAYER_DIR)
@@ -298,15 +292,12 @@ build/maps/layers/regions.min.svg: build/maps/layers/regions.svg src/svgo.config
 build/maps/layers/cities.min.svg: build/maps/layers/cities.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/layers/ring_cities.min.svg: build/maps/layers/ring_cities.svg src/svgo.config.js
-	$(SVGO) --config=src/svgo.config.js $< -o $@
-
 build/maps/layers/water.min.svg: build/maps/layers/water.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
 # maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
 # templates inject composed maps into the DOM at render time instead of inlining them.
-build/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/ring_cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
+build/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
 
 # Staging dir; the CrowdAnki recipe copies these into the deck's media folder.

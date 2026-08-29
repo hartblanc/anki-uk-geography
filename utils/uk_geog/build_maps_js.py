@@ -4,6 +4,9 @@ The Makefile renders each layer as its own SVG (build/maps/layers/*.min.svg),
 all sharing the same viewBox (fit-extent=canvas). maps.js stores each layer
 once and injectMap() composes the full SVG for a map from its layers at render
 time, so shared geometry (counties, extra_land) is not duplicated.
+
+City ring markers are also generated at render time from the city circles,
+so the ring_cities layer doesn't need to be stored as geometry at all.
 """
 
 import json
@@ -14,14 +17,13 @@ LAYER_FILES = {
     "extra_land": "build/maps/layers/extra_land.min.svg",
     "counties": "build/maps/layers/counties.min.svg",
     "cities": "build/maps/layers/cities.min.svg",
-    "ring_cities": "build/maps/layers/ring_cities.min.svg",
     "regions": "build/maps/layers/regions.min.svg",
     "water": "build/maps/layers/water.min.svg",
 }
 
 # Which layers each map is composed of, in paint order (DOM order).
 MAP_LAYERS = {
-    "cities": ["extra_land", "counties", "cities", "ring_cities"],
+    "cities": ["extra_land", "counties", "cities"],
     "counties": ["extra_land", "counties"],
     "regions": ["extra_land", "regions"],
     "bodies_of_water": ["water"],
@@ -77,6 +79,34 @@ def main() -> None:
         + "var SVG_ROOT_ATTRS = "
         + json.dumps(root_attrs)
         + ";\n\n"
+        + "var RING_RADIUS = 4;\n\n"
+        + "function addRingCities(svg) {\n"
+        + "  var citiesGroup = svg.querySelector('[id=\"cities\"]');\n"
+        + "  if (!citiesGroup) {\n"
+        + "    return;\n"
+        + "  }\n"
+        + "  var ringGroup = document.createElementNS(\n"
+        + "    \"http://www.w3.org/2000/svg\",\n"
+        + "    \"g\"\n"
+        + "  );\n"
+        + "  ringGroup.id = \"ring_cities\";\n"
+        + "  ringGroup.setAttribute(\"fill-opacity\", \"0\");\n"
+        + "  ringGroup.setAttribute(\"stroke\", \"#fff\");\n"
+        + "  var cityCircles = citiesGroup.querySelectorAll(\"circle\");\n"
+        + "  for (var i = 0; i < cityCircles.length; i++) {\n"
+        + "    var city = cityCircles[i];\n"
+        + "    var ring = document.createElementNS(\n"
+        + "      \"http://www.w3.org/2000/svg\",\n"
+        + "      \"circle\"\n"
+        + "    );\n"
+        + "    ring.setAttribute(\"data-city\", city.getAttribute(\"id\"));\n"
+        + "    ring.setAttribute(\"cx\", city.getAttribute(\"cx\"));\n"
+        + "    ring.setAttribute(\"cy\", city.getAttribute(\"cy\"));\n"
+        + "    ring.setAttribute(\"r\", RING_RADIUS);\n"
+        + "    ringGroup.appendChild(ring);\n"
+        + "  }\n"
+        + "  svg.appendChild(ringGroup);\n"
+        + "}\n\n"
         + "function injectMap(containerId, mapName) {\n"
         + "  var container = document.getElementById(containerId);\n"
         + "  if (!container) {\n"
@@ -92,6 +122,9 @@ def main() -> None:
         + "    : \"\";\n"
         + "  container.innerHTML =\n"
         + "    '<svg ' + SVG_ROOT_ATTRS + idAttr + '>' + layers + '</svg>';\n"
+        + "  if (mapName === \"cities\") {\n"
+        + "    addRingCities(container.querySelector(\"svg\"));\n"
+        + "  }\n"
         + "}\n"
     )
     Path(OUTPUT).write_text(js)
