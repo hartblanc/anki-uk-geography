@@ -1,0 +1,75 @@
+function setupZoombox(options) {
+  var zoomNames = options.zoomNames;
+  var current = options.current;
+  if (zoomNames.indexOf(current) === -1) {
+    return null;
+  }
+
+  var targetEl = document.getElementById(options.targetId);
+  var zoombox = document.getElementById("zoombox");
+  var mapSvg = document.getElementById(options.mapId);
+  if (!targetEl || !zoombox || !mapSvg) {
+    return null;
+  }
+
+  zoombox.style.display = "block";
+
+  var bbox = targetEl.getBBox();
+  var centerX = bbox.x + bbox.width / 2;
+  var centerY = bbox.y + bbox.height / 2;
+  var zsize = options.zsize || 40;
+
+  // Zoom to the target first so the zoomed viewBox is in place before callers
+  // read the screen scale (getScreenCTM).
+  zoombox.setAttribute(
+    "viewBox",
+    centerX -
+      zsize / 2 +
+      " " +
+      (centerY - zsize / 2) +
+      " " +
+      zsize +
+      " " +
+      zsize
+  );
+
+  // Build the zoombox from a copy of the main map's contents. CSS can't style
+  // <use> clones (and they're static), so we copy the map into the regular DOM
+  // and adjust/draw things there.
+  var zoomMap = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  zoomMap.id = "zoombox-map";
+  var mapChildren = mapSvg.children;
+  for (var i = 0; i < mapChildren.length; i++) {
+    zoomMap.appendChild(mapChildren[i].cloneNode(true));
+  }
+
+  // Draw the red zoom-region outline around the zoombox too, matching the
+  // indicator shown on the main map.
+  var zoomIndicator = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "rect"
+  );
+  zoomIndicator.setAttribute("class", "zoom-indicator");
+  zoomIndicator.setAttribute("x", centerX - zsize / 2);
+  zoomIndicator.setAttribute("y", centerY - zsize / 2);
+  zoomIndicator.setAttribute("width", String(zsize));
+  zoomIndicator.setAttribute("height", String(zsize));
+  zoomMap.appendChild(zoomIndicator);
+
+  while (zoombox.firstChild) {
+    zoombox.removeChild(zoombox.firstChild);
+  }
+  zoombox.appendChild(zoomMap);
+
+  var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("class", "zoom-indicator");
+  rect.setAttribute("x", centerX - zsize / 2);
+  rect.setAttribute("y", centerY - zsize / 2);
+  rect.setAttribute("width", String(zsize));
+  rect.setAttribute("height", String(zsize));
+  mapSvg.appendChild(rect);
+
+  // Return the clone so callers can apply any card-type-specific adjustments
+  // (e.g. city marker sizing) after the generic zoombox is set up.
+  return zoomMap;
+}

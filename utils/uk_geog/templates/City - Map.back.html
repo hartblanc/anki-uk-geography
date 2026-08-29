@@ -14,6 +14,69 @@
   </header>
   <div class="center">
     @[build/maps/cities.min.svg]
-    @[utils/uk_geog/snippets/zoombox_city.html]
+    <script>
+      // Keep the highlighted city on top of any city it overlaps. A few city
+      // pairs sit almost on top of each other (Salford/Manchester, City of
+      // London/City of Westminster). SVG paints in DOM order, so without moving
+      // the highlighted city to the end of its group, the other member of the
+      // pair would cover it.
+      (function () {
+        var city = "{{City}}";
+        var cityEl = document.getElementById(city);
+        if (cityEl && cityEl.parentElement) {
+          cityEl.parentElement.appendChild(cityEl);
+        }
+        var ringEl = document.querySelector('[data-city="' + city + '"]');
+        if (ringEl && ringEl.parentElement) {
+          ringEl.parentElement.appendChild(ringEl);
+        }
+      })();
+    </script>
+    <script>
+      @[utils/uk_geog/snippets/zoombox.js]
+    </script>
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+    <script>
+      var zoomMap = setupZoombox({
+        mapId: "map",
+        targetId: "{{City}}",
+        current: "{{City}}",
+        zoomNames: [
+          "Salford",
+          "Manchester",
+          "City of London",
+          "City of Westminster",
+        ],
+      });
+
+      // The zoombox shows a magnified slice of the map; scale the marker
+      // circles in the clone down so they render at the same on-screen size
+      // as the markers on the main map, rather than growing with the zoom.
+      if (zoomMap) {
+        var cityCircle = document.getElementById("{{City}}");
+        var ringCircle = document.querySelector('[data-city="{{City}}"]');
+        if (cityCircle && ringCircle) {
+          var mainScale = document.getElementById("map").getScreenCTM().a;
+          var zoomScale = document.getElementById("zoombox").getScreenCTM().a;
+          var markerScale = mainScale / zoomScale;
+          var markerR = parseFloat(cityCircle.getAttribute("r")) * markerScale;
+          var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
+          var ringStrokeWidth =
+            parseFloat(getComputedStyle(ringCircle).strokeWidth) * markerScale;
+
+          zoomMap
+            .querySelectorAll('[id="cities"] circle')
+            .forEach(function (circle) {
+              circle.setAttribute("r", markerR);
+            });
+          zoomMap
+            .querySelectorAll('[id="ring_cities"] circle')
+            .forEach(function (circle) {
+              circle.setAttribute("r", ringR);
+              circle.setAttribute("stroke-width", ringStrokeWidth);
+            });
+        }
+      }
+    </script>
   </div>
 </div>

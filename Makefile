@@ -305,22 +305,22 @@ build/resolved_templates/Region\ -\ Map.html: build/maps/regions.min.svg utils/u
 build/resolved_templates/Map\ -\ Region.html: build/maps/regions.min.svg utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - Region)
 
-build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Map)
 
-build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/snippets/zoombox_county.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - County)
 
-build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox_city.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - Map)
 
-build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/snippets/zoombox_city.html utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - City)
 
 build/resolved_templates/City\ -\ County.html: build/maps/counties.min.svg build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/snippets/highlight_multiple_counties.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - County)
 
-build/resolved_templates/County\ -\ Region.html: build/maps/regions.min.svg build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox_region.html
+build/resolved_templates/County\ -\ Region.html: build/maps/regions.min.svg build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/build_note_templates.py utils/uk_geog/snippets/zoombox.js
 	$(call COMPILE_TEMPLATE,County - Region)
 
 build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/build_note_templates.py

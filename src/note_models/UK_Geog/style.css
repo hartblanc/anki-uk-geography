@@ -72,10 +72,6 @@ body,
   pointer-events: none;
 }
 
-#zoombox .zoom-indicator {
-  display: none;
-}
-
 .land {
   paint-order: stroke fill;
 }

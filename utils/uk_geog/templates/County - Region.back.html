@@ -39,6 +39,17 @@
         }
       })();
     </script>
-    @[utils/uk_geog/snippets/zoombox_region.html]
+    <script>
+    @[utils/uk_geog/snippets/zoombox.js]
+    </script>
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+    <script>
+      setupZoombox({
+        mapId: "regions_map",
+        targetId: "selected-county",
+        current: "{{County}}",
+        zoomNames: ["City of London"],
+      });
+    </script>
   </div>
 </div>
