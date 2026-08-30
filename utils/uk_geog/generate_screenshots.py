@@ -42,7 +42,7 @@ DEFAULT_DECK = (
 DEFAULT_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 DEFAULT_OUT = REPO_ROOT / "build" / "screenshots"
 MEDIA_DIR = REPO_ROOT / "build" / "media"
-MEDIA_FILES = ["maps.js", "zoombox.js", "move_to_front.js"]
+MEDIA_FILES = ["_maps.js", "_zoombox.js", "_move_to_front.js"]
 VIEWPORT = (800, 1159)
 
 # Fields that must be populated for each template to produce a meaningful card.

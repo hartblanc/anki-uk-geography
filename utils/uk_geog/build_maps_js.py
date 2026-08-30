@@ -1,7 +1,7 @@
-"""Generate the maps.js media file from per-layer SVG building blocks.
+"""Generate the _maps.js media file from per-layer SVG building blocks.
 
 The Makefile renders each layer as its own SVG (build/maps/layers/*.min.svg),
-all sharing the same viewBox (fit-extent=canvas). maps.js stores each layer
+all sharing the same viewBox (fit-extent=canvas). _maps.js stores each layer
 once and injectMap() composes the full SVG for a map from its layers at render
 time, so shared geometry (counties, extra_land) is not duplicated.
 
@@ -37,7 +37,7 @@ MAP_SVG_IDS = {
     "bodies_of_water": None,
 }
 
-OUTPUT = "build/media/maps.js"
+OUTPUT = "build/media/_maps.js"
 
 
 def extract_layer(svg: str, layer_id: str) -> str:

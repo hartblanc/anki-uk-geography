@@ -39,7 +39,7 @@ body,
   height: 100%;
 }
 
-/* Maps are injected into a container by maps.js; make the container fill the
+/* Maps are injected into a container by _maps.js; make the container fill the
    .center area the same way the inline SVG used to. */
 #fitcontent .map-slot {
   width: 100%;

@@ -223,7 +223,7 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 # ==============================================================================
 
 # Each layer is rendered as its own SVG with a shared viewBox (fit-extent=canvas),
-# so maps.js can compose the full maps from these building blocks at runtime.
+# so _maps.js can compose the full maps from these building blocks at runtime.
 MAP_LAYER_DIR := build/maps/layers
 
 build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canvas.topojson
@@ -292,16 +292,16 @@ build/maps/layers/cities.min.svg: build/maps/layers/cities.svg src/svgo.config.j
 build/maps/layers/water.min.svg: build/maps/layers/water.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-# maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
+# _maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
 # templates inject composed maps into the DOM at render time instead of inlining them.
-build/media/maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
+build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
 
-build/media/zoombox.js: utils/uk_geog/media/zoombox.js
+build/media/_zoombox.js: utils/uk_geog/media/_zoombox.js
 	mkdir -p build/media
 	cp "$<" "$@"
 
-build/media/move_to_front.js: utils/uk_geog/media/move_to_front.js
+build/media/_move_to_front.js: utils/uk_geog/media/_move_to_front.js
 	mkdir -p build/media
 	cp "$<" "$@"
 
@@ -379,9 +379,9 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/City\ -\ County.html \
 	build/resolved_templates/Bow\ -\ Map.html \
 	build/resolved_templates/Map\ -\ BoW.html \
-	build/media/maps.js \
-	build/media/zoombox.js \
-	build/media/move_to_front.js
+	build/media/_maps.js \
+	build/media/_zoombox.js \
+	build/media/_move_to_front.js
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 
