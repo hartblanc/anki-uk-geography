@@ -73,6 +73,8 @@
       // The zoombox shows a magnified slice of the map; scale the marker
       // circles in the clone down so they render at the same on-screen size
       // as the markers on the main map, rather than growing with the zoom.
+      // setupZoombox has already scaled stroke widths (county borders, ring
+      // strokes) generically.
       if (zoomMap) {
         var cityCircle = document.querySelector(
           '[id="cities"] > [id="{{City}}"]'
@@ -84,8 +86,6 @@
           var markerScale = mainScale / zoomScale;
           var markerR = parseFloat(cityCircle.getAttribute("r")) * markerScale;
           var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
-          var ringStrokeWidth =
-            parseFloat(getComputedStyle(ringCircle).strokeWidth) * markerScale;
 
           zoomMap
             .querySelectorAll('[id="cities"] circle')
@@ -96,7 +96,6 @@
             .querySelectorAll('[id="ring_cities"] circle')
             .forEach(function (circle) {
               circle.setAttribute("r", ringR);
-              circle.setAttribute("stroke-width", ringStrokeWidth);
             });
         }
       }

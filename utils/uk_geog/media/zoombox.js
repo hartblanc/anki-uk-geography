@@ -74,6 +74,27 @@ function setupZoombox(options) {
   rect.setAttribute("height", String(zsize));
   mapSvg.appendChild(rect);
 
+  // The zoombox magnifies the map, so every SVG stroke (county borders,
+  // coast outlines, ring circles) would otherwise appear thicker than on the
+  // main map. Scale stroke widths by the ratio of the screen scales so they
+  // keep the same on-screen thickness. The red .zoom-indicator rectangles are
+  // UI overlays and should keep their normal stroke width.
+  var mainScale = mapSvg.getScreenCTM().a;
+  var zoomScale = zoombox.getScreenCTM().a;
+  var strokeScale = mainScale / zoomScale;
+  zoomMap
+    .querySelectorAll("path, circle, rect, line, polyline, polygon")
+    .forEach(function (el) {
+      if (el.getAttribute("class") === "zoom-indicator") {
+        return;
+      }
+      var strokeWidth = parseFloat(el.getAttribute("stroke-width"));
+      if (isNaN(strokeWidth)) {
+        strokeWidth = 1;
+      }
+      el.setAttribute("stroke-width", String(strokeWidth * strokeScale));
+    });
+
   // Return the clone so callers can apply any card-type-specific adjustments
   // (e.g. city marker sizing) after the generic zoombox is set up.
   return zoomMap;
