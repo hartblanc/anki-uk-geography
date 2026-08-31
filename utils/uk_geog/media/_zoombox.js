@@ -12,12 +12,35 @@ function setupZoombox(options) {
     return null;
   }
 
+  var bbox = targetEl.getBBox();
+  var zsize = options.zsize || 40;
+
+  if (options.autoSize) {
+    // Show the zoombox only for targets that are small enough to benefit from
+    // magnification (e.g. short motorways); large targets are already visible.
+    var mapBBox = mapSvg.getBBox();
+    var vb = mapSvg.viewBox;
+    var mapWidth = vb && vb.baseVal ? vb.baseVal.width : mapBBox.width;
+    var mapHeight = vb && vb.baseVal ? vb.baseVal.height : mapBBox.height;
+    var mapArea = mapWidth * mapHeight;
+    var bboxArea = bbox.width * bbox.height;
+    var maxMapSide = Math.max(mapWidth, mapHeight);
+    var maxTargetSide = Math.max(bbox.width, bbox.height);
+    if (
+      mapArea === 0 ||
+      bboxArea / mapArea > 0.12 ||
+      maxTargetSide > maxMapSide * 0.15
+    ) {
+      return null;
+    }
+    // Size the inset to the target's bounding box.
+    zsize = maxTargetSide * 2 + 40;
+  }
+
   zoombox.style.display = "block";
 
-  var bbox = targetEl.getBBox();
   var centerX = bbox.x + bbox.width / 2;
   var centerY = bbox.y + bbox.height / 2;
-  var zsize = options.zsize || 40;
 
   // Zoom to the target first so the zoomed viewBox is in place before callers
   // read the screen scale (getScreenCTM).

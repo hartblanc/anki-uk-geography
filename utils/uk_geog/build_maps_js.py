@@ -18,7 +18,7 @@ from pathlib import Path
 # Layer names match both the SVG group ids and the layer file names
 # (e.g. the county layer lives in build/maps/layers/county.min.svg).
 LAYER_DIR = "build/maps/layers"
-LAYER_NAMES = ["extra_land", "county", "city", "region", "bow"]
+LAYER_NAMES = ["extra_land", "county", "city", "region", "bow", "motorways"]
 
 # Which layers each map is composed of, in paint order (DOM order).
 MAP_LAYERS = {
@@ -26,6 +26,7 @@ MAP_LAYERS = {
     "counties": ["extra_land", "county"],
     "regions": ["extra_land", "region"],
     "bodies_of_water": ["bow"],
+    "motorways": ["extra_land", "county", "motorways"],
 }
 
 # Element ids are namespaced by layer so a place name shared between layers
@@ -39,6 +40,7 @@ MAP_SVG_IDS = {
     "counties": "map",
     "regions": "regions_map",
     "bodies_of_water": None,
+    "motorways": "map",
 }
 
 # Radius of the white ring drawn around each city marker.

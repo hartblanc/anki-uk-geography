@@ -1,0 +1,58 @@
+<script src="_maps.js"></script>
+<script src="_zoombox.js"></script>
+<style>
+  [id="motorways"] path {
+    fill: none;
+    stroke: #0072bc;
+    stroke-width: 2.5;
+  }
+  [id="motorways"] > :not([id="{{Motorway}}"]) {
+    visibility: hidden;
+  }
+  [id="motorways"] > [id="{{Motorway}}"] {
+    stroke: #d00;
+    stroke-width: 3;
+  }
+</style>
+
+<div id="fitcontent">
+  <header>
+    <div class="type">Motorway?</div>
+    <div class="center">{{Motorway}}</div>
+
+    <hr />
+
+    <div class="type">Location on the map</div>
+  </header>
+  <div class="center">
+    <div class="map-slot" id="motorways-map"></div>
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+  </div>
+</div>
+<script>
+  (function () {
+    function whenReady(fn) {
+      if (
+        typeof injectMap === "function" &&
+        typeof setupZoombox === "function"
+      ) {
+        fn();
+      } else {
+        setTimeout(function () {
+          whenReady(fn);
+        }, 10);
+      }
+    }
+    whenReady(function () {
+      injectMap("motorways-map", "motorways");
+
+      setupZoombox({
+        mapId: "map",
+        targetId: "{{Motorway}}",
+        current: "{{Motorway}}",
+        zoomNames: ["{{Motorway}}"],
+        autoSize: true,
+      });
+    });
+  })();
+</script>

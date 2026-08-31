@@ -21,10 +21,12 @@ all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.js
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
 		--dark \
-		--only "City - Map,City - County,BoW - Map" \
+		--only "City - Map,City - County,BoW - Map,Motorway - Map,Map - Motorway" \
 		--sample "City - Map:City=Gloucester" \
 		--sample "City - County:City=Gloucester" \
 		--sample "BoW - Map:BoW=Bristol Channel" \
+		--sample "Motorway - Map:Motorway=M1" \
+		--sample "Map - Motorway:Motorway=M53" \
 		--stitch build/screenshots/dark-mode-grid.png
 
 # ==============================================================================
@@ -143,6 +145,42 @@ build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
 	mkdir -p $(@D)
 	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
+# OS Open Roads is only published as one full-GB Shapefile download; the public
+# OS Downloads API has no tile-level or filtered endpoint for this product.
+# The raw zip is cached here, so the large transfer only happens on a clean rebuild.
+build/maps/raw/open_roads.zip:
+	mkdir -p $(@D)
+	curl -L 'https://api.os.uk/downloads/v1/products/OpenRoads/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect' -o $@
+
+build/maps/base_27700/open_roads_motorways.topojson: build/maps/raw/open_roads.zip
+	rm -rf build/maps/.tmp/open_roads
+	mkdir -p $(@D) build/maps/.tmp/open_roads
+	bsdtar -xf $< -C build/maps/.tmp/open_roads --include='data/*_RoadLink.shp' --include='data/*_RoadLink.dbf' --include='data/*_RoadLink.prj' --include='data/*_RoadLink.shx'
+	$(MAPSHAPER) -i build/maps/.tmp/open_roads/data/*_RoadLink.shp combine-files \
+		-filter 'd.class == "Motorway"' \
+		-each 'name=roadNumber' \
+		-merge-layers name=open_roads_motorways force \
+		-filter-fields name \
+		-proj EPSG:27700 \
+		-o $@
+	rm -rf build/maps/.tmp/open_roads
+
+# DfI Roads Highway Network provides NI motorway geometry plus a Section_Code
+# that encodes the route number (e.g. 7060M0001_01 -> M1, 7035M0008_02 -> A8(M)).
+# It is published on OpenDataNI under the UK Open Government Licence.
+build/maps/raw/dfi_motorways.geojson:
+	mkdir -p $(@D)
+	curl -L -A 'Mozilla/5.0' 'https://services1.arcgis.com/i8LHQZrSk9zIffRU/arcgis/rest/services/DFI_Road_Network/FeatureServer/0/query?where=CLASS_NAME%3D%27Motorway%27&outFields=Section_Code%2CSECTION_NA%2CCLASS_NAME&returnGeometry=true&outSR=4326&f=geojson' -o $@
+
+build/maps/base_27700/ni_motorways.topojson: build/maps/raw/dfi_motorways.geojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< \
+		-filter 'CLASS_NAME == "Motorway"' \
+		-each 'm = Section_Code.match(/M(\d+)_/); n = m ? parseInt(m[1], 10) : 0; name = n === 8 ? "A8(M)" : "M" + n' \
+		-dissolve fields=name \
+		-proj EPSG:27700 \
+		-o $@
+
 # ==============================================================================
 # 2. DOWNSTREAM GEOPROCESSING
 #    From here on we should be able to assume everything is EPSG:27700
@@ -258,6 +296,21 @@ build/maps/city.topojson build/city.csv: build/maps/base_27700/ni_cities.topojso
 		-o build/maps/city.topojson target=city,county,canvas,extra_land \
 		-o build/city.csv target=city
 
+build/maps/motorways.topojson build/motorways.csv: build/maps/base_27700/open_roads_motorways.topojson build/maps/base_27700/ni_motorways.topojson
+	mkdir -p build/maps
+	$(MAPSHAPER) \
+		-i name=gb build/maps/base_27700/open_roads_motorways.topojson -each 'length_factor=1' target=gb \
+		-i name=ni build/maps/base_27700/ni_motorways.topojson -each 'length_factor=0.5' target=ni \
+		-each "if (['M1','M2','M3','M5'].indexOf(name) > -1) name = name + ' (Northern Ireland)'" target=ni \
+		-merge-layers name=motorways target=gb,ni force \
+		-filter 'name && name.length > 0' target=motorways \
+		-each "if (name == 'M6 TOLL') name = 'M6 Toll'" target=motorways \
+		-each 'eff_len = this.length * length_factor' target=motorways \
+		-dissolve fields=name sum-fields=eff_len target=motorways \
+		-filter 'eff_len >= 50000' target=motorways \
+		-filter-fields name target=motorways \
+		-o build/maps/motorways.topojson target=motorways \
+		-o build/motorways.csv target=motorways
 
 # ==============================================================================
 # 3. RENDER ASSETS (SVG generation & Optimization)
@@ -348,9 +401,26 @@ build/maps/layers/city.min.svg: build/maps/layers/city.svg src/svgo.config.js
 build/maps/layers/bow.min.svg: build/maps/layers/bow.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
+build/maps/layers/motorways.svg: build/maps/motorways.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
+	mkdir -p $(MAP_LAYER_DIR)
+	$(MAPSHAPER) \
+		-i build/maps/extra_land.topojson name=extra_land \
+		-i build/maps/canvas.topojson name=canvas \
+		-i build/maps/motorways.topojson name=motorways \
+		-style target=extra_land fill="#eee" class="extra-land" \
+		-style target=canvas fill-opacity=0 \
+		-style target=motorways fill=none stroke="#bbb" stroke-width=1 \
+		$(PROJ_INIT) \
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=motorways \
+		-o $@ target=motorways format=svg id-field=name fit-extent=canvas
+	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+
+build/maps/layers/motorways.min.svg: build/maps/layers/motorways.svg src/svgo.config.js
+	$(SVGO) --config=src/svgo.config.js $< -o $@
+
 # _maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
 # templates inject composed maps into the DOM at render time instead of inlining them.
-build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg utils/uk_geog/build_maps_js.py
+build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg build/maps/layers/motorways.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
 
 build/media/_zoombox.js: utils/uk_geog/media/_zoombox.js
@@ -406,12 +476,19 @@ build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.f
 build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
-build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv src/data/city.csv src/data/uk_geog.csv
+build/resolved_templates/Motorway\ -\ Map.html: utils/uk_geog/templates/Motorway\ -\ Map.front.html utils/uk_geog/templates/Motorway\ -\ Map.back.html
+	$(call COMPILE_TEMPLATE,Motorway - Map)
+
+build/resolved_templates/Map\ -\ Motorway.html: utils/uk_geog/templates/Map\ -\ Motorway.front.html utils/uk_geog/templates/Map\ -\ Motorway.back.html
+	$(call COMPILE_TEMPLATE,Map - Motorway)
+
+build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv build/motorways.csv src/data/city.csv src/data/uk_geog.csv
 	python $< \
 		build/region.csv \
 		build/county.csv \
 		build/city.csv \
 		build/bow.csv \
+		build/motorways.csv \
 		src/data/city.csv \
 		$@ \
 		--guids=src/data/uk_geog.csv
@@ -435,6 +512,8 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/City\ -\ County.html \
 	build/resolved_templates/Bow\ -\ Map.html \
 	build/resolved_templates/Map\ -\ BoW.html \
+	build/resolved_templates/Motorway\ -\ Map.html \
+	build/resolved_templates/Map\ -\ Motorway.html \
 	build/media/_maps.js \
 	build/media/_zoombox.js \
 	build/media/_move_to_front.js
