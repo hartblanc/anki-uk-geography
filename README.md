@@ -32,7 +32,7 @@ The deck will help you to learn:
 
 This deck has benefited massively from the excellent work of others including:
 - [Mapshaper](https://github.com/mbloch/mapshaper) for generating the maps.
-- Map data from the various sources in the Makefile
+- Map data from the various sources in the Makefile (see [LICENSES.md](LICENSES.md) for licences and attributions)
 - Knowledge from [Wikipedia](https://www.wikipedia.org/)
 - Open source project structure copied from [Ultimate Geography](https://ankiweb.net/shared/info/2109889812)
 - Ideas from existing Anki decks inclding [Ultimate Geography](https://ankiweb.net/shared/info/2109889812), [Counties of the United Kingdom](https://ankiweb.net/shared/info/1376524951), and [[Vector Maps] The United States of America](https://ankiweb.net/shared/info/1226689493).
