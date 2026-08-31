@@ -6,9 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
+  "dependencies": {
     "mapshaper": "^0.7",
     "svgo": "^4.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.9.0"
   },
   "author": "hartblanc",
   "license": "Unlicense"

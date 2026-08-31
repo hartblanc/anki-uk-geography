@@ -7,7 +7,7 @@ You're in the right place.
 
 1. Install the CrowdAnki add-on in Anki.
 2. Fork and clone this repository on your machine.
-3. Install Node.js (see `.nvmrc` for version) and run `npm install` to install build dependencies.
+3. Install Node.js (see `.nvmrc` for version). Run `npm install` to install everything, including Puppeteer for screenshots. If you only want to build the deck (no screenshots), `npm install --omit=dev` is enough — mapshaper and svgo are regular dependencies, Puppeteer is dev-only.
 4. install python and pipenv.
 5. In the root of the directory, run `pipenv install --dev` to install the python project env.
 6. optionally run `pipenv shell` to activate a new shell in the python environment.
@@ -38,13 +38,13 @@ make screenshots
 To render every card type instead, run the script directly:
 
 ```bash
-python utils/uk_geog/generate_screenshots.py
+node utils/uk_geog/capture_screenshots.js
 ```
 
 For more control (dark mode, specific cards/sample notes, or a stitched grid), use the script directly:
 
 ```bash
-python utils/uk_geog/generate_screenshots.py \
+node utils/uk_geog/capture_screenshots.js \
   --dark \
   --only "City - Map,City - County,BoW - Map" \
   --sample "City - Map:City=Gloucester" \
@@ -55,9 +55,10 @@ python utils/uk_geog/generate_screenshots.py \
 
 Additional dependencies beyond the normal build:
 
-- **Google Chrome** – used in headless mode to render the cards
+- **Puppeteer's bundled Chromium** – installed as a dev dependency by `npm install`; required for `make screenshots`
 - **ImageMagick** (`montage`) – only required for `--stitch` grids
-- **Python 3.9+** – standard library only, no extra packages needed
+
+Note: `make screenshots` needs the dev dependencies, so run `npm install` (not `npm install --omit=dev`) before generating screenshots.
 
 ## SVG IDs and anki templates
 So how does Anki know which region to highlight on each card? and which colour to

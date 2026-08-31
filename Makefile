@@ -19,7 +19,7 @@ PROJ_INIT := -proj init=EPSG:27700 'target=*'
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
-	python utils/uk_geog/generate_screenshots.py \
+	node utils/uk_geog/capture_screenshots.js \
 		--dark \
 		--only "City - Map,City - County,BoW - Map" \
 		--sample "City - Map:City=Gloucester" \
