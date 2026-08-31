@@ -222,7 +222,7 @@ build/maps/bodies_of_water.topojson build/bodies_of_water.csv: build/maps/base_2
 		-filter target=l2 '"23637,".indexOf(mrgid_l2) > -1' \
 		-filter target=l3 '"23647,23649,23728,23729,23731".indexOf(mrgid_l3) > -1' \
 		-filter target=seavox '"24188,24192,24193,24195,24210,24218".indexOf(mrgid_sr) > -1' \
-		-filter target=l4 '"23738,23739,23742,23735".indexOf(mrgid_l4) > -1' \
+		-filter target=l4 '"23735,23737,23738,23739,23740,23741,23742".indexOf(mrgid_l4) > -1' \
 		-each 'mrgid=Number(mrgid_sr)' target=seavox \
 		-each 'mrgid=Number(mrgid_l2)' target=l2 \
 		-each 'mrgid=Number(mrgid_l3)' target=l3 \
