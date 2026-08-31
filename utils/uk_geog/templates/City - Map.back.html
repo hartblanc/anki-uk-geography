@@ -1,7 +1,7 @@
 <script src="_maps.js"></script>
 <script src="_zoombox.js"></script>
 <style>
-  [id="cities"] > [id="{{City}}"] {
+  [id="city-{{City}}"] .city-marker {
     fill: #d00;
   }
 </style>
@@ -42,25 +42,15 @@
       // the highlighted city to the end of its group, the other member of the
       // pair would cover it.
       (function () {
-        var city = "{{City}}";
-        // Scope to #cities: "City of London" is also a county path id, and
-        // getElementById would return that path instead of the city marker.
-        var cityEl = document.querySelector('[id="cities"] > [id="' + city + '"]');
+        var cityEl = document.querySelector('[id="city-{{City}}"]');
         if (cityEl && cityEl.parentElement) {
           cityEl.parentElement.appendChild(cityEl);
-        }
-        var ringEl = document.querySelector('[data-city="' + city + '"]');
-        if (ringEl && ringEl.parentElement) {
-          ringEl.parentElement.appendChild(ringEl);
         }
       })();
 
       var zoomMap = setupZoombox({
         mapId: "map",
-        targetId: "{{City}}",
-        // Disambiguate the city marker from a county path with the same id
-        // (City of London appears in both the counties and cities layers).
-        targetSelector: '[id="cities"] > [id="{{City}}"]',
+        targetId: "city-{{City}}",
         current: "{{City}}",
         zoomNames: [
           "Salford",
@@ -76,10 +66,11 @@
       // setupZoombox has already scaled stroke widths (county borders, ring
       // strokes) generically.
       if (zoomMap) {
-        var cityCircle = document.querySelector(
-          '[id="cities"] > [id="{{City}}"]'
+        var cityGroup = document.querySelector(
+          '[id="city-{{City}}"]'
         );
-        var ringCircle = document.querySelector('[data-city="{{City}}"]');
+        var cityCircle = cityGroup && cityGroup.querySelector(".city-marker");
+        var ringCircle = cityGroup && cityGroup.querySelector(".city-ring");
         if (cityCircle && ringCircle) {
           var mainScale = document.getElementById("map").getScreenCTM().a;
           var zoomScale = document.getElementById("zoombox").getScreenCTM().a;
@@ -88,12 +79,12 @@
           var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
 
           zoomMap
-            .querySelectorAll('[id="cities"] circle')
+            .querySelectorAll('.city-marker')
             .forEach(function (circle) {
               circle.setAttribute("r", markerR);
             });
           zoomMap
-            .querySelectorAll('[id="ring_cities"] circle')
+            .querySelectorAll('.city-ring')
             .forEach(function (circle) {
               circle.setAttribute("r", ringR);
             });

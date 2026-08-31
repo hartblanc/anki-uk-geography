@@ -1,7 +1,7 @@
 <script src="_maps.js"></script>
 <script src="_move_to_front.js"></script>
 <style>
-  [id="{{BoW}}"] {
+  [id="bow-{{BoW}}"] {
     fill: #07b;
   }
 </style>
@@ -35,7 +35,7 @@
     whenReady(function () {
       injectMap("bow-map", "bodies_of_water");
 
-      moveToFront("{{BoW}}");
+      moveToFront("bow-{{BoW}}");
     });
   })();
 </script>

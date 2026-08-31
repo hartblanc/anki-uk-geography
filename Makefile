@@ -169,18 +169,18 @@ build/maps/extra_land.topojson: build/maps/base_27700/natural_earth.topojson bui
 		-clip canvas target=ne \
 		-o $@ target=ne
 
-build/maps/regions.topojson build/regions.csv: build/maps/base_27700/ons_itl1.topojson
+build/maps/region.topojson build/region.csv: build/maps/base_27700/ons_itl1.topojson
 	$(MAPSHAPER) \
-		-i name=itl build/maps/base_27700/ons_itl1.topojson \
-		-filter-fields ITL125NM target=itl \
-		-rename-fields name=ITL125NM target=itl \
-		-each "name = name.replace(' (England)', '')" target=itl \
-		-each "if (name == 'East') name = 'East of England'" target=itl \
-		-each "if (name == 'Yorkshire and The Humber') name = 'Yorkshire and the Humber'" target=itl \
-		-o build/maps/regions.topojson target=itl \
-		-o build/regions.csv target=itl
+		-i name=region build/maps/base_27700/ons_itl1.topojson \
+		-filter-fields ITL125NM target=region \
+		-rename-fields name=ITL125NM target=region \
+		-each "name = name.replace(' (England)', '')" target=region \
+		-each "if (name == 'East') name = 'East of England'" target=region \
+		-each "if (name == 'Yorkshire and The Humber') name = 'Yorkshire and the Humber'" target=region \
+		-o build/maps/region.topojson target=region \
+		-o build/region.csv target=region
 
-build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_boundaries.topojson build/maps/base_27700/n_ire_counties.topojson build/maps/base_27700/scotland_council_areas.topojson build/maps/regions.topojson
+build/maps/county.topojson build/county.csv: build/maps/base_27700/gb_boundaries.topojson build/maps/base_27700/n_ire_counties.topojson build/maps/base_27700/scotland_council_areas.topojson build/maps/region.topojson
 	mkdir -p build/maps
 	$(MAPSHAPER) \
 		-i name=n_ire build/maps/base_27700/n_ire_counties.topojson \
@@ -191,29 +191,29 @@ build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_bounda
 		-join scotland target=england_wales fields=joined min-overlap-pct=0.05 \
 		-filter 'joined !== 1' target=england_wales \
 		-each 'name=NAME' target=england_wales \
-		-i name=regions build/maps/regions.topojson \
-		-rename-fields region_name=name target=regions\
-		-join regions target=england_wales fields=region_name largest-overlap \
-		-merge-layers name=counties target=england_wales,scotland,n_ire force \
-		-filter-fields name,region_name target=counties \
-		-each "if (name == 'West Midlands') name = 'West Midlands (county)'" target=counties \
-		-each "if (name == 'Durham') name = 'County Durham'" target=counties \
-		-each "if (name == 'City and County of the City of London') name = 'City of London'" target=counties \
-		-each "if (name == 'Tyne & Wear') name = 'Tyne and Wear'" target=counties \
-		-each "if (name == 'Aberdeen City') name = 'Aberdeen'" target=counties \
-		-each "if (name == 'Dundee City') name = 'Dundee'" target=counties \
-		-each "if (name == 'City of Edinburgh') name = 'Edinburgh'" target=counties \
-		-each "if (name == 'Glasgow City') name = 'Glasgow'" target=counties \
-		-each "if (name == 'Highland') name = 'Highland (council area)'" target=counties \
-		-each "if (name == 'Stirling') name = 'Stirling (council area)'" target=counties \
-		-each "if (name == 'Gwent') name = 'Gwent (county)'" target=counties \
-		-each "if (name == 'Eilean Siar') name = 'Outer Hebrides'" target=counties \
+		-i name=region build/maps/region.topojson \
+		-rename-fields region_name=name target=region\
+		-join region target=england_wales fields=region_name largest-overlap \
+		-merge-layers name=county target=england_wales,scotland,n_ire force \
+		-filter-fields name,region_name target=county \
+		-each "if (name == 'West Midlands') name = 'West Midlands (county)'" target=county \
+		-each "if (name == 'Durham') name = 'County Durham'" target=county \
+		-each "if (name == 'City and County of the City of London') name = 'City of London'" target=county \
+		-each "if (name == 'Tyne & Wear') name = 'Tyne and Wear'" target=county \
+		-each "if (name == 'Aberdeen City') name = 'Aberdeen'" target=county \
+		-each "if (name == 'Dundee City') name = 'Dundee'" target=county \
+		-each "if (name == 'City of Edinburgh') name = 'Edinburgh'" target=county \
+		-each "if (name == 'Glasgow City') name = 'Glasgow'" target=county \
+		-each "if (name == 'Highland') name = 'Highland (council area)'" target=county \
+		-each "if (name == 'Stirling') name = 'Stirling (council area)'" target=county \
+		-each "if (name == 'Gwent') name = 'Gwent (county)'" target=county \
+		-each "if (name == 'Eilean Siar') name = 'Outer Hebrides'" target=county \
 		-clean \
-		-clip regions target=counties \
-		-o build/maps/counties.topojson target=counties \
-		-o build/counties.csv target=counties
+		-clip region target=county \
+		-o build/maps/county.topojson target=county \
+		-o build/county.csv target=county
 
-build/maps/bodies_of_water.topojson build/bodies_of_water.csv: build/maps/base_27700/seavox.topojson build/maps/uk.topojson build/maps/extra_land.topojson build/maps/canvas.topojson src/data/mrgid_name_mapping.csv
+build/maps/bow.topojson build/bow.csv: build/maps/base_27700/seavox.topojson build/maps/uk.topojson build/maps/extra_land.topojson build/maps/canvas.topojson src/data/mrgid_name_mapping.csv
 	$(MAPSHAPER) \
 		-i build/maps/base_27700/seavox.topojson name=seavox \
 		-dissolve + name=l2 target=seavox mrgid_l2 \
@@ -227,36 +227,36 @@ build/maps/bodies_of_water.topojson build/bodies_of_water.csv: build/maps/base_2
 		-each 'mrgid=Number(mrgid_l2)' target=l2 \
 		-each 'mrgid=Number(mrgid_l3)' target=l3 \
 		-each 'mrgid=Number(mrgid_l4)' target=l4 \
-		-merge-layers force target=l2,l3,l4,seavox name=water \
-		-filter-fields mrgid target=water\
-		-join src/data/mrgid_name_mapping.csv keys=mrgid,mrgid target=water \
+		-merge-layers force target=l2,l3,l4,seavox name=bow \
+		-filter-fields mrgid target=bow\
+		-join src/data/mrgid_name_mapping.csv keys=mrgid,mrgid target=bow \
 		-i build/maps/uk.topojson name=uk \
 		-i build/maps/canvas.topojson name=canvas \
-		-clip canvas target=water \
+		-clip canvas target=bow \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-merge-layers force name=land target=extra_land,uk \
 		$(PROJ_INIT) \
 		-dissolve2 gap-fill-area=1km2 target=land \
-		-erase source=land target=water \
-		-each "if (name == 'St George\'s Channel') name = 'St Georges Channel'" target=water \
-		-o build/maps/bodies_of_water.topojson target=water \
-		-filter-fields name target=water\
-		-o build/bodies_of_water.csv target=water
+		-erase source=land target=bow \
+		-each "if (name == 'St George\'s Channel') name = 'St Georges Channel'" target=bow \
+		-o build/maps/bow.topojson target=bow \
+		-filter-fields name target=bow\
+		-o build/bow.csv target=bow
 
-build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.topojson build/maps/base_27700/gb_cities.topojson build/maps/counties.topojson build/maps/canvas.topojson build/maps/extra_land.topojson
+build/maps/city.topojson build/city.csv: build/maps/base_27700/ni_cities.topojson build/maps/base_27700/gb_cities.topojson build/maps/county.topojson build/maps/canvas.topojson build/maps/extra_land.topojson
 	$(MAPSHAPER) \
 		-i name=ni_cities build/maps/base_27700/ni_cities.topojson \
 		-i name=gb_cities build/maps/base_27700/gb_cities.topojson \
 		-each "name = (NAME2_LANG == 'eng') ? NAME2 : NAME1" target=gb_cities \
 		-each "name = (name == 'Bangor') ? 'Bangor (Wales)' : name " target=gb_cities \
 		-filter "name != 'London'" target=gb_cities \
-		-i build/maps/counties.topojson \
-		-merge-layers name=cities target=ni_cities,gb_cities force \
-		-filter-fields name target=cities \
+		-i build/maps/county.topojson \
+		-merge-layers name=city target=ni_cities,gb_cities force \
+		-filter-fields name target=city \
 		-i name=canvas build/maps/canvas.topojson \
 		-i name=extra_land build/maps/extra_land.topojson \
-		-o build/maps/cities.topojson target=cities,counties,canvas,extra_land \
-		-o build/cities.csv target=cities
+		-o build/maps/city.topojson target=city,county,canvas,extra_land \
+		-o build/city.csv target=city
 
 
 # ==============================================================================
@@ -265,6 +265,9 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 
 # Each layer is rendered as its own SVG with a shared viewBox (fit-extent=canvas),
 # so _maps.js can compose the full maps from these building blocks at runtime.
+# Feature ids are namespaced by layer (county-, city-, region-, bow-) so the
+# same place name in different layers (e.g. Edinburgh is a county and a city)
+# does not produce duplicate ids in a composed map.
 MAP_LAYER_DIR := build/maps/layers
 
 build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
@@ -279,71 +282,75 @@ build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canv
 		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
+build/maps/layers/county.svg: build/maps/county.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-i build/maps/canvas.topojson name=canvas \
-		-i build/maps/counties.topojson name=counties \
+		-i build/maps/county.topojson \
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
-		-style target=counties fill="#ffe" stroke="#000" class="land" \
+		-style target=county fill="#ffe" stroke="#000" class="land" \
 		$(PROJ_INIT) \
-		-simplify variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=counties \
-		-o $@ target=counties format=svg id-field=name fit-extent=canvas
+		-simplify variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=county \
+		-each 'id="county-" + name' target=county \
+		-o $@ target=county format=svg id-field=id fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
+build/maps/layers/region.svg: build/maps/region.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-i build/maps/canvas.topojson name=canvas \
-		-i build/maps/regions.topojson name=regions \
+		-i build/maps/region.topojson \
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
-		-style target=regions fill="#ffe" stroke="#000" class="land" \
+		-style target=region fill="#ffe" stroke="#000" class="land" \
 		$(PROJ_INIT) \
-		-simplify interval=$(SIMPLIFY_INTERVAL) target=regions \
-		-o $@ target=regions format=svg id-field=name fit-extent=canvas
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=region \
+		-each 'id="region-" + name' target=region \
+		-o $@ target=region format=svg id-field=id fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/cities.svg: build/maps/cities.topojson
+build/maps/layers/city.svg: build/maps/city.topojson
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
-		-i build/maps/cities.topojson \
-		-style target=cities fill="#000" r=7 \
-		-o $@ target=cities format=svg id-field=name fit-extent=canvas
+		-i build/maps/city.topojson \
+		-style target=city fill="#000" r=7 \
+		-each 'id="city-" + name' target=city \
+		-o $@ target=city format=svg id-field=id fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/water.svg: build/maps/bodies_of_water.topojson $(SIMPLIFY_STAMP)
+build/maps/layers/bow.svg: build/maps/bow.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
-		-i $< name=water \
+		-i $< \
 		-style fill="#adf" stroke="#07b" \
 		-sort expression=this.area descending \
 		$(PROJ_INIT) \
-		-simplify interval=$(SIMPLIFY_INTERVAL) target=water \
-		-o $@ format=svg id-field=name
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=bow \
+		-each 'id="bow-" + name' target=bow \
+		-o $@ format=svg id-field=id
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
 build/maps/layers/extra_land.min.svg: build/maps/layers/extra_land.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/layers/counties.min.svg: build/maps/layers/counties.svg src/svgo.config.js
+build/maps/layers/county.min.svg: build/maps/layers/county.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/layers/regions.min.svg: build/maps/layers/regions.svg src/svgo.config.js
+build/maps/layers/region.min.svg: build/maps/layers/region.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/layers/cities.min.svg: build/maps/layers/cities.svg src/svgo.config.js
+build/maps/layers/city.min.svg: build/maps/layers/city.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-build/maps/layers/water.min.svg: build/maps/layers/water.svg src/svgo.config.js
+build/maps/layers/bow.min.svg: build/maps/layers/bow.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
 # _maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
 # templates inject composed maps into the DOM at render time instead of inlining them.
-build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/counties.min.svg build/maps/layers/cities.min.svg build/maps/layers/regions.min.svg build/maps/layers/water.min.svg utils/uk_geog/build_maps_js.py
+build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg utils/uk_geog/build_maps_js.py
 	python utils/uk_geog/build_maps_js.py
 
 build/media/_zoombox.js: utils/uk_geog/media/_zoombox.js
@@ -399,13 +406,13 @@ build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.f
 build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
-build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/regions.csv build/counties.csv build/cities.csv build/bodies_of_water.csv src/data/cities.csv src/data/uk_geog.csv
+build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv src/data/city.csv src/data/uk_geog.csv
 	python $< \
-		build/regions.csv \
-		build/counties.csv \
-		build/cities.csv \
-		build/bodies_of_water.csv \
-		src/data/cities.csv \
+		build/region.csv \
+		build/county.csv \
+		build/city.csv \
+		build/bow.csv \
+		src/data/city.csv \
 		$@ \
 		--guids=src/data/uk_geog.csv
 

@@ -1,12 +1,9 @@
 <script src="_maps.js"></script>
 <style>
-  [id="cities"] > :not([id="{{City}}"]) {
+  .city:not([id="city-{{City}}"]) {
     visibility: hidden;
   }
-  [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
-    visibility: hidden;
-  }
-  [id="cities"] > [id="{{City}}"] {
+  [id="city-{{City}}"] .city-marker {
     fill: #d00;
   }
 </style>

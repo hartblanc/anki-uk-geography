@@ -1,7 +1,7 @@
 <script src="_maps.js"></script>
 <script src="_zoombox.js"></script>
 <style>
-  [id="{{County}}"] {
+  [id="county-{{County}}"] {
     fill: #d00;
   }
 </style>
@@ -39,7 +39,7 @@
 
       setupZoombox({
         mapId: "map",
-        targetId: "{{County}}",
+        targetId: "county-{{County}}",
         current: "{{County}}",
         zoomNames: ["City of London"],
       });

@@ -68,12 +68,23 @@ This behaviour is specified in the templates in `src/note_models/**/templates` u
 [conditional replacement](https://docs.ankiweb.net/#/templates/generation?id=conditional-replacement)
 and [template variables](https://docs.ankiweb.net/#/templates/intro?id=card-templates).
 
-Note that the element ids in the SVG typically align with the wikipedia url for counties
-(with "_" replaced with space and quotes removed). This ensures unqiueness, for
-example West Midlands is both a county and a region, and also ensures a reliable
-predictable mapping from cities to counties. For example, the West Midlands county
-has ID **West Midlands (county)** in each svg file in `build/maps/*.svg` because it's
-Wikipedia URL is **https://en.wikipedia.org/wiki/West_Midlands_(county)**
+Element ids in the SVGs are namespaced by layer so the same place name can appear
+in several layers without producing duplicate ids in the composed maps. The id is
+`<layer-prefix>-<name>` where the name typically aligns with the Wikipedia URL for
+counties (with "_" replaced with space and quotes removed). The prefixes are:
+
+- `county-` for the county layer (e.g. `county-West Midlands (county)`)
+- `city-` for the city layer (e.g. `city-Edinburgh`)
+- `region-` for the region layer (e.g. `region-West Midlands`)
+- `bow-` for the body of water layer (e.g. `bow-Bristol Channel`)
+
+This means `county-Edinburgh` (the ceremonial county) and `city-Edinburgh` (the
+city marker) can both exist in the same map, and `getElementById`/CSS id selectors
+always target the intended element. In the city layer each `city-<name>` id is
+on a `<g>` that contains the marker (`.city-marker`) and its white ring
+(`.city-ring`), so templates can move/hide/colour the whole city with one id. The
+templates in `utils/uk_geog/templates` build these prefixed ids from the Anki
+fields.
 
 ## Adding and removing notes - Anki GUIDs
 

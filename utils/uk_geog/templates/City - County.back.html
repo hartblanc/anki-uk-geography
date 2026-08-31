@@ -1,12 +1,9 @@
 <script src="_maps.js"></script>
 <style>
-  [id="cities"] > :not([id="{{City}}"]) {
+  .city:not([id="city-{{City}}"]) {
     visibility: hidden;
   }
-  [id="ring_cities"] > :not(circle[data-city="{{City}}"]) {
-    visibility: hidden;
-  }
-  [id="{{City}}"] {
+  [id="city-{{City}}"] .city-marker {
     fill: #d00;
   }
 </style>
@@ -42,7 +39,7 @@
       var selectedCountiesNames = "{{MacroLocation}}".split(" / ");
 
       for (var i = 0; i < selectedCountiesNames.length; i++) {
-        var county = document.getElementById(selectedCountiesNames[i]);
+        var county = document.getElementById("county-" + selectedCountiesNames[i]);
         county.style.fill = "#d00";
         county.style["fill-opacity"] = 0.5;
       }
