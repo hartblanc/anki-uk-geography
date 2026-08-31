@@ -30,7 +30,6 @@ build/maps/base_27700/nuts_all.topojson:
 
 build/maps/base_27700/isle_of_man.topojson:
 	mkdir -p build/maps/base_27700
-	echo "hello"
 	curl -L "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/isle-of-man.geojson" | \
 	$(MAPSHAPER) -i - format=geojson -dissolve -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
 
