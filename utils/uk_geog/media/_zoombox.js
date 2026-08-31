@@ -5,12 +5,7 @@ function setupZoombox(options) {
     return null;
   }
 
-  // targetSelector lets callers disambiguate duplicate ids (e.g. "City of
-  // London" is both a county path and a city circle). When provided it takes
-  // precedence over targetId.
-  var targetEl = options.targetSelector
-    ? document.querySelector(options.targetSelector)
-    : document.getElementById(options.targetId);
+  var targetEl = document.getElementById(options.targetId);
   var zoombox = document.getElementById("zoombox");
   var mapSvg = document.getElementById(options.mapId);
   if (!targetEl || !zoombox || !mapSvg) {

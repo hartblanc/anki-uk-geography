@@ -5,29 +5,33 @@ all sharing the same viewBox (fit-extent=canvas). _maps.js stores each layer
 once and injectMap() composes the full SVG for a map from its layers at render
 time, so shared geometry (counties, extra_land) is not duplicated.
 
-City ring markers are also generated at render time from the city circles,
-so the ring_cities layer doesn't need to be stored as geometry at all.
+City markers and their white rings are grouped per city at build time. Each
+city becomes <g id="city-Name"> containing a .city-marker circle and a
+.city-ring circle, so templates can target the whole city (marker + ring) with
+a single prefixed id.
 """
 
 import json
 import re
 from pathlib import Path
 
-LAYER_FILES = {
-    "extra_land": "build/maps/layers/extra_land.min.svg",
-    "counties": "build/maps/layers/counties.min.svg",
-    "cities": "build/maps/layers/cities.min.svg",
-    "regions": "build/maps/layers/regions.min.svg",
-    "water": "build/maps/layers/water.min.svg",
-}
+# Layer names match both the SVG group ids and the layer file names
+# (e.g. the county layer lives in build/maps/layers/county.min.svg).
+LAYER_DIR = "build/maps/layers"
+LAYER_NAMES = ["extra_land", "county", "city", "region", "bow"]
 
 # Which layers each map is composed of, in paint order (DOM order).
 MAP_LAYERS = {
-    "cities": ["extra_land", "counties", "cities"],
-    "counties": ["extra_land", "counties"],
-    "regions": ["extra_land", "regions"],
-    "bodies_of_water": ["water"],
+    "cities": ["extra_land", "county", "city"],
+    "counties": ["extra_land", "county"],
+    "regions": ["extra_land", "region"],
+    "bodies_of_water": ["bow"],
 }
+
+# Element ids are namespaced by layer so a place name shared between layers
+# (e.g. Edinburgh is both a county and a city) never produces duplicate ids in
+# a composed map. The prefix is the layer name plus "-" (extra_land is the
+# exception and is not prefixed).
 
 # Root <svg> id used for each map (matches the ids in the old full SVGs).
 MAP_SVG_IDS = {
@@ -37,16 +41,40 @@ MAP_SVG_IDS = {
     "bodies_of_water": None,
 }
 
+# Radius of the white ring drawn around each city marker.
+RING_RADIUS = 4
+
 OUTPUT = "build/media/_maps.js"
 
 
 def extract_layer(svg: str, layer_id: str) -> str:
-    match = re.search(
-        r'<g id="' + re.escape(layer_id) + r'"[^>]*>.*?</g>', svg, re.S
-    )
-    if not match:
+    """Return the <g id=layer_id>...</g> element, including nested <g>s."""
+    start_tag = f'<g id="{layer_id}"'
+    start = svg.find(start_tag)
+    if start == -1:
         raise ValueError(f"layer {layer_id!r} not found")
-    return match.group(0)
+
+    tag_end = svg.find(">", start)
+    if tag_end == -1:
+        raise ValueError(f"layer {layer_id!r} has no closing '>' on its open tag")
+
+    depth = 1
+    pos = tag_end + 1
+    while depth > 0:
+        next_open = svg.find("<g", pos)
+        next_close = svg.find("</g>", pos)
+        if next_close == -1:
+            raise ValueError(f"layer {layer_id!r} has unbalanced <g> tags")
+        if next_open != -1 and next_open < next_close:
+            depth += 1
+            close_of_open = svg.find(">", next_open)
+            if close_of_open == -1:
+                raise ValueError(f"layer {layer_id!r} has a malformed <g> tag")
+            pos = close_of_open + 1
+        else:
+            depth -= 1
+            pos = next_close + len("</g>")
+    return svg[start:pos]
 
 
 def extract_root_attrs(svg: str) -> str:
@@ -57,14 +85,82 @@ def extract_root_attrs(svg: str) -> str:
     return re.sub(r'\sid="[^"]*"', "", match.group(1)).strip()
 
 
+def group_city_markers(layer: str) -> str:
+    """Rewrite the city layer so each city is a group with marker + ring.
+
+    The Makefile emits <circle id="city-Name" .../> markers. This turns each
+    into <g id="city-Name" class="city"><circle class="city-marker" .../><circle
+    class="city-ring" .../></g>, keeping the id on the group (unique per city)
+    and giving templates a stable handle for both marker and ring.
+    """
+
+    def replace_circle(match: "re.Match[str]") -> str:
+        circle = match.group(0)
+        id_match = re.search(r'\bid="([^"]+)"', circle)
+        cx_match = re.search(r'\bcx="([^"]+)"', circle)
+        cy_match = re.search(r'\bcy="([^"]+)"', circle)
+        r_match = re.search(r'\br="([^"]+)"', circle)
+        if not (id_match and cx_match and cy_match and r_match):
+            return circle
+
+        marker = re.sub(r'\bid="[^"]*"\s?', "", circle)
+        marker = marker.replace("<circle", '<circle class="city-marker"', 1)
+        ring = (
+            f'<circle class="city-ring" cx="{cx_match.group(1)}" '
+            f'cy="{cy_match.group(1)}" r="{RING_RADIUS}" fill="none" stroke="#fff"/>'
+        )
+        return f'<g id="{id_match.group(1)}" class="city">{marker}{ring}</g>'
+
+    return re.sub(r"<circle\b[^>]*/>", replace_circle, layer)
+
+
+def validate_unique_ids(layers: dict) -> None:
+    """Fail the build if a composed map would contain duplicate element ids.
+
+    Layer ids are namespaced (county-, city-, region-, bow-), but this is a
+    guard against regressions: duplicate ids in the DOM make getElementById
+    and CSS id selectors silently target the wrong element.
+    """
+    for map_name, layer_names in MAP_LAYERS.items():
+        ids = []
+        for layer_name in layer_names:
+            layer_ids = re.findall(r'\bid="([^"]+)"', layers[layer_name])
+            # The first id in each extracted group is the group's own id
+            # (e.g. id="county"); the rest are feature ids.
+            group_id = layer_ids[0] if layer_ids else None
+            expected_prefix = "" if layer_name == "extra_land" else layer_name + "-"
+            for id_ in layer_ids:
+                if id_ == group_id or not expected_prefix:
+                    continue
+                if not id_.startswith(expected_prefix):
+                    raise ValueError(
+                        f"unexpected id {id_!r} in layer {layer_name!r}: "
+                        f"expected prefix {expected_prefix!r}"
+                    )
+            ids.extend(layer_ids)
+        counts = {}
+        for id_ in ids:
+            counts[id_] = counts.get(id_, 0) + 1
+        duplicates = sorted(id_ for id_, count in counts.items() if count > 1)
+        if duplicates:
+            raise ValueError(
+                f"duplicate ids in composed map {map_name!r}: {duplicates!r}"
+            )
+
+
 def main() -> None:
     layers = {}
     root_attrs = None
-    for layer_id, path in LAYER_FILES.items():
-        svg = Path(path).read_text()
-        layers[layer_id] = extract_layer(svg, layer_id)
+    for layer_id in LAYER_NAMES:
+        svg = Path(LAYER_DIR, f"{layer_id}.min.svg").read_text()
+        layer = extract_layer(svg, layer_id)
+        if layer_id == "city":
+            layer = group_city_markers(layer)
+        layers[layer_id] = layer
         if root_attrs is None:
             root_attrs = extract_root_attrs(svg)
+
+    validate_unique_ids(layers)
 
     js = (
         "var MAPS = "
@@ -79,34 +175,6 @@ def main() -> None:
         + "var SVG_ROOT_ATTRS = "
         + json.dumps(root_attrs)
         + ";\n\n"
-        + "var RING_RADIUS = 4;\n\n"
-        + "function addRingCities(svg) {\n"
-        + "  var citiesGroup = svg.querySelector('[id=\"cities\"]');\n"
-        + "  if (!citiesGroup) {\n"
-        + "    return;\n"
-        + "  }\n"
-        + "  var ringGroup = document.createElementNS(\n"
-        + "    \"http://www.w3.org/2000/svg\",\n"
-        + "    \"g\"\n"
-        + "  );\n"
-        + "  ringGroup.id = \"ring_cities\";\n"
-        + "  ringGroup.setAttribute(\"fill-opacity\", \"0\");\n"
-        + "  ringGroup.setAttribute(\"stroke\", \"#fff\");\n"
-        + "  var cityCircles = citiesGroup.querySelectorAll(\"circle\");\n"
-        + "  for (var i = 0; i < cityCircles.length; i++) {\n"
-        + "    var city = cityCircles[i];\n"
-        + "    var ring = document.createElementNS(\n"
-        + "      \"http://www.w3.org/2000/svg\",\n"
-        + "      \"circle\"\n"
-        + "    );\n"
-        + "    ring.setAttribute(\"data-city\", city.getAttribute(\"id\"));\n"
-        + "    ring.setAttribute(\"cx\", city.getAttribute(\"cx\"));\n"
-        + "    ring.setAttribute(\"cy\", city.getAttribute(\"cy\"));\n"
-        + "    ring.setAttribute(\"r\", RING_RADIUS);\n"
-        + "    ringGroup.appendChild(ring);\n"
-        + "  }\n"
-        + "  svg.appendChild(ringGroup);\n"
-        + "}\n\n"
         + "function injectMap(containerId, mapName) {\n"
         + "  var container = document.getElementById(containerId);\n"
         + "  if (!container) {\n"
@@ -122,9 +190,6 @@ def main() -> None:
         + "    : \"\";\n"
         + "  container.innerHTML =\n"
         + "    '<svg ' + SVG_ROOT_ATTRS + idAttr + '>' + layers + '</svg>';\n"
-        + "  if (mapName === \"cities\") {\n"
-        + "    addRingCities(container.querySelector(\"svg\"));\n"
-        + "  }\n"
         + "}\n"
     )
     output = Path(OUTPUT)

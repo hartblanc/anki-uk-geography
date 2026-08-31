@@ -1,7 +1,7 @@
 <script src="_maps.js"></script>
 <script src="_zoombox.js"></script>
 <style>
-  [id="{{MacroLocation}}"] {
+  [id="region-{{MacroLocation}}"] {
     fill: #d00;
     fill-opacity: 0.5;
   }
@@ -47,8 +47,7 @@
       injectMap("regions-map", "regions");
 
       (function () {
-        var countyId = "{{County}}";
-        var countyEl = document.getElementById(countyId);
+        var countyEl = document.getElementById("county-{{County}}");
         var regionsSvg = document.getElementById("regions_map");
 
         if (countyEl && regionsSvg) {
