@@ -10,7 +10,7 @@ attributions below.
 | Data | Source | Licence | Attribution |
 |---|---|---|---|
 | UK top-level regions (ITL1) | ONS Open Geography Portal | Open Government Licence v3.0 | Source: Office for National Statistics licensed under the Open Government Licence v.3.0. Contains OS data © Crown copyright and database right 2026 |
-| GB ceremonial counties | Ordnance Survey Boundary-Line | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
+| GB ceremonial counties | Ordnance Survey Boundary-Line (Ceremonial counties layer via Esri UK hosted Feature Service) | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
 | GB city names/positions | OS Open Names | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
 | Scottish council areas | ONS/OS/NRS data via martinjc/UK-GeoJSON | Open Government Licence v3.0 | Contains Ordnance Survey, Office of National Statistics, National Records Scotland and LPS Intellectual Property data © Crown copyright and database right 2016 |
 | Northern Ireland county boundaries | OSNI Largescale Boundaries via OpenDataNI | Open Government Licence v3.0 | Contains LPS Intellectual Property © Crown copyright and database right 2026. This information is licensed under the terms of the Open Government Licence |

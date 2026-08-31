@@ -70,16 +70,21 @@ build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_c
 	mkdir -p $(@D)
 	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
-build/maps/raw/gb_boundaries.zip:
+# OS Boundary-Line is the authoritative OGL source for GB ceremonial counties,
+# but the full product download is ~700MB. The Ceremonial counties layer is also
+# published as a dedicated ArcGIS Feature Service (Esri UK's OS OpenData
+# hosting), so we download just that layer as GeoJSON. maxAllowableOffset
+# generalises on the server to 20m, which is finer than the final 250m render
+# simplification and keeps the raw download small. The query requests
+# outSR=27700, so the GeoJSON is already in British National Grid and mapshaper
+# is told to treat it as such rather than re-projecting it.
+build/maps/raw/gb_boundaries.geojson:
 	mkdir -p $(@D)
-	curl -L 'https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect' -o $@
+	curl -sL 'https://services.arcgis.com/qHLhLQrcvEnxjtPr/arcgis/rest/services/OS_OpenBoundaryLine/FeatureServer/4/query?where=1%3D1&outFields=NAME%2CDESCRIPTIO&f=geojson&resultRecordCount=2000&resultOffset=0&outSR=27700&maxAllowableOffset=20' -o $@
 
-build/maps/base_27700/gb_boundaries.topojson: build/maps/raw/gb_boundaries.zip
-	rm -rf build/maps/.tmp/gb_boundaries
-	mkdir -p $(@D) build/maps/.tmp/gb_boundaries
-	bsdtar -xf $< -C build/maps/.tmp/gb_boundaries --include="Data/Supplementary_Ceremonial/*"
-	$(MAPSHAPER) -i build/maps/.tmp/gb_boundaries/Data/Supplementary_Ceremonial/*.shp -proj EPSG:27700 -clean -o $@ format=topojson
-	rm -rf build/maps/.tmp/gb_boundaries
+build/maps/base_27700/gb_boundaries.topojson: build/maps/raw/gb_boundaries.geojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj init=EPSG:27700 -clean -o $@
 
 build/maps/raw/n_ire_counties.zip:
 	mkdir -p $(@D)
