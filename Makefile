@@ -2,11 +2,8 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 250m
-# TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
-# TODO: motorways
-# TODO: more BoWs
 
-.PHONY: all screenshots
+.PHONY: all screenshots FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -22,41 +19,76 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
 # ==============================================================================
 
-build/maps/base_27700/ons_itl1.topojson:
-	mkdir -p build/maps/base_27700
-	curl -sL 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ITL1_JAN_2025_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson' | \
-	$(MAPSHAPER) -i - format=geojson -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers itl -o $@
+# Stamp recording the SIMPLIFY_INTERVAL used for the last SVG render pass.
+# FORCE makes the stamp recipe run on every make invocation; the recipe only
+# rewrites the stamp when SIMPLIFY_INTERVAL changes, so unchanged runs do not
+# invalidate downstream SVG targets.
+SIMPLIFY_STAMP := build/maps/raw/.simplify_interval
 
-build/maps/base_27700/natural_earth.topojson:
-	mkdir -p build/maps/base_27700
-	curl -sL 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson' | \
-	$(MAPSHAPER) -i - format=geojson -filter 'ADM0_A3 == "FRA" || ADM0_A3 == "IRL" || ADM0_A3 == "IMN"' -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers natural_earth -o $@
+.PHONY: FORCE
+FORCE:
 
-build/maps/base_27700/scotland_council_areas.topojson:
-	mkdir -p build/maps/base_27700
-	curl -L "https://martinjc.github.io/UK-GeoJSON/json/sco/topo_lad.json" | \
-	$(MAPSHAPER) -i - format=topojson -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+$(SIMPLIFY_STAMP): FORCE
+	@mkdir -p $(@D)
+	@if [ "$$(cat $@ 2>/dev/null || true)" != "$(SIMPLIFY_INTERVAL)" ]; then \
+		printf '%s\n' '$(SIMPLIFY_INTERVAL)' > $@; \
+	fi
 
-build/maps/base_27700/gb_boundaries.topojson:
-	mkdir -p build/maps/base_27700 build/maps/raw_gb
-	curl -L 'https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect' | \
-	bsdtar -xf - -C build/maps/raw_gb --include="Data/Supplementary_Ceremonial/*"
-	$(MAPSHAPER) -i build/maps/raw_gb/Data/Supplementary_Ceremonial/*.shp -proj EPSG:27700 -clean -o $@ format=topojson
-	rm -rf build/maps/raw_gb
+build/maps/raw/ons_itl1.geojson:
+	mkdir -p $(@D)
+	curl -sL 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ITL1_JAN_2025_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson' -o $@
 
-build/maps/base_27700/n_ire_counties.topojson:
-	mkdir -p build/maps/base_27700 build/maps/raw_ni
+build/maps/base_27700/ons_itl1.topojson: build/maps/raw/ons_itl1.geojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers itl -o $@
+
+build/maps/raw/natural_earth.geojson:
+	mkdir -p $(@D)
+	curl -sL 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson' -o $@
+
+build/maps/base_27700/natural_earth.topojson: build/maps/raw/natural_earth.geojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -filter 'ADM0_A3 == "FRA" || ADM0_A3 == "IRL" || ADM0_A3 == "IMN"' -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers natural_earth -o $@
+
+build/maps/raw/scotland_council_areas.topojson:
+	mkdir -p $(@D)
+	curl -L "https://martinjc.github.io/UK-GeoJSON/json/sco/topo_lad.json" -o $@
+
+build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_council_areas.topojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+
+build/maps/raw/gb_boundaries.zip:
+	mkdir -p $(@D)
+	curl -L 'https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect' -o $@
+
+build/maps/base_27700/gb_boundaries.topojson: build/maps/raw/gb_boundaries.zip
+	rm -rf build/maps/.tmp/gb_boundaries
+	mkdir -p $(@D) build/maps/.tmp/gb_boundaries
+	bsdtar -xf $< -C build/maps/.tmp/gb_boundaries --include="Data/Supplementary_Ceremonial/*"
+	$(MAPSHAPER) -i build/maps/.tmp/gb_boundaries/Data/Supplementary_Ceremonial/*.shp -proj EPSG:27700 -clean -o $@ format=topojson
+	rm -rf build/maps/.tmp/gb_boundaries
+
+build/maps/raw/n_ire_counties.zip:
+	mkdir -p $(@D)
 	curl -L -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' \
-		'https://admin.opendatani.gov.uk/dataset/d0385f2d-6beb-4aff-87dc-f1bf357d792d/resource/636d6e61-593b-461c-ba5b-01214fecf6cb/download/osni_open_data_largescale_boundaries_county_boundaries.zip' | \
-	bsdtar -xf - -C build/maps/raw_ni -s '|.*/||'
-	$(MAPSHAPER) -i build/maps/raw_ni/*.shp -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
-	rm -rf build/maps/raw_ni
+		'https://admin.opendatani.gov.uk/dataset/d0385f2d-6beb-4aff-87dc-f1bf357d792d/resource/636d6e61-593b-461c-ba5b-01214fecf6cb/download/osni_open_data_largescale_boundaries_county_boundaries.zip' -o $@
 
-build/maps/base_27700/ni_cities.topojson:
-	mkdir -p build/maps/base_27700
-	curl -sL -A 'Mozilla/5.0' 'https://admin.opendatani.gov.uk/dataset/d27903f1-15e6-4c07-8564-ddc655e9c549/resource/cd65c0eb-0b85-448a-be85-1725dd2aeb48/download/osni_open_data_-_gazetteer_-_place_names.geojson' | \
+build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
+	rm -rf build/maps/.tmp/n_ire_counties
+	mkdir -p $(@D) build/maps/.tmp/n_ire_counties
+	bsdtar -xf $< -C build/maps/.tmp/n_ire_counties -s '|.*/||'
+	$(MAPSHAPER) -i build/maps/.tmp/n_ire_counties/*.shp -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	rm -rf build/maps/.tmp/n_ire_counties
+
+build/maps/raw/ni_cities.geojson:
+	mkdir -p $(@D)
+	curl -sL -A 'Mozilla/5.0' 'https://admin.opendatani.gov.uk/dataset/d27903f1-15e6-4c07-8564-ddc655e9c549/resource/cd65c0eb-0b85-448a-be85-1725dd2aeb48/download/osni_open_data_-_gazetteer_-_place_names.geojson' -o $@
+
+build/maps/base_27700/ni_cities.topojson: build/maps/raw/ni_cities.geojson
+	mkdir -p $(@D)
 	$(MAPSHAPER) \
-		-i - format=geojson \
+		-i $< \
 		-filter '["ARMAGH","BANGOR","BELFAST","LISBURN","LONDONDERRY","NEWRY"].indexOf(PLACENAME) > -1' \
 		-each "name = (PLACENAME == 'LONDONDERRY') ? 'Derry' : (PLACENAME == 'BANGOR') ? 'Bangor (Northern Ireland)' : PLACENAME.charAt(0) + PLACENAME.slice(1).toLowerCase()" \
 		-filter-fields name \
@@ -65,17 +97,21 @@ build/maps/base_27700/ni_cities.topojson:
 		-clean \
 		-o format=topojson $@
 
-build/maps/base_27700/gb_cities.topojson:
-	mkdir -p build/maps/base_27700 build/maps/raw_gb_cities
-	curl -L 'https://api.os.uk/downloads/v1/products/OpenNames/downloads?area=GB&format=CSV&redirect=' | \
-	bsdtar -xf - -C build/maps/raw_gb_cities
-	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/raw_gb_cities/Doc/OS_Open_Names_Header.csv > build/maps/gb_cities_temp.csv
-	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/raw_gb_cities/Data/* | grep ,City, >> build/maps/gb_cities_temp.csv
-	$(MAPSHAPER) -i build/maps/gb_cities_temp.csv -points x=GEOMETRY_X y=GEOMETRY_Y -clean -o $@
-	rm -rf build/maps/raw_gb_cities build/maps/gb_cities_temp.csv
+build/maps/raw/gb_cities.zip:
+	mkdir -p $(@D)
+	curl -L 'https://api.os.uk/downloads/v1/products/OpenNames/downloads?area=GB&format=CSV&redirect=' -o $@
 
-build/maps/base_27700/seavox.topojson:
-	mkdir -p build/maps/base_27700
+build/maps/base_27700/gb_cities.topojson: build/maps/raw/gb_cities.zip
+	rm -rf build/maps/.tmp/gb_cities
+	mkdir -p $(@D) build/maps/.tmp/gb_cities
+	bsdtar -xf $< -C build/maps/.tmp/gb_cities
+	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Doc/OS_Open_Names_Header.csv > build/maps/gb_cities_temp.csv
+	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Data/* | grep ,City, >> build/maps/gb_cities_temp.csv
+	$(MAPSHAPER) -i build/maps/gb_cities_temp.csv -points x=GEOMETRY_X y=GEOMETRY_Y -clean -o $@
+	rm -rf build/maps/.tmp/gb_cities build/maps/gb_cities_temp.csv
+
+build/maps/raw/seavox.geojson:
+	mkdir -p $(@D)
 	curl -L \
 		-G 'https://geo.vliz.be/geoserver/MarineRegions/ows' \
 		--data-urlencode 'service=WFS' \
@@ -83,8 +119,12 @@ build/maps/base_27700/seavox.topojson:
 		--data-urlencode 'request=GetFeature' \
 		--data-urlencode 'typeName=MarineRegions:seavox_v19' \
 		--data-urlencode 'outputFormat=application/json' \
-		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' | \
-		$(MAPSHAPER) -i - -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
+		-o $@
+
+build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
 
 # ==============================================================================
 # 2. DOWNSTREAM GEOPROCESSING
@@ -213,7 +253,7 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 # so _maps.js can compose the full maps from these building blocks at runtime.
 MAP_LAYER_DIR := build/maps/layers
 
-build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canvas.topojson
+build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
@@ -223,7 +263,7 @@ build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canv
 		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
+build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
@@ -235,7 +275,7 @@ build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_la
 		-o $@ target=counties format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land.topojson build/maps/canvas.topojson
+build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i build/maps/extra_land.topojson name=extra_land \
@@ -255,7 +295,7 @@ build/maps/layers/cities.svg: build/maps/cities.topojson
 		-o $@ target=cities format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
-build/maps/layers/water.svg: build/maps/bodies_of_water.topojson
+build/maps/layers/water.svg: build/maps/bodies_of_water.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
 	$(MAPSHAPER) \
 		-i $< name=water \
@@ -373,4 +413,4 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 
 clean:
-	find build -mindepth 1 -not -path "build/maps/base_27700*" -delete
+	find build -mindepth 1 -not -path "build/maps/raw" -not -path "build/maps/raw/*" -delete
