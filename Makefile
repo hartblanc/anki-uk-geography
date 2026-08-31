@@ -1,6 +1,14 @@
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
+# Simplification strategy:
+#   - Geometry is NOT simplified during ingest or downstream processing; all
+#     clipping, dissolving, and merging happens on full-detail data.
+#   - Each layer is simplified once at $(SIMPLIFY_INTERVAL) (weighted
+#     Visvalingam, mapshaper's default) when its SVG is rendered, so the
+#     final output is simplified after every geometric op.
+#   - City of London is the exception: it is not simplified in the counties SVG
+#     (variable interval 0).
 SIMPLIFY_INTERVAL := 250m
 # TopoJSON does not store CRS, so mapshaper forgets the projection after a file
 # is written. This re-labels every loaded layer as already-projected EPSG:27700
@@ -44,7 +52,7 @@ build/maps/raw/ons_itl1.geojson:
 
 build/maps/base_27700/ons_itl1.topojson: build/maps/raw/ons_itl1.geojson
 	mkdir -p $(@D)
-	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers itl -o $@
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -rename-layers itl -o $@
 
 build/maps/raw/natural_earth.geojson:
 	mkdir -p $(@D)
@@ -52,7 +60,7 @@ build/maps/raw/natural_earth.geojson:
 
 build/maps/base_27700/natural_earth.topojson: build/maps/raw/natural_earth.geojson
 	mkdir -p $(@D)
-	$(MAPSHAPER) -i $< -filter 'ADM0_A3 == "FRA" || ADM0_A3 == "IRL" || ADM0_A3 == "IMN"' -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers natural_earth -o $@
+	$(MAPSHAPER) -i $< -filter 'ADM0_A3 == "FRA" || ADM0_A3 == "IRL" || ADM0_A3 == "IMN"' -proj EPSG:27700 -clean -rename-layers natural_earth -o $@
 
 build/maps/raw/scotland_council_areas.topojson:
 	mkdir -p $(@D)
@@ -60,7 +68,7 @@ build/maps/raw/scotland_council_areas.topojson:
 
 build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_council_areas.topojson
 	mkdir -p $(@D)
-	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
 build/maps/raw/gb_boundaries.zip:
 	mkdir -p $(@D)
@@ -82,7 +90,7 @@ build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
 	rm -rf build/maps/.tmp/n_ire_counties
 	mkdir -p $(@D) build/maps/.tmp/n_ire_counties
 	bsdtar -xf $< -C build/maps/.tmp/n_ire_counties -s '|.*/||'
-	$(MAPSHAPER) -i build/maps/.tmp/n_ire_counties/*.shp -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	$(MAPSHAPER) -i build/maps/.tmp/n_ire_counties/*.shp -proj EPSG:27700 -clean -o $@
 	rm -rf build/maps/.tmp/n_ire_counties
 
 build/maps/raw/ni_cities.geojson:
@@ -128,7 +136,7 @@ build/maps/raw/seavox.geojson:
 
 build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
 	mkdir -p $(@D)
-	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
 # ==============================================================================
 # 2. DOWNSTREAM GEOPROCESSING
@@ -197,8 +205,6 @@ build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_bounda
 		-each "if (name == 'Eilean Siar') name = 'Outer Hebrides'" target=counties \
 		-clean \
 		-clip regions target=counties \
-		-proj init=EPSG:27700 target=counties \
-		-simplify keep-shapes variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=counties \
 		-o build/maps/counties.topojson target=counties \
 		-o build/counties.csv target=counties
 
@@ -264,6 +270,7 @@ build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canv
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		$(PROJ_INIT) \
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=extra_land \
 		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -277,6 +284,7 @@ build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_la
 		-style target=canvas fill-opacity=0 \
 		-style target=counties fill="#ffe" stroke="#000" class="land" \
 		$(PROJ_INIT) \
+		-simplify variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=counties \
 		-o $@ target=counties format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -290,6 +298,7 @@ build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land
 		-style target=canvas fill-opacity=0 \
 		-style target=regions fill="#ffe" stroke="#000" class="land" \
 		$(PROJ_INIT) \
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=regions \
 		-o $@ target=regions format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -308,6 +317,7 @@ build/maps/layers/water.svg: build/maps/bodies_of_water.topojson $(SIMPLIFY_STAM
 		-style fill="#adf" stroke="#07b" \
 		-sort expression=this.area descending \
 		$(PROJ_INIT) \
+		-simplify interval=$(SIMPLIFY_INTERVAL) target=water \
 		-o $@ format=svg id-field=name
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
