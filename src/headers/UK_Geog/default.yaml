@@ -57,7 +57,7 @@ desc: "<a href=\"https://github.com/HartBlanc/anki-uk-geography\"\n  ><b>Additio
   \n      >Northern Ireland</a\n    >\n  </li>\n  <li>\n    <a href=\"https://en.wikipedia.org/wiki/List_of_cities_in_the_United_Kingdom\"\
   \n      >76 Official Cities</a\n    >\n  </li>\n  <li>16 assorted seas, channels,
   estuaries, straits and oceans</li>\n</ul>\n<strong>Deck Features</strong>\n<ul>\n\
-  \  <li>\n    The deck is light-weight (~750KB, despite containing hundreds of unique\n\
+  \  <li>\n    The deck is light-weight (<1MB, despite containing hundreds of unique\n\
   \    images)\n  </li>\n  <li>\n    All images are Scalable Vector Graphics and therefore
   scale gracefully to\n    any screen size without distortion\n  </li>\n  <li>A map
   with relevant areas highlighted is provided for every location</li>\n</ul>\nThis

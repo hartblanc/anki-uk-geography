@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
-SIMPLIFY_INTERVAL := 100m
+SIMPLIFY_INTERVAL := 250m
 # TODO: Do some dry runs without the dependencies to make it easy to get going from scratch (maybe look at nix flakes or something).
 # TODO: motorways
 # TODO: more BoWs
