@@ -1,5 +1,5 @@
 # TODO: M40, M20, A74(M) are too big for a viewbox on Motorway - Map
-# TODO:: consider extending zoombox to other small features (e.g. counties, bodies of water)
+# TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
 
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
@@ -24,12 +24,11 @@ all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.js
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
 		--dark \
-		--only "City - Map,City - County,BoW - Map,Motorway - Map,Map - Motorway" \
+		--only "City - Map,City - County,BoW - Map,Motorway - Map" \
 		--sample "City - Map:City=Gloucester" \
 		--sample "City - County:City=Gloucester" \
 		--sample "BoW - Map:BoW=Bristol Channel" \
-		--sample "Motorway - Map:Motorway=M1" \
-		--sample "Map - Motorway:Motorway=M53" \
+		--sample "Motorway - Map:Motorway=M4" \
 		--stitch build/screenshots/dark-mode-grid.png
 
 # ==============================================================================
