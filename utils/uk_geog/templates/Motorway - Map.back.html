@@ -6,10 +6,10 @@
     stroke: #0072bc;
     stroke-width: 2.5;
   }
-  [id="motorways"] > :not([id="{{Motorway}}"]) {
+  [id="motorways"] > :not([id="motorways-{{Motorway}}"]) {
     visibility: hidden;
   }
-  [id="motorways"] > [id="{{Motorway}}"] {
+  [id="motorways"] > [id="motorways-{{Motorway}}"] {
     stroke: #d00;
     stroke-width: 4.5;
   }
@@ -47,7 +47,7 @@
 
       setupZoombox({
         mapId: "map",
-        targetId: "{{Motorway}}",
+        targetId: "motorways-{{Motorway}}",
         current: "{{Motorway}}",
         zoomNames: ["{{Motorway}}"],
         autoSize: true,

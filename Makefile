@@ -412,7 +412,8 @@ build/maps/layers/motorways.svg: build/maps/motorways.topojson build/maps/extra_
 		-style target=motorways fill=none stroke="#bbb" stroke-width=1 \
 		$(PROJ_INIT) \
 		-simplify interval=$(SIMPLIFY_INTERVAL) target=motorways \
-		-o $@ target=motorways format=svg id-field=name fit-extent=canvas
+		-each 'id="motorways-" + name' target=motorways \
+		-o $@ target=motorways format=svg id-field=id fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
 build/maps/layers/motorways.min.svg: build/maps/layers/motorways.svg src/svgo.config.js
