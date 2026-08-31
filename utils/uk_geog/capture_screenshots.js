@@ -76,6 +76,7 @@ Options:
   --dark             Render in dark mode
   --only LIST        Comma-separated template names to capture
   --sample SPEC      TEMPLATE:FIELD=VALUE note selector; repeatable
+  --concurrency N    Number of parallel browser tabs (default: 4)
   --stitch PATH      Stitch captured front/back pairs into a 2-column grid
   --help             Show this help
 `;
@@ -87,6 +88,7 @@ function parseArgs(argv) {
     dark: false,
     only: null,
     sample: [],
+    concurrency: 4,
     stitch: null,
     help: false,
   };
@@ -107,6 +109,13 @@ function parseArgs(argv) {
         break;
       case "--sample":
         args.sample.push(argv[++i]);
+        break;
+      case "--concurrency":
+        args.concurrency = parseInt(argv[++i], 10);
+        if (!Number.isInteger(args.concurrency) || args.concurrency < 1) {
+          console.error("--concurrency must be a positive integer");
+          process.exit(2);
+        }
         break;
       case "--stitch":
         args.stitch = argv[++i];
@@ -253,12 +262,13 @@ async function main() {
   // Intermediate HTML goes under build/ (git-ignored); only the PNGs are output.
   const htmlDir = path.join(REPO_ROOT, "build", "screenshots", "html");
   fs.mkdirSync(htmlDir, { recursive: true });
+  fs.mkdirSync(args.out, { recursive: true });
   for (const media of MEDIA_FILES) {
     fs.copyFileSync(path.join(MEDIA_DIR, media), path.join(htmlDir, media));
   }
 
   const captured = [];
-  const jobs = [];
+  const captureJobs = [];
   for (const tmpl of templates) {
     const name = tmpl.name;
     const required = REQUIRED_FIELDS[name] || [];
@@ -282,33 +292,46 @@ async function main() {
       fs.writeFileSync(htmlPath, html);
       const url = pathToFileURL(htmlPath).href;
       console.log(`Capturing ${name} ${side} -> ${outPng}`);
-      jobs.push({ url, out: outPng });
+      captureJobs.push({ url, out: outPng });
     }
 
     captured.push([name, frontPng, backPng]);
   }
 
   // Capture after building all HTML so Puppeteer can reuse one browser session;
-  // the HTML files are loaded directly via file:// URLs.
-  if (jobs.length) {
+  // the HTML files are loaded directly via file:// URLs. The card templates
+  // inject maps synchronously from external scripts, so the "load" event is
+  // sufficient; no extra settle delay is needed.
+  if (captureJobs.length) {
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--disable-gpu", "--hide-scrollbars"],
     });
     try {
-      // Reuse one page for every screenshot: navigating replaces the old DOM, so
-      // this avoids the per-screenshot browser/page startup cost.
-      const page = await browser.newPage();
-      await page.setViewport(VIEWPORT);
-      for (const job of jobs) {
-        // The card templates inject maps synchronously from external scripts, so
-        // the "load" event is sufficient; a short settle delay lets any remaining
-        // DOM work (e.g. zoombox setup) finish before the screenshot.
-        await page.goto(job.url, { waitUntil: "load", timeout: 30000 });
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        await page.screenshot({ path: job.out, type: "png" });
-        console.log(`Captured ${job.out}`);
+      // Reuse a small pool of pages across all screenshots. Navigating replaces
+      // the old DOM, so this avoids the per-screenshot page creation cost while
+      // still overlapping page loads when capturing many cards.
+      const pages = [];
+      const pageCount = Math.min(args.concurrency, captureJobs.length);
+      for (let i = 0; i < pageCount; i++) {
+        const page = await browser.newPage();
+        await page.setViewport(VIEWPORT);
+        pages.push(page);
       }
+
+      let nextJob = 0;
+      async function captureWithPage(page) {
+        while (true) {
+          const index = nextJob++;
+          if (index >= captureJobs.length) return;
+          const job = captureJobs[index];
+          await page.goto(job.url, { waitUntil: "load", timeout: 30000 });
+          await page.screenshot({ path: job.out, type: "png" });
+          console.log(`Captured ${job.out}`);
+        }
+      }
+
+      await Promise.all(pages.map(captureWithPage));
     } finally {
       await browser.close();
     }
