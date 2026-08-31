@@ -7,13 +7,22 @@
  * Speaks the Model Context Protocol over stdio (JSON-RPC 2.0) so MCP clients
  * such as Deep Code, Claude, or Cursor can render card screenshots directly.
  *
- * On startup this process only launches the warm headless Chromium instance.
- * Each `render_screenshot` call reads deck.json and the media files fresh from
- * disk, builds the card HTML, and renders it immediately. This means screenshots
- * always reflect the latest build without any manual lifecycle management.
+ * On startup this process launches the warm headless Chromium instance with a
+ * small pool of open tabs (default 4, like capture_screenshots.js). Each
+ * `render_screenshot` call reads deck.json and the media files fresh from disk,
+ * builds the card HTML, and renders it immediately on the next free tab. This
+ * means screenshots always reflect the latest build without any manual
+ * lifecycle management, and concurrent/batch requests are spread across the
+ * tabs instead of being serialised. Each render is also written to
+ * build/screenshots/mcp/ (or --out DIR) as a PNG so it can be opened directly
+ * from disk.
+ *
+ * `render_screenshots` is the batch equivalent of `capture_screenshots.js`: it
+ * can render every card type, or a selected list of templates, on either side,
+ * with optional dark mode and per-template note samples.
  *
  * Usage:
- *   node utils/uk_geog/screenshot_mcp.js [--deck PATH]
+ *   node utils/uk_geog/screenshot_mcp.js [--deck PATH] [--out DIR] [--concurrency N]
  *
  * Configure in .deepcode/settings.json (or ~/.deepcode/settings.json):
  *   {
@@ -29,36 +38,52 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
-const { pathToFileURL } = require("url");
 const puppeteer = require("puppeteer");
 
 const {
   REPO_ROOT,
   DEFAULT_DECK,
-  MEDIA_DIR,
-  MEDIA_FILES,
   VIEWPORT,
-  REQUIRED_FIELDS,
-  renderTemplate,
-  findNote,
-  parseSamples,
-  wrapHtml,
-} = require("./capture_screenshots.js");
+  loadDeck,
+  renderCardToPng,
+  expandRenderRequests,
+  PagePool,
+  runWithPool,
+} = require("./screenshot_common.js");
+
+const DEFAULT_MCP_OUT = path.join(REPO_ROOT, "build", "screenshots", "mcp");
 
 const USAGE = `Usage: screenshot_mcp.js [options]
 
 Options:
-  --deck PATH   CrowdAnki deck.json (default: built deck)
-  --help        Show this help
+  --deck PATH        CrowdAnki deck.json (default: built deck)
+  --out DIR          Output directory for PNGs (default: build/screenshots/mcp)
+  --concurrency N    Number of parallel browser tabs (default: 4)
+  --help             Show this help
 `;
 
 function parseArgs(argv) {
-  const args = { deck: DEFAULT_DECK, help: false };
+  const args = {
+    deck: DEFAULT_DECK,
+    out: DEFAULT_MCP_OUT,
+    concurrency: 4,
+    help: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--deck":
         args.deck = argv[++i];
+        break;
+      case "--out":
+        args.out = argv[++i];
+        break;
+      case "--concurrency":
+        args.concurrency = parseInt(argv[++i], 10);
+        if (!Number.isInteger(args.concurrency) || args.concurrency < 1) {
+          console.error("--concurrency must be a positive integer");
+          process.exit(2);
+        }
         break;
       case "--help":
       case "-h":
@@ -97,80 +122,96 @@ async function main() {
   }
 
   const htmlDir = path.join(REPO_ROOT, "build", "screenshots", "mcp-html");
+  const pngDir = path.resolve(args.out);
   fs.mkdirSync(htmlDir, { recursive: true });
-  const cardHtmlPath = path.join(htmlDir, "card.html");
-  const cardUrl = pathToFileURL(cardHtmlPath).href;
+  fs.mkdirSync(pngDir, { recursive: true });
 
-  // Initialise the warm browser at startup; nothing else is loaded yet.
-  console.error("Launching headless Chromium...");
+  // Initialise the warm browser at startup with a pool of tabs, matching the
+  // parallel page pool in capture_screenshots.js.
+  console.error(`Launching headless Chromium (${args.concurrency} tabs)...`);
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--disable-gpu", "--hide-scrollbars"],
   });
-  const page = await browser.newPage();
-  await page.setViewport(VIEWPORT);
+  const pages = [];
+  for (let i = 0; i < args.concurrency; i++) {
+    const page = await browser.newPage();
+    await page.setViewport(VIEWPORT);
+    page._poolIndex = i;
+    pages.push(page);
+  }
+  const pagePool = new PagePool(pages);
 
-  // Serialise renders on the single warm page.
-  let queue = Promise.resolve();
-
-  async function renderCard(argsObj) {
-    // Read the deck and media fresh on every render so screenshots reflect the
-    // agent's latest build.
-    const deck = JSON.parse(fs.readFileSync(args.deck, "utf8"));
-    const model = deck.note_models[0];
-    const fieldNames = model.flds.map((field) => field.name);
-    const css = model.css;
-    const templatesByName = Object.fromEntries(
-      model.tmpls.map((tmpl) => [tmpl.name, tmpl])
-    );
-
-    for (const media of MEDIA_FILES) {
-      fs.copyFileSync(path.join(MEDIA_DIR, media), path.join(htmlDir, media));
+  async function renderOne(argsObj) {
+    const page = await pagePool.acquire();
+    try {
+      return await renderCardToPng(page, {
+        deckPath: args.deck,
+        htmlDir,
+        outDir: pngDir,
+        template: argsObj.template,
+        side: argsObj.side,
+        dark: argsObj.dark,
+        samples: argsObj.samples,
+        filename: argsObj.filename,
+      });
+    } finally {
+      pagePool.release(page);
     }
-
-    const template = String(argsObj.template || "");
-    const tmpl = templatesByName[template];
-    if (!tmpl) {
-      const err = new Error(`Unknown template: ${template}`);
-      err.status = 404;
-      throw err;
-    }
-
-    const required = REQUIRED_FIELDS[tmpl.name] || [];
-    const samples = argsObj.samples || [];
-    const sampleSpecs = samples.map((spec) =>
-      String(spec).includes(":") ? String(spec) : `${tmpl.name}:${spec}`
-    );
-    const parsedSamples = parseSamples(sampleSpecs);
-    const fields = findNote(
-      deck.notes,
-      fieldNames,
-      required,
-      parsedSamples[tmpl.name]
-    );
-    if (!fields) {
-      const err = new Error(`No matching note for template: ${tmpl.name}`);
-      err.status = 404;
-      throw err;
-    }
-
-    const side = argsObj.side === "back" ? "back" : "front";
-    const dark = Boolean(argsObj.dark);
-    const source = side === "back" ? tmpl.afmt : tmpl.qfmt;
-    const html = wrapHtml(css, renderTemplate(source, fields), dark);
-    fs.writeFileSync(cardHtmlPath, html);
-
-    await page.goto(cardUrl, { waitUntil: "load", timeout: 30000 });
-    return page.screenshot({ type: "png" });
   }
 
-  function enqueueRender(argsObj) {
-    const run = queue.then(() => renderCard(argsObj));
-    queue = run.then(
-      () => undefined,
-      () => undefined
-    );
-    return run;
+  async function renderBatch(argsObj) {
+    // Read the deck once here so we can support "all templates" as the default;
+    // renderCardToPng still reads it fresh for each screenshot, matching the
+    // existing guarantee that renders reflect the latest build on disk.
+    const { templatesByName } = loadDeck(args.deck);
+    const allTemplateNames = Object.keys(templatesByName);
+
+    const requests = expandRenderRequests({
+      allTemplateNames,
+      templates: argsObj.templates,
+      sides: argsObj.sides,
+      dark: argsObj.dark,
+      samples: argsObj.samples,
+      requests: argsObj.requests,
+    });
+
+    const results = await runWithPool(pagePool, requests, async (page, req) => {
+      try {
+        const { pngPath } = await renderCardToPng(page, {
+          deckPath: args.deck,
+          htmlDir,
+          outDir: pngDir,
+          template: req.template,
+          side: req.side,
+          dark: req.dark,
+          samples: req.samples,
+          filename: req.filename,
+        });
+        return {
+          ok: true,
+          template: req.template,
+          side: req.side,
+          dark: req.dark,
+          path: pngPath,
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          template: req.template,
+          side: req.side,
+          dark: req.dark,
+          error: err.message || String(err),
+        };
+      }
+    });
+
+    return {
+      count: results.length,
+      rendered: results.filter((result) => result.ok).length,
+      failed: results.filter((result) => !result.ok).length,
+      results,
+    };
   }
 
   const TOOLS = [
@@ -202,8 +243,84 @@ async function main() {
             description:
               "Optional note selectors: FIELD=VALUE or TEMPLATE:FIELD=VALUE, e.g. City=Gloucester",
           },
+          filename: {
+            type: "string",
+            description:
+              "Optional output filename for the saved PNG (defaults to <template>-<side>[-dark].png, e.g. motorway-map-front.png)",
+          },
         },
         required: ["template"],
+      },
+    },
+    {
+      name: "render_screenshots",
+      description:
+        "Render a batch of card screenshots, like capture_screenshots.js. " +
+        "By default renders front and back for every card type; pass templates " +
+        "and/or sides to restrict it, dark for night mode, and samples to choose " +
+        "specific notes. Alternatively pass explicit requests for full control.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          templates: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Card template names to render, e.g. [\"City - Map\", \"Map - City\"]. Defaults to all card types.",
+          },
+          sides: {
+            type: "array",
+            items: { type: "string", enum: ["front", "back"] },
+            description:
+              "Which sides to render per template. Defaults to [\"front\", \"back\"].",
+          },
+          dark: {
+            type: "boolean",
+            description: "Render in dark mode (default: false)",
+          },
+          samples: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Optional note selectors: FIELD=VALUE or TEMPLATE:FIELD=VALUE, e.g. City=Gloucester or City - Map:City=Gloucester",
+          },
+          requests: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                template: {
+                  type: "string",
+                  description: "Card template name, e.g. City - Map",
+                },
+                side: {
+                  type: "string",
+                  enum: ["front", "back"],
+                  description: "Which side to render (default: front)",
+                },
+                dark: {
+                  type: "boolean",
+                  description: "Render in dark mode (default: false)",
+                },
+                samples: {
+                  type: "array",
+                  items: { type: "string" },
+                  description:
+                    "Optional note selectors for this request; overrides the top-level samples",
+                },
+                filename: {
+                  type: "string",
+                  description:
+                    "Optional output filename for this PNG; defaults to <template>-<side>[-dark].png",
+                },
+              },
+              required: ["template"],
+            },
+            description:
+              "Explicit render requests. If provided, templates/sides are ignored.",
+          },
+        },
+        required: [],
       },
     },
   ];
@@ -213,7 +330,15 @@ async function main() {
     crlfDelay: Infinity,
   });
 
-  rl.on("line", async (line) => {
+  let pendingTasks = 0;
+  const idleWaiters = [];
+
+  function whenIdle() {
+    if (pendingTasks === 0) return Promise.resolve();
+    return new Promise((resolve) => idleWaiters.push(resolve));
+  }
+
+  async function handleMCPLine(line) {
     if (!line.trim()) return;
 
     let msg;
@@ -255,7 +380,7 @@ async function main() {
           const arguments_ = (msg.params && msg.params.arguments) || {};
           if (name === "render_screenshot") {
             const start = process.hrtime.bigint();
-            const png = await enqueueRender(arguments_);
+            const { png, pngPath } = await renderOne(arguments_);
             const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
             const template = arguments_.template || "";
             const side = arguments_.side === "back" ? "back" : "front";
@@ -264,7 +389,9 @@ async function main() {
               content: [
                 {
                   type: "text",
-                  text: `Rendered ${template} ${side} (dark: ${dark}) in ${elapsedMs.toFixed(0)} ms`,
+                  text:
+                    `Rendered ${template} ${side} (dark: ${dark}) in ` +
+                    `${elapsedMs.toFixed(0)} ms\nSaved: ${pngPath}`,
                 },
                 {
                   type: "image",
@@ -272,6 +399,26 @@ async function main() {
                   mimeType: "image/png",
                 },
               ],
+            });
+          } else if (name === "render_screenshots") {
+            const start = process.hrtime.bigint();
+            const result = await renderBatch(arguments_);
+            const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
+            const lines = result.results.map((r) => {
+              if (r.ok) {
+                return (
+                  `  ${r.template} ${r.side}${r.dark ? " (dark)" : ""} -> ` +
+                  r.path
+                );
+              }
+              return `  ${r.template} ${r.side} FAILED: ${r.error}`;
+            });
+            const summary =
+              `Rendered ${result.rendered}/${result.count} screenshots ` +
+              `(${result.failed} failed) in ${elapsedMs.toFixed(0)} ms\n` +
+              lines.join("\n");
+            sendResult(msg.id, {
+              content: [{ type: "text", text: summary }],
             });
           } else {
             sendError(msg.id, -32602, `Unknown tool: ${name}`);
@@ -286,9 +433,20 @@ async function main() {
       console.error(`[mcp] error: ${err && err.stack ? err.stack : err}`);
       sendError(msg.id, -32603, err.message || String(err));
     }
+  }
+
+  rl.on("line", (line) => {
+    pendingTasks++;
+    handleMCPLine(line).finally(() => {
+      pendingTasks--;
+      if (pendingTasks === 0) {
+        for (const resolve of idleWaiters.splice(0)) resolve();
+      }
+    });
   });
 
   const shutdown = async () => {
+    await whenIdle();
     try {
       await browser.close();
     } catch {
@@ -307,5 +465,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { main, parseArgs };

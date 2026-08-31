@@ -27,7 +27,6 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
-const { pathToFileURL } = require("url");
 
 let puppeteer;
 try {
@@ -43,33 +42,20 @@ try {
   throw err;
 }
 
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const DEFAULT_DECK = path.join(
+const {
   REPO_ROOT,
-  "build",
-  "United Kingdom Geography - Regions Counties and Cities",
-  "deck.json"
-);
-const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
-const MEDIA_DIR = path.join(REPO_ROOT, "build", "media");
-const MEDIA_FILES = ["_maps.js", "_zoombox.js", "_move_to_front.js"];
-const VIEWPORT = { width: 800, height: 1159 };
-
-// Fields that must be populated for each template to produce a meaningful card.
-const REQUIRED_FIELDS = {
-  "BoW - Map": ["BoW"],
-  "City - County": ["City", "MacroLocation"],
-  "City - Map": ["City"],
-  "County - Map": ["County"],
-  "County - Region": ["County", "MacroLocation"],
-  "Map - BoW": ["BoW"],
-  "Map - City": ["City"],
-  "Map - County": ["County"],
-  "Map - Motorway": ["Motorway"],
-  "Map - Region": ["Region"],
-  "Motorway - Map": ["Motorway"],
-  "Region - Map": ["Region"],
-};
+  DEFAULT_DECK,
+  DEFAULT_OUT,
+  VIEWPORT,
+  REQUIRED_FIELDS,
+  findNote,
+  parseSamples,
+  loadDeck,
+  renderCardToPng,
+  expandRenderRequests,
+  PagePool,
+  runWithPool,
+} = require("./screenshot_common.js");
 
 const USAGE = `Usage: capture_screenshots.js [options]
 
@@ -136,87 +122,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function renderTemplate(template, fields) {
-  // Sections first ({{#Field}}...{{/Field}}), then simple substitutions.
-  let out = template.replace(
-    /\{\{#(\w+)\}\}(.*?)\{\{\/\1\}\}/gs,
-    (match, name, inner) => (String(fields[name] || "").trim() ? inner : "")
-  );
-  out = out.replace(/\{\{(\w+)\}\}/g, (match, name) => fields[name] ?? "");
-  return out;
-}
-
-function findNote(notes, fieldNames, required, sample) {
-  required = required || [];
-  for (const note of notes) {
-    const values = {};
-    fieldNames.forEach((name, i) => {
-      values[name] = note.fields[i];
-    });
-    if (
-      sample &&
-      Object.keys(sample).some(
-        (field) =>
-          String(values[field] || "").trim() !== String(sample[field]).trim()
-      )
-    ) {
-      continue;
-    }
-    if (required.every((field) => String(values[field] || "").trim())) {
-      return values;
-    }
-  }
-  return null;
-}
-
-function slug(name) {
-  return name.toLowerCase().replace(" - ", "-").replace(/ /g, "-");
-}
-
-function wrapHtml(css, body, dark) {
-  const bodyClass = dark ? ' class="nightMode"' : "";
-  const darkCss = dark
-    ? `
-body.nightMode {
-  background-color: #2f2f31;
-  color: #d0d0d0;
-}
-body.nightMode .card {
-  background-color: #2f2f31;
-  color: #d0d0d0;
-}
-`
-    : "";
-  return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-${css}
-${darkCss}
-</style>
-</head>
-<body${bodyClass}>
-<div class="card">
-${body}
-</div>
-</body>
-</html>
-`;
-}
-
-function parseSamples(items) {
-  const samples = {};
-  for (const item of items) {
-    const [template, fieldEq] = item.split(":");
-    const [field, value] = fieldEq.split("=");
-    const name = template.trim();
-    samples[name] = samples[name] || {};
-    samples[name][field.trim()] = value.trim();
-  }
-  return samples;
-}
-
 function stitch(captured, outPng, dark) {
   const files = [];
   for (const [, front, back] of captured) {
@@ -247,101 +152,101 @@ async function main() {
     return;
   }
 
-  const deck = JSON.parse(fs.readFileSync(args.deck, "utf8"));
-  const model = deck.note_models[0];
-  const fieldNames = model.flds.map((field) => field.name);
-  const css = model.css;
-  const samples = parseSamples(args.sample);
-
-  let templates = model.tmpls;
-  if (args.only) {
-    const onlyNames = args.only.split(",").map((name) => name.trim());
-    const byName = Object.fromEntries(templates.map((tmpl) => [tmpl.name, tmpl]));
-    templates = onlyNames
-      .filter((name) => byName[name])
-      .map((name) => byName[name]);
-  }
-
-  // Intermediate HTML goes under build/ (git-ignored); only the PNGs are output.
   const htmlDir = path.join(REPO_ROOT, "build", "screenshots", "html");
   fs.mkdirSync(htmlDir, { recursive: true });
   fs.mkdirSync(args.out, { recursive: true });
-  for (const media of MEDIA_FILES) {
-    fs.copyFileSync(path.join(MEDIA_DIR, media), path.join(htmlDir, media));
+
+  const { deck, fieldNames, templatesByName } = loadDeck(args.deck);
+  const samples = parseSamples(args.sample);
+
+  let templateNames = Object.keys(templatesByName);
+  if (args.only) {
+    const onlyNames = args.only.split(",").map((name) => name.trim());
+    templateNames = onlyNames.filter((name) => templatesByName[name]);
   }
 
-  const captured = [];
-  const captureJobs = [];
-  for (const tmpl of templates) {
-    const name = tmpl.name;
+  // Skip templates that have no usable note before opening a browser, so the
+  // CLI reports them as skips rather than per-side render failures.
+  const usableTemplates = [];
+  for (const name of templateNames) {
     const required = REQUIRED_FIELDS[name] || [];
     const fields = findNote(deck.notes, fieldNames, required, samples[name]);
     if (!fields) {
       console.log(`Skipping ${name}: no matching note found`);
       continue;
     }
-
-    const base = slug(name);
-    const suffix = args.dark ? "-dark" : "";
-    const frontPng = path.join(args.out, `${base}-front${suffix}.png`);
-    const backPng = path.join(args.out, `${base}-back${suffix}.png`);
-
-    for (const [side, source, outPng] of [
-      ["front", tmpl.qfmt, frontPng],
-      ["back", tmpl.afmt, backPng],
-    ]) {
-      const html = wrapHtml(css, renderTemplate(source, fields), args.dark);
-      const htmlPath = path.join(htmlDir, `${base}-${side}${suffix}.html`);
-      fs.writeFileSync(htmlPath, html);
-      const url = pathToFileURL(htmlPath).href;
-      console.log(`Capturing ${name} ${side} -> ${outPng}`);
-      captureJobs.push({ url, out: outPng });
-    }
-
-    captured.push([name, frontPng, backPng]);
+    usableTemplates.push(name);
   }
 
-  // Capture after building all HTML so Puppeteer can reuse one browser session;
-  // the HTML files are loaded directly via file:// URLs. The card templates
-  // inject maps synchronously from external scripts, so the "load" event is
-  // sufficient; no extra settle delay is needed.
-  if (captureJobs.length) {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--disable-gpu", "--hide-scrollbars"],
+  const requests = expandRenderRequests({
+    allTemplateNames: usableTemplates,
+    sides: ["front", "back"],
+    dark: args.dark,
+    samples: args.sample,
+  });
+
+  if (!requests.length) {
+    return;
+  }
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--disable-gpu", "--hide-scrollbars"],
+  });
+  try {
+    // Reuse a small pool of pages across all screenshots. Navigating replaces
+    // the old DOM, so this avoids the per-screenshot page creation cost while
+    // still overlapping page loads when capturing many cards.
+    const pages = [];
+    const pageCount = Math.min(args.concurrency, requests.length);
+    for (let i = 0; i < pageCount; i++) {
+      const page = await browser.newPage();
+      await page.setViewport(VIEWPORT);
+      page._poolIndex = i;
+      pages.push(page);
+    }
+    const pool = new PagePool(pages);
+
+    const results = await runWithPool(pool, requests, async (page, req) => {
+      console.log(`Capturing ${req.template} ${req.side}`);
+      const { pngPath } = await renderCardToPng(page, {
+        deckPath: args.deck,
+        htmlDir,
+        outDir: args.out,
+        template: req.template,
+        side: req.side,
+        dark: req.dark,
+        samples: req.samples,
+        filename: req.filename,
+      });
+      console.log(`Captured ${pngPath}`);
+      return { template: req.template, side: req.side, pngPath };
     });
-    try {
-      // Reuse a small pool of pages across all screenshots. Navigating replaces
-      // the old DOM, so this avoids the per-screenshot page creation cost while
-      // still overlapping page loads when capturing many cards.
-      const pages = [];
-      const pageCount = Math.min(args.concurrency, captureJobs.length);
-      for (let i = 0; i < pageCount; i++) {
-        const page = await browser.newPage();
-        await page.setViewport(VIEWPORT);
-        pages.push(page);
-      }
 
-      let nextJob = 0;
-      async function captureWithPage(page) {
-        while (true) {
-          const index = nextJob++;
-          if (index >= captureJobs.length) return;
-          const job = captureJobs[index];
-          await page.goto(job.url, { waitUntil: "load", timeout: 30000 });
-          await page.screenshot({ path: job.out, type: "png" });
-          console.log(`Captured ${job.out}`);
-        }
+    const byTemplate = new Map();
+    for (const result of results) {
+      if (!result) continue;
+      let entry = byTemplate.get(result.template);
+      if (!entry) {
+        entry = { front: null, back: null };
+        byTemplate.set(result.template, entry);
       }
-
-      await Promise.all(pages.map(captureWithPage));
-    } finally {
-      await browser.close();
+      entry[result.side] = result.pngPath;
     }
-  }
 
-  if (args.stitch && captured.length) {
-    stitch(captured, args.stitch, args.dark);
+    const captured = [];
+    for (const name of usableTemplates) {
+      const entry = byTemplate.get(name);
+      if (entry && entry.front && entry.back) {
+        captured.push([name, entry.front, entry.back]);
+      }
+    }
+
+    if (args.stitch && captured.length) {
+      stitch(captured, args.stitch, args.dark);
+    }
+  } finally {
+    await browser.close();
   }
 }
 
@@ -351,18 +256,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = {
-  REPO_ROOT,
-  DEFAULT_DECK,
-  DEFAULT_OUT,
-  MEDIA_DIR,
-  MEDIA_FILES,
-  VIEWPORT,
-  REQUIRED_FIELDS,
-  renderTemplate,
-  findNote,
-  parseSamples,
-  slug,
-  wrapHtml,
-};

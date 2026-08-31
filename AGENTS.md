@@ -24,7 +24,11 @@ Two supported ways to get screenshots:
    `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches the warm
    Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
    call reads the latest `deck.json` and media from disk, so screenshots always
-   reflect the current build. Use `/mcp` to verify the server is connected.
+   reflect the current build. Rendered PNGs are written to
+   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/motorway-map-front.png`)
+   and the saved path is returned in the tool result. Pass an optional
+   `filename` argument to `render_screenshot` to choose the saved PNG name.
+   Use `/mcp` to verify the server is connected.
 2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` launches
    a fresh Puppeteer instance, captures the requested cards, and exits. This is
    what `make screenshots` uses.
