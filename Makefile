@@ -2,6 +2,10 @@ SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
 SIMPLIFY_INTERVAL := 250m
+# TopoJSON does not store CRS, so mapshaper forgets the projection after a file
+# is written. This re-labels every loaded layer as already-projected EPSG:27700
+# before unit-aware operations (e.g. -simplify) that run after file I/O.
+PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
 .PHONY: all screenshots FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -220,7 +224,7 @@ build/maps/bodies_of_water.topojson build/bodies_of_water.csv: build/maps/base_2
 		-clip canvas target=water \
 		-i build/maps/extra_land.topojson name=extra_land \
 		-merge-layers force name=land target=extra_land,uk \
-		-proj init=EPSG:27700 target="*" \
+		$(PROJ_INIT) \
 		-dissolve2 gap-fill-area=1km2 target=land \
 		-erase source=land target=water \
 		-each "if (name == 'St George\'s Channel') name = 'St Georges Channel'" target=water \
@@ -240,7 +244,6 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 		-filter-fields name target=cities \
 		-i name=canvas build/maps/canvas.topojson \
 		-i name=extra_land build/maps/extra_land.topojson \
-		-proj init=EPSG:27700 target="*" \
 		-o build/maps/cities.topojson target=cities,counties,canvas,extra_land \
 		-o build/cities.csv target=cities
 
@@ -260,6 +263,7 @@ build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canv
 		-i build/maps/canvas.topojson name=canvas \
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
+		$(PROJ_INIT) \
 		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -272,6 +276,7 @@ build/maps/layers/counties.svg: build/maps/counties.topojson build/maps/extra_la
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		-style target=counties fill="#ffe" stroke="#000" class="land" \
+		$(PROJ_INIT) \
 		-o $@ target=counties format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -284,6 +289,7 @@ build/maps/layers/regions.svg: build/maps/regions.topojson build/maps/extra_land
 		-style target=extra_land fill="#eee" class="extra-land" \
 		-style target=canvas fill-opacity=0 \
 		-style target=regions fill="#ffe" stroke="#000" class="land" \
+		$(PROJ_INIT) \
 		-o $@ target=regions format=svg id-field=name fit-extent=canvas
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
@@ -301,6 +307,7 @@ build/maps/layers/water.svg: build/maps/bodies_of_water.topojson $(SIMPLIFY_STAM
 		-i $< name=water \
 		-style fill="#adf" stroke="#07b" \
 		-sort expression=this.area descending \
+		$(PROJ_INIT) \
 		-o $@ format=svg id-field=name
 	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
 
