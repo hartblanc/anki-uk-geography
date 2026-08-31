@@ -25,7 +25,7 @@ you don't need to do anything - they will be run automatically before each commi
 Just run `make` in the root of the repo to build the deck.
 To import the deck into anki, you will need the CrowdAnki add-on installed.
 1. Click through the menus 'File > CrowdAnki: Import from disk'
-2. select build/Users/callumhart/repos/anki-uk-geography/build/United Kingdom Geography - Regions Counties and Cities
+2. select build/United Kingdom Geography - Regions Counties and Cities
 
 ## Generating screenshots
 
