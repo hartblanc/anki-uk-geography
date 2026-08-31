@@ -1,3 +1,6 @@
+# TODO: M40, M20, A74(M) are too big for a viewbox on Motorway - Map
+# TODO:: consider extending zoombox to other small features (e.g. counties, bodies of water)
+
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
 SVGO := ./node_modules/.bin/svgo
@@ -77,16 +80,14 @@ build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_c
 # published as a dedicated ArcGIS Feature Service (Esri UK's OS OpenData
 # hosting), so we download just that layer as GeoJSON. maxAllowableOffset
 # generalises on the server to 20m, which is finer than the final 250m render
-# simplification and keeps the raw download small. The query requests
-# outSR=27700, so the GeoJSON is already in British National Grid and mapshaper
-# is told to treat it as such rather than re-projecting it.
+# simplification and keeps the raw download small.
 build/maps/raw/gb_boundaries.geojson:
 	mkdir -p $(@D)
 	curl -sL 'https://services.arcgis.com/qHLhLQrcvEnxjtPr/arcgis/rest/services/OS_OpenBoundaryLine/FeatureServer/4/query?where=1%3D1&outFields=NAME%2CDESCRIPTIO&f=geojson&resultRecordCount=2000&resultOffset=0&outSR=27700&maxAllowableOffset=20' -o $@
 
 build/maps/base_27700/gb_boundaries.topojson: build/maps/raw/gb_boundaries.geojson
 	mkdir -p $(@D)
-	$(MAPSHAPER) -i $< -proj init=EPSG:27700 -clean -o $@
+	$(MAPSHAPER) -i $< -clean -o $@
 
 build/maps/raw/n_ire_counties.zip:
 	mkdir -p $(@D)
