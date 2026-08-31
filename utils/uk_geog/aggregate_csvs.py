@@ -28,6 +28,7 @@ fieldnames = [
     "county",
     "region",
     "bow",
+    "motorway",
     "tags",
 ]
 
@@ -44,6 +45,7 @@ def build_deck_csv(
     uk_counties_path: Path,
     uk_cities_path: Path,
     bodies_of_water_path: Path,
+    motorways_path: Path,
     city_county_csv_path: Path,
     outfile_path: Path,
     guids: dict,
@@ -92,6 +94,15 @@ def build_deck_csv(
 
     for (bow_name,) in body_of_water_names:
         rows.append({"location": bow_name, "bow": bow_name, "tags": "BoW"})
+
+    # Motorways
+    with motorways_path.open(mode="r") as csvfile:
+        motorway_names = list(csv.reader(csvfile))[1:]  # Skip header row
+
+    for (motorway_name,) in motorway_names:
+        rows.append(
+            {"location": motorway_name, "motorway": motorway_name, "tags": "Motorway"}
+        )
 
     # Cities
     with city_county_csv_path.open(mode="r") as csvfile:
@@ -160,6 +171,11 @@ if __name__ == "__main__":
         help="The path to the CSV file containing the bodies of water",
     )
     parser.add_argument(
+        "motorways",
+        type=Path,
+        help="The path to the CSV file containing the motorways",
+    )
+    parser.add_argument(
         "city_county_csv",
         type=Path,
         help=(
@@ -194,6 +210,7 @@ if __name__ == "__main__":
         args.uk_counties,
         args.uk_cities,
         args.bodies_of_water,
+        args.motorways,
         args.city_county_csv,
         args.outfile,
         curr_guids,

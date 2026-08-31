@@ -19,6 +19,7 @@ LAYER_FILES = {
     "cities": "build/maps/layers/cities.min.svg",
     "regions": "build/maps/layers/regions.min.svg",
     "water": "build/maps/layers/water.min.svg",
+    "motorways": "build/maps/layers/motorways.min.svg",
 }
 
 # Which layers each map is composed of, in paint order (DOM order).
@@ -27,6 +28,7 @@ MAP_LAYERS = {
     "counties": ["extra_land", "counties"],
     "regions": ["extra_land", "regions"],
     "bodies_of_water": ["water"],
+    "motorways": ["extra_land", "counties", "motorways"],
 }
 
 # Root <svg> id used for each map (matches the ids in the old full SVGs).
@@ -35,6 +37,7 @@ MAP_SVG_IDS = {
     "counties": "map",
     "regions": "regions_map",
     "bodies_of_water": None,
+    "motorways": "map",
 }
 
 OUTPUT = "build/media/_maps.js"
