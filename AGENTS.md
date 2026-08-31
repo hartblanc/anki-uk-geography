@@ -15,3 +15,16 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 - Tradeoffs vs screenshots:
   - Screenshots are fast, scriptable, deterministic, and good for regression checks and docs, but they render in puppeteer rather than Anki's real runtime, so they can miss Anki/AnkiMobile-specific issues (e.g. external script loading races, `<use>` shadow-tree CSS quirks).
   - CDP in Anki is the source of truth for actual behaviour, but requires human involvement for import/navigation, is slower, and is harder to repeat deterministically.
+
+## Screenshots
+
+Two supported ways to get screenshots:
+
+1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
+   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches the warm
+   Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
+   call reads the latest `deck.json` and media from disk, so screenshots always
+   reflect the current build. Use `/mcp` to verify the server is connected.
+2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` launches
+   a fresh Puppeteer instance, captures the requested cards, and exits. This is
+   what `make screenshots` uses.

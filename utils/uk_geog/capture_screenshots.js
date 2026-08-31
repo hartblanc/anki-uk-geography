@@ -6,7 +6,8 @@
  *
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium.
+ * with Puppeteer's headless Chromium. A fresh browser instance is launched for
+ * each invocation; for long-lived agent sessions use the MCP server instead.
  *
  * Examples:
  *   # All card types, light mode
@@ -342,7 +343,24 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err && err.stack ? err.stack : String(err));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err && err.stack ? err.stack : String(err));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  REPO_ROOT,
+  DEFAULT_DECK,
+  DEFAULT_OUT,
+  MEDIA_DIR,
+  MEDIA_FILES,
+  VIEWPORT,
+  REQUIRED_FIELDS,
+  renderTemplate,
+  findNote,
+  parseSamples,
+  slug,
+  wrapHtml,
+};
