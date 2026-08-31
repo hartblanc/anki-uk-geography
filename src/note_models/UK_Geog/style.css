@@ -86,7 +86,7 @@ body,
   paint-order: stroke fill;
 }
 
-.night_mode #extra_land, .nightMode #extra_land {
+.night_mode .extra-land, .nightMode .extra-land {
   fill:  #555;
 }
 

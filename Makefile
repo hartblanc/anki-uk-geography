@@ -22,16 +22,15 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
 # ==============================================================================
 
-build/maps/base_27700/nuts_all.topojson:
+build/maps/base_27700/ons_itl1.topojson:
 	mkdir -p build/maps/base_27700
-	curl -L -o build/maps/nuts_temp.zip 'https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_03M_2021_3035.shp.zip'
-	$(MAPSHAPER) -i build/maps/nuts_temp.zip -proj EPSG:27700 -filter 'LEVL_CODE == 1'  -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
-	rm build/maps/nuts_temp.zip
+	curl -sL 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ITL1_JAN_2025_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson' | \
+	$(MAPSHAPER) -i - format=geojson -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers itl -o $@
 
-build/maps/base_27700/isle_of_man.topojson:
+build/maps/base_27700/natural_earth.topojson:
 	mkdir -p build/maps/base_27700
-	curl -L "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/isle-of-man.geojson" | \
-	$(MAPSHAPER) -i - format=geojson -dissolve -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -o $@
+	curl -sL 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson' | \
+	$(MAPSHAPER) -i - format=geojson -filter 'ADM0_A3 == "FRA" || ADM0_A3 == "IRL" || ADM0_A3 == "IMN"' -proj EPSG:27700 -clean -simplify interval=$(SIMPLIFY_INTERVAL) -rename-layers natural_earth -o $@
 
 build/maps/base_27700/scotland_council_areas.topojson:
 	mkdir -p build/maps/base_27700
@@ -55,21 +54,16 @@ build/maps/base_27700/n_ire_counties.topojson:
 
 build/maps/base_27700/ni_cities.topojson:
 	mkdir -p build/maps/base_27700
-	curl -s --data-urlencode 'data=[out:json][timeout:25]; area["ISO3166-2"="GB-NIR"]->.a; node["place"="city"](area.a); out body;' "https://overpass-api.de/api/interpreter" | \
-		jq '{ \
-			type: "FeatureCollection", \
-			features: [.elements[] | { \
-				type: "Feature", \
-				geometry: { type: "Point", coordinates: [.lon, .lat] }, \
-				properties: { name: .tags.name, GEOMETRY_X: .lon, GEOMETRY_Y: .lat } \
-			}] \
-		}' | \
-		$(MAPSHAPER) \
-			-i - \
-			-proj EPSG:27700 \
-			-rename-layers ni_cities \
-			-clean \
-			-o format=topojson $@
+	curl -sL -A 'Mozilla/5.0' 'https://admin.opendatani.gov.uk/dataset/d27903f1-15e6-4c07-8564-ddc655e9c549/resource/cd65c0eb-0b85-448a-be85-1725dd2aeb48/download/osni_open_data_-_gazetteer_-_place_names.geojson' | \
+	$(MAPSHAPER) \
+		-i - format=geojson \
+		-filter '["ARMAGH","BANGOR","BELFAST","LISBURN","LONDONDERRY","NEWRY"].indexOf(PLACENAME) > -1' \
+		-each "name = (PLACENAME == 'LONDONDERRY') ? 'Derry' : (PLACENAME == 'BANGOR') ? 'Bangor (Northern Ireland)' : PLACENAME.charAt(0) + PLACENAME.slice(1).toLowerCase()" \
+		-filter-fields name \
+		-rename-layers ni_cities \
+		-proj EPSG:27700 \
+		-clean \
+		-o format=topojson $@
 
 build/maps/base_27700/gb_cities.topojson:
 	mkdir -p build/maps/base_27700 build/maps/raw_gb_cities
@@ -98,40 +92,36 @@ build/maps/base_27700/seavox.topojson:
 #    Although we might need to remind $(MAPSHAPER) sometimes via -proj init
 # ==============================================================================
 
-build/maps/uk.topojson: build/maps/base_27700/nuts_all.topojson
-	$(MAPSHAPER) -i $< -filter 'CNTR_CODE == "UK"' -o $@
+build/maps/uk.topojson: build/maps/base_27700/ons_itl1.topojson
+	$(MAPSHAPER) -i $< -dissolve -o $@
 
-build/maps/canvas.topojson: build/maps/base_27700/nuts_all.topojson build/maps/uk.topojson
+build/maps/canvas.topojson: build/maps/base_27700/natural_earth.topojson build/maps/uk.topojson
 	$(MAPSHAPER) \
-		-i name=roi $< \
-		-filter target=roi 'CNTR_CODE == "IE"' \
+		-i name=roi build/maps/base_27700/natural_earth.topojson \
+		-filter target=roi 'ADM0_A3 == "IRL"' \
 		-i name=uk build/maps/uk.topojson \
-		-merge-layers name=ukroi target=uk,roi \
+		-merge-layers name=ukroi target=uk,roi force \
 		-rectangle + name=canvas target=ukroi \
 		-o $@ target=canvas
 
-build/maps/extra_land.topojson: build/maps/base_27700/nuts_all.topojson build/maps/base_27700/isle_of_man.topojson build/maps/canvas.topojson
+build/maps/extra_land.topojson: build/maps/base_27700/natural_earth.topojson build/maps/canvas.topojson
 	$(MAPSHAPER) \
-		-i name=nuts build/maps/base_27700/nuts_all.topojson \
-		-filter target=nuts 'CNTR_CODE == "FR" || CNTR_CODE == "IE"' \
-		-split CNTR_CODE \
-		-rename-layers france,roi \
-		-dissolve target=france,roi \
-		-i name=iom build/maps/base_27700/isle_of_man.topojson \
+		-i name=ne build/maps/base_27700/natural_earth.topojson \
+		-dissolve target=ne \
 		-i name=canvas build/maps/canvas.topojson \
-		-clip canvas target=france \
-		-merge-layers force name=extra_land target=iom,roi,france \
-		-o $@ target=extra_land
+		-clip canvas target=ne \
+		-o $@ target=ne
 
-build/maps/regions.topojson build/regions.csv: build/maps/uk.topojson
+build/maps/regions.topojson build/regions.csv: build/maps/base_27700/ons_itl1.topojson
 	$(MAPSHAPER) \
-		-i name=uk build/maps/uk.topojson \
-		-filter 'LEVL_CODE == 1' \
-		-filter-fields NAME_LATN \
-		-rename-fields name=NAME_LATN \
-		-each "name = name.replace(' (England)', '')" \
-		-o build/maps/regions.topojson \
-		-o build/regions.csv
+		-i name=itl build/maps/base_27700/ons_itl1.topojson \
+		-filter-fields ITL125NM target=itl \
+		-rename-fields name=ITL125NM target=itl \
+		-each "name = name.replace(' (England)', '')" target=itl \
+		-each "if (name == 'East') name = 'East of England'" target=itl \
+		-each "if (name == 'Yorkshire and The Humber') name = 'Yorkshire and the Humber'" target=itl \
+		-o build/maps/regions.topojson target=itl \
+		-o build/regions.csv target=itl
 
 build/maps/counties.topojson build/counties.csv: build/maps/base_27700/gb_boundaries.topojson build/maps/base_27700/n_ire_counties.topojson build/maps/base_27700/scotland_council_areas.topojson build/maps/regions.topojson
 	mkdir -p build/maps
@@ -203,8 +193,6 @@ build/maps/cities.topojson build/cities.csv: build/maps/base_27700/ni_cities.top
 		-i name=ni_cities build/maps/base_27700/ni_cities.topojson \
 		-i name=gb_cities build/maps/base_27700/gb_cities.topojson \
 		-each "name = (NAME2_LANG == 'eng') ? NAME2 : NAME1" target=gb_cities \
-		-each "name = (name == 'Bangor') ? 'Bangor (Northern Ireland)' : name " target=ni_cities \
-		-each "name = (name == 'Derry/Londonderry') ? 'Derry' : name " target=ni_cities \
 		-each "name = (name == 'Bangor') ? 'Bangor (Wales)' : name " target=gb_cities \
 		-filter "name != 'London'" target=gb_cities \
 		-i build/maps/counties.topojson \
