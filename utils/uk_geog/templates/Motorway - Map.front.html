@@ -1,5 +1,4 @@
 {{#Motorway}}
-<script src="_maps.js"></script>
 <style>
   [id="motorways"] path {
     fill: none;
@@ -17,23 +16,7 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="motorways-map"></div>
+    @[build/maps/motorways.min.svg]
   </div>
 </div>
-<script>
-  (function () {
-    function whenReady(fn) {
-      if (typeof injectMap === "function") {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("motorways-map", "motorways");
-    });
-  })();
-</script>
 {{/Motorway}}

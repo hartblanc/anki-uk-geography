@@ -9,8 +9,8 @@
  *
  * On startup this process launches the warm headless Chromium instance with a
  * small pool of open tabs (default 4, like capture_screenshots.js). Each
- * `render_screenshot` call reads deck.json and the media files fresh from disk,
- * builds the card HTML, and renders it immediately on the next free tab. This
+ * `render_screenshot` call reads deck.json fresh from disk, builds the card
+ * HTML, and renders it immediately on the next free tab. This
  * means screenshots always reflect the latest build without any manual
  * lifecycle management, and concurrent/batch requests are spread across the
  * tabs instead of being serialised. Each render is also written to

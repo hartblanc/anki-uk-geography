@@ -23,8 +23,6 @@ const DEFAULT_DECK = path.join(
   "deck.json"
 );
 const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
-const MEDIA_DIR = path.join(REPO_ROOT, "build", "media");
-const MEDIA_FILES = ["_maps.js", "_zoombox.js", "_move_to_front.js"];
 const VIEWPORT = { width: 800, height: 1159 };
 
 // Fields that must be populated for each template to produce a meaningful card.
@@ -147,16 +145,6 @@ function loadDeck(deckPath) {
   };
 }
 
-function copyMedia(htmlDir) {
-  for (const media of MEDIA_FILES) {
-    fs.copyFileSync(path.join(MEDIA_DIR, media), path.join(htmlDir, media));
-  }
-}
-
-/**
- * Resolve a single render request into concrete card fields and HTML.
- * Reads deck.json fresh so long-lived servers always reflect the latest build.
- */
 function prepareCard({ deckPath, template, side, dark, samples }) {
   const { deck, fieldNames, css, templatesByName } = loadDeck(deckPath);
   const tmpl = templatesByName[String(template || "")];
@@ -201,7 +189,6 @@ async function renderCardToPng(
   { deckPath, htmlDir, outDir, template, side, dark, samples, filename }
 ) {
   const prep = prepareCard({ deckPath, template, side, dark, samples });
-  copyMedia(htmlDir);
 
   const htmlPath = path.join(htmlDir, `card-${page._poolIndex}.html`);
   fs.writeFileSync(htmlPath, prep.html);
@@ -343,8 +330,6 @@ module.exports = {
   REPO_ROOT,
   DEFAULT_DECK,
   DEFAULT_OUT,
-  MEDIA_DIR,
-  MEDIA_FILES,
   VIEWPORT,
   REQUIRED_FIELDS,
   renderTemplate,
@@ -355,7 +340,6 @@ module.exports = {
   ensurePngExtension,
   defaultPngName,
   loadDeck,
-  copyMedia,
   prepareCard,
   renderCardToPng,
   expandRenderRequests,

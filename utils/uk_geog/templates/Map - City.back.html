@@ -1,4 +1,3 @@
-<script src="_maps.js"></script>
 <style>
   .city:not([id="city-{{City}}"]) {
     visibility: hidden;
@@ -18,7 +17,7 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="cities-map"></div>
+    @[build/maps/cities.min.svg]
   </div>
 
   <!-- A bit of a hack because you can't tell the difference between these two pairs by just looking a the map. -->
@@ -26,34 +25,19 @@
   <!-- will sort this out at some point when the zoombox is a little better -->
 </div>
 <script>
-  (function () {
-    function whenReady(fn) {
-      if (typeof injectMap === "function") {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
+  var cityAnswer = document.getElementById("city-answer");
+  if (cityAnswer) {
+    if (cityAnswer.textContent == "City of London") {
+      cityAnswer.textContent = "City of London + City of Westminster";
     }
-    whenReady(function () {
-      injectMap("cities-map", "cities");
-
-      var cityAnswer = document.getElementById("city-answer");
-      if (cityAnswer) {
-        if (cityAnswer.textContent == "City of London") {
-          cityAnswer.textContent = "City of London + City of Westminster";
-        }
-        if (cityAnswer.textContent == "City of Westminster") {
-          cityAnswer.textContent = "City of London + City of Westminster";
-        }
-        if (cityAnswer.textContent == "Manchester") {
-          cityAnswer.textContent = "Manchester + Salford";
-        }
-        if (cityAnswer.textContent == "Salford") {
-          cityAnswer.textContent = "Manchester + Salford";
-        }
-      }
-    });
-  })();
+    if (cityAnswer.textContent == "City of Westminster") {
+      cityAnswer.textContent = "City of London + City of Westminster";
+    }
+    if (cityAnswer.textContent == "Manchester") {
+      cityAnswer.textContent = "Manchester + Salford";
+    }
+    if (cityAnswer.textContent == "Salford") {
+      cityAnswer.textContent = "Manchester + Salford";
+    }
+  }
 </script>

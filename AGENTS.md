@@ -23,7 +23,7 @@ Two supported ways to get screenshots:
 1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
    `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches the warm
    Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
-   call reads the latest `deck.json` and media from disk, so screenshots always
+   call reads the latest `deck.json` from disk, so screenshots always
    reflect the current build. Rendered PNGs are written to
    `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/motorway-map-front.png`)
    and the saved path is returned in the tool result. Pass an optional

@@ -1,5 +1,3 @@
-<script src="_maps.js"></script>
-<script src="_zoombox.js"></script>
 <style>
   [id="county-{{County}}"] {
     fill: #d00;
@@ -15,33 +13,16 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="counties-map"></div>
+    @[build/maps/counties.min.svg]
     <svg id="zoombox" viewBox="0 0 800 1159"></svg>
-  </div>
-</div>
-<script>
-  (function () {
-    function whenReady(fn) {
-      if (
-        typeof injectMap === "function" &&
-        typeof setupZoombox === "function"
-      ) {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("counties-map", "counties");
-
+    <script>
+      @[utils/uk_geog/snippets/zoombox.js]
       setupZoombox({
         mapId: "map",
         targetId: "county-{{County}}",
         current: "{{County}}",
         zoomNames: ["City of London"],
       });
-    });
-  })();
-</script>
+    </script>
+  </div>
+</div>

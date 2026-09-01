@@ -1,5 +1,4 @@
 {{#BoW}}
-<script src="_maps.js"></script>
 <div id="fitcontent">
   <header>
     <div class="type">Body of Water</div>
@@ -10,23 +9,7 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="bow-map"></div>
+    @[build/maps/bodies_of_water.min.svg]
   </div>
 </div>
-<script>
-  (function () {
-    function whenReady(fn) {
-      if (typeof injectMap === "function") {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("bow-map", "bodies_of_water");
-    });
-  })();
-</script>
 {{/BoW}}

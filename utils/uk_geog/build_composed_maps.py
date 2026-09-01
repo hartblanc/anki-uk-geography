@@ -1,9 +1,14 @@
-"""Generate the _maps.js media file from per-layer SVG building blocks.
+"""Generate composed map SVGs from per-layer SVG building blocks.
 
 The Makefile renders each layer as its own SVG (build/maps/layers/*.min.svg),
-all sharing the same viewBox (fit-extent=canvas). _maps.js stores each layer
-once and injectMap() composes the full SVG for a map from its layers at render
-time, so shared geometry (counties, extra_land) is not duplicated.
+all sharing the same viewBox (fit-extent=canvas). This script composes the
+layers into the full per-map SVGs that used to live directly in each note type
+template (cities.min.svg, counties.min.svg, regions.min.svg,
+bodies_of_water.min.svg, motorways.min.svg).
+
+Keeping the maps as static, inlined SVGs means map changes are part of the
+note type templates themselves, so they sync to AnkiWeb with the deck instead
+of relying on media files being re-synced when they change.
 
 City markers and their white rings are grouped per city at build time. Each
 city becomes <g id="city-Name"> containing a .city-marker circle and a
@@ -11,7 +16,6 @@ city becomes <g id="city-Name"> containing a .city-marker circle and a
 a single prefixed id.
 """
 
-import json
 import re
 from pathlib import Path
 
@@ -43,10 +47,17 @@ MAP_SVG_IDS = {
     "motorways": "map",
 }
 
+# Output file name for each map.
+MAP_OUTPUTS = {
+    "cities": "build/maps/cities.min.svg",
+    "counties": "build/maps/counties.min.svg",
+    "regions": "build/maps/regions.min.svg",
+    "bodies_of_water": "build/maps/bodies_of_water.min.svg",
+    "motorways": "build/maps/motorways.min.svg",
+}
+
 # Radius of the white ring drawn around each city marker.
 RING_RADIUS = 4
-
-OUTPUT = "build/media/_maps.js"
 
 
 def extract_layer(svg: str, layer_id: str) -> str:
@@ -83,7 +94,7 @@ def extract_root_attrs(svg: str) -> str:
     match = re.search(r"<svg\b([^>]*)>", svg)
     if not match:
         raise ValueError("root <svg> tag not found")
-    # Remove the id; injectMap sets the per-map id on the composed root.
+    # Remove the id; compose_map sets the per-map id on the composed root.
     return re.sub(r'\sid="[^"]*"', "", match.group(1)).strip()
 
 
@@ -150,6 +161,14 @@ def validate_unique_ids(layers: dict) -> None:
             )
 
 
+def compose_map(layers: dict, root_attrs: str, map_name: str) -> str:
+    layer_names = MAP_LAYERS[map_name]
+    inner = "".join(layers[name] for name in layer_names)
+    svg_id = MAP_SVG_IDS[map_name]
+    id_attr = f' id="{svg_id}"' if svg_id else ""
+    return f"<svg {root_attrs}{id_attr}>{inner}</svg>"
+
+
 def main() -> None:
     layers = {}
     root_attrs = None
@@ -164,39 +183,11 @@ def main() -> None:
 
     validate_unique_ids(layers)
 
-    js = (
-        "var MAPS = "
-        + json.dumps(layers)
-        + ";\n\n"
-        + "var MAP_LAYERS = "
-        + json.dumps(MAP_LAYERS)
-        + ";\n\n"
-        + "var MAP_SVG_IDS = "
-        + json.dumps(MAP_SVG_IDS)
-        + ";\n\n"
-        + "var SVG_ROOT_ATTRS = "
-        + json.dumps(root_attrs)
-        + ";\n\n"
-        + "function injectMap(containerId, mapName) {\n"
-        + "  var container = document.getElementById(containerId);\n"
-        + "  if (!container) {\n"
-        + "    return;\n"
-        + "  }\n"
-        + "  var layerNames = MAP_LAYERS[mapName];\n"
-        + "  var layers = \"\";\n"
-        + "  for (var i = 0; i < layerNames.length; i++) {\n"
-        + "    layers += MAPS[layerNames[i]];\n"
-        + "  }\n"
-        + "  var idAttr = MAP_SVG_IDS[mapName]\n"
-        + "    ? ' id=\"' + MAP_SVG_IDS[mapName] + '\"'\n"
-        + "    : \"\";\n"
-        + "  container.innerHTML =\n"
-        + "    '<svg ' + SVG_ROOT_ATTRS + idAttr + '>' + layers + '</svg>';\n"
-        + "}\n"
-    )
-    output = Path(OUTPUT)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(js)
+    for map_name, output in MAP_OUTPUTS.items():
+        output_path = Path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(compose_map(layers, root_attrs, map_name))
+        print(f"wrote {output_path}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,4 @@
 {{#BoW}}
-<script src="_maps.js"></script>
-<script src="_move_to_front.js"></script>
 <style>
   [id="bow"] {
     stroke: none;
@@ -19,28 +17,11 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="bow-map"></div>
+    @[build/maps/bodies_of_water.min.svg]
   </div>
 </div>
 <script>
-  (function () {
-    function whenReady(fn) {
-      if (
-        typeof injectMap === "function" &&
-        typeof moveToFront === "function"
-      ) {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("bow-map", "bodies_of_water");
-
-      moveToFront("bow-{{BoW}}");
-    });
-  })();
+  @[utils/uk_geog/snippets/move_to_front.js]
+  moveToFront("bow-{{BoW}}");
 </script>
 {{/BoW}}

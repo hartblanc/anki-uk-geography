@@ -1,4 +1,3 @@
-<script src="_maps.js"></script>
 <style>
   .city:not([id="city-{{City}}"]) {
     visibility: hidden;
@@ -19,30 +18,15 @@
     <div class="center">{{MacroLocation}}</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="cities-map"></div>
+    @[build/maps/cities.min.svg]
   </div>
 </div>
 <script>
-  (function () {
-    function whenReady(fn) {
-      if (typeof injectMap === "function") {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("cities-map", "cities");
+  var selectedCountiesNames = "{{MacroLocation}}".split(" / ");
 
-      var selectedCountiesNames = "{{MacroLocation}}".split(" / ");
-
-      for (var i = 0; i < selectedCountiesNames.length; i++) {
-        var county = document.getElementById("county-" + selectedCountiesNames[i]);
-        county.style.fill = "#d00";
-        county.style["fill-opacity"] = 0.5;
-      }
-    });
-  })();
+  for (var i = 0; i < selectedCountiesNames.length; i++) {
+    var county = document.getElementById("county-" + selectedCountiesNames[i]);
+    county.style.fill = "#d00";
+    county.style["fill-opacity"] = 0.5;
+  }
 </script>

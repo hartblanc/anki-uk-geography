@@ -39,10 +39,6 @@
         - file: build/uk_geog.csv
           note_model: UK Geog
 
-  - media_group_from_folder:
-      part_id: deck media
-      source: build/media
-
 
 - generate_crowd_anki:
     headers: default header
@@ -56,7 +52,3 @@
     notes:
       part_id: uk_geog
       sort_order: [guid]
-
-    media:
-      parts:
-        - deck media

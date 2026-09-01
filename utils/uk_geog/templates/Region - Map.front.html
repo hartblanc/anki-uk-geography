@@ -1,5 +1,4 @@
 {{#Region}}
-<script src="_maps.js"></script>
 <div id="fitcontent">
   <header>
     <div class="type">Region</div>
@@ -10,23 +9,7 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="regions-map"></div>
+    @[build/maps/regions.min.svg]
   </div>
 </div>
-<script>
-  (function () {
-    function whenReady(fn) {
-      if (typeof injectMap === "function") {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
-      }
-    }
-    whenReady(function () {
-      injectMap("regions-map", "regions");
-    });
-  })();
-</script>
 {{/Region}}

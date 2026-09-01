@@ -1,5 +1,3 @@
-<script src="_maps.js"></script>
-<script src="_zoombox.js"></script>
 <style>
   [id="city-{{City}}"] .city-marker {
     fill: #d00;
@@ -15,81 +13,66 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    <div class="map-slot" id="cities-map"></div>
+    @[build/maps/cities.min.svg]
     <svg id="zoombox" viewBox="0 0 800 1159"></svg>
   </div>
 </div>
 <script>
+  @[utils/uk_geog/snippets/zoombox.js]
   (function () {
-    function whenReady(fn) {
-      if (
-        typeof injectMap === "function" &&
-        typeof setupZoombox === "function"
-      ) {
-        fn();
-      } else {
-        setTimeout(function () {
-          whenReady(fn);
-        }, 10);
+    // Keep the highlighted city on top of any city it overlaps. A few city
+    // pairs sit almost on top of each other (Salford/Manchester, City of
+    // London/City of Westminster). SVG paints in DOM order, so without moving
+    // the highlighted city to the end of its group, the other member of the
+    // pair would cover it.
+    (function () {
+      var cityEl = document.querySelector('[id="city-{{City}}"]');
+      if (cityEl && cityEl.parentElement) {
+        cityEl.parentElement.appendChild(cityEl);
+      }
+    })();
+
+    var zoomMap = setupZoombox({
+      mapId: "map",
+      targetId: "city-{{City}}",
+      current: "{{City}}",
+      zoomNames: [
+        "Salford",
+        "Manchester",
+        "City of London",
+        "City of Westminster",
+      ],
+    });
+
+    // The zoombox shows a magnified slice of the map; scale the marker
+    // circles in the clone down so they render at the same on-screen size
+    // as the markers on the main map, rather than growing with the zoom.
+    // setupZoombox has already scaled stroke widths (county borders, ring
+    // strokes) generically.
+    if (zoomMap) {
+      var cityGroup = document.querySelector(
+        '[id="city-{{City}}"]'
+      );
+      var cityCircle = cityGroup && cityGroup.querySelector(".city-marker");
+      var ringCircle = cityGroup && cityGroup.querySelector(".city-ring");
+      if (cityCircle && ringCircle) {
+        var mainScale = document.getElementById("map").getScreenCTM().a;
+        var zoomScale = document.getElementById("zoombox").getScreenCTM().a;
+        var markerScale = mainScale / zoomScale;
+        var markerR = parseFloat(cityCircle.getAttribute("r")) * markerScale;
+        var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
+
+        zoomMap
+          .querySelectorAll('.city-marker')
+          .forEach(function (circle) {
+            circle.setAttribute("r", markerR);
+          });
+        zoomMap
+          .querySelectorAll('.city-ring')
+          .forEach(function (circle) {
+            circle.setAttribute("r", ringR);
+          });
       }
     }
-    whenReady(function () {
-      injectMap("cities-map", "cities");
-
-      // Keep the highlighted city on top of any city it overlaps. A few city
-      // pairs sit almost on top of each other (Salford/Manchester, City of
-      // London/City of Westminster). SVG paints in DOM order, so without moving
-      // the highlighted city to the end of its group, the other member of the
-      // pair would cover it.
-      (function () {
-        var cityEl = document.querySelector('[id="city-{{City}}"]');
-        if (cityEl && cityEl.parentElement) {
-          cityEl.parentElement.appendChild(cityEl);
-        }
-      })();
-
-      var zoomMap = setupZoombox({
-        mapId: "map",
-        targetId: "city-{{City}}",
-        current: "{{City}}",
-        zoomNames: [
-          "Salford",
-          "Manchester",
-          "City of London",
-          "City of Westminster",
-        ],
-      });
-
-      // The zoombox shows a magnified slice of the map; scale the marker
-      // circles in the clone down so they render at the same on-screen size
-      // as the markers on the main map, rather than growing with the zoom.
-      // setupZoombox has already scaled stroke widths (county borders, ring
-      // strokes) generically.
-      if (zoomMap) {
-        var cityGroup = document.querySelector(
-          '[id="city-{{City}}"]'
-        );
-        var cityCircle = cityGroup && cityGroup.querySelector(".city-marker");
-        var ringCircle = cityGroup && cityGroup.querySelector(".city-ring");
-        if (cityCircle && ringCircle) {
-          var mainScale = document.getElementById("map").getScreenCTM().a;
-          var zoomScale = document.getElementById("zoombox").getScreenCTM().a;
-          var markerScale = mainScale / zoomScale;
-          var markerR = parseFloat(cityCircle.getAttribute("r")) * markerScale;
-          var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
-
-          zoomMap
-            .querySelectorAll('.city-marker')
-            .forEach(function (circle) {
-              circle.setAttribute("r", markerR);
-            });
-          zoomMap
-            .querySelectorAll('.city-ring')
-            .forEach(function (circle) {
-              circle.setAttribute("r", ringR);
-            });
-        }
-      }
-    });
   })();
 </script>

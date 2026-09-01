@@ -7,8 +7,8 @@ module.exports = {
       params: {
         overrides: {
           cleanupIds: false,
-          // Keep layer <g> wrappers: _maps.js extracts layers by group id, so
-          // single-element layers must not be collapsed to a bare path.
+          // Keep layer <g> wrappers: build_composed_maps.py extracts layers by
+          // group id, so single-element layers must not be collapsed to a bare path.
           collapseGroups: false,
         },
       },

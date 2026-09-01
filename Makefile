@@ -317,7 +317,8 @@ build/maps/motorways.topojson build/motorways.csv: build/maps/base_27700/open_ro
 # ==============================================================================
 
 # Each layer is rendered as its own SVG with a shared viewBox (fit-extent=canvas),
-# so _maps.js can compose the full maps from these building blocks at runtime.
+# so build_composed_maps.py can compose the full maps from these building blocks
+# and inline them into the card templates.
 # Feature ids are namespaced by layer (county-, city-, region-, bow-) so the
 # same place name in different layers (e.g. Edinburgh is a county and a city)
 # does not produce duplicate ids in a composed map.
@@ -419,18 +420,11 @@ build/maps/layers/motorways.svg: build/maps/motorways.topojson build/maps/extra_
 build/maps/layers/motorways.min.svg: build/maps/layers/motorways.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
 
-# _maps.js stores each SVG layer once as media (see utils/uk_geog/build_maps_js.py);
-# templates inject composed maps into the DOM at render time instead of inlining them.
-build/media/_maps.js: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg build/maps/layers/motorways.min.svg utils/uk_geog/build_maps_js.py
-	python utils/uk_geog/build_maps_js.py
-
-build/media/_zoombox.js: utils/uk_geog/media/_zoombox.js
-	mkdir -p build/media
-	cp "$<" "$@"
-
-build/media/_move_to_front.js: utils/uk_geog/media/_move_to_front.js
-	mkdir -p build/media
-	cp "$<" "$@"
+# Composed map SVGs are inlined into each card template at build time (via
+# build_note_templates.py), so map changes sync as part of the note type instead
+# of relying on media files being re-synced to AnkiWeb.
+build/maps/cities.min.svg build/maps/counties.min.svg build/maps/regions.min.svg build/maps/bodies_of_water.min.svg build/maps/motorways.min.svg: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg build/maps/layers/motorways.min.svg utils/uk_geog/build_composed_maps.py
+	python utils/uk_geog/build_composed_maps.py
 
 
 # ==============================================================================
@@ -444,43 +438,44 @@ define COMPILE_TEMPLATE
 	echo "--" >> "build/resolved_templates/$(1).template.html"
 	echo "" >> "build/resolved_templates/$(1).template.html"
 	cat "utils/uk_geog/templates/$(1).back.html" >> "build/resolved_templates/$(1).template.html"
-	mv "build/resolved_templates/$(1).template.html" "build/resolved_templates/$(1).html"
+	python utils/uk_geog/build_note_templates.py "build/resolved_templates/$(1).template.html" -o=build/resolved_templates
+	rm "build/resolved_templates/$(1).template.html"
 endef
 
-build/resolved_templates/Region\ -\ Map.html: utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html
+build/resolved_templates/Region\ -\ Map.html: build/maps/regions.min.svg utils/uk_geog/templates/Region\ -\ Map.front.html utils/uk_geog/templates/Region\ -\ Map.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Region - Map)
 
-build/resolved_templates/Map\ -\ Region.html: utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html
+build/resolved_templates/Map\ -\ Region.html: build/maps/regions.min.svg utils/uk_geog/templates/Map\ -\ Region.front.html utils/uk_geog/templates/Map\ -\ Region.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - Region)
 
-build/resolved_templates/County\ -\ Map.html: utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html
+build/resolved_templates/County\ -\ Map.html: build/maps/counties.min.svg utils/uk_geog/templates/County\ -\ Map.front.html utils/uk_geog/templates/County\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Map)
 
-build/resolved_templates/Map\ -\ County.html: utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html
+build/resolved_templates/Map\ -\ County.html: build/maps/counties.min.svg utils/uk_geog/templates/Map\ -\ County.front.html utils/uk_geog/templates/Map\ -\ County.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - County)
 
-build/resolved_templates/City\ -\ Map.html: utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html
+build/resolved_templates/City\ -\ Map.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ Map.front.html utils/uk_geog/templates/City\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - Map)
 
-build/resolved_templates/Map\ -\ City.html: utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html
+build/resolved_templates/Map\ -\ City.html: build/maps/cities.min.svg utils/uk_geog/templates/Map\ -\ City.front.html utils/uk_geog/templates/Map\ -\ City.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - City)
 
-build/resolved_templates/City\ -\ County.html: utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html
+build/resolved_templates/City\ -\ County.html: build/maps/cities.min.svg utils/uk_geog/templates/City\ -\ County.front.html utils/uk_geog/templates/City\ -\ County.back.html utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,City - County)
 
-build/resolved_templates/County\ -\ Region.html: utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html
+build/resolved_templates/County\ -\ Region.html: build/maps/counties.min.svg build/maps/regions.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Region)
 
-build/resolved_templates/Bow\ -\ Map.html: utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html
+build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Bow - Map)
 
-build/resolved_templates/Map\ -\ BoW.html: utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html
+build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
-build/resolved_templates/Motorway\ -\ Map.html: utils/uk_geog/templates/Motorway\ -\ Map.front.html utils/uk_geog/templates/Motorway\ -\ Map.back.html
+build/resolved_templates/Motorway\ -\ Map.html: build/maps/motorways.min.svg utils/uk_geog/templates/Motorway\ -\ Map.front.html utils/uk_geog/templates/Motorway\ -\ Map.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Motorway - Map)
 
-build/resolved_templates/Map\ -\ Motorway.html: utils/uk_geog/templates/Map\ -\ Motorway.front.html utils/uk_geog/templates/Map\ -\ Motorway.back.html
+build/resolved_templates/Map\ -\ Motorway.html: build/maps/motorways.min.svg utils/uk_geog/templates/Map\ -\ Motorway.front.html utils/uk_geog/templates/Map\ -\ Motorway.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - Motorway)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv build/motorways.csv src/data/city.csv src/data/uk_geog.csv
@@ -514,10 +509,7 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/Bow\ -\ Map.html \
 	build/resolved_templates/Map\ -\ BoW.html \
 	build/resolved_templates/Motorway\ -\ Map.html \
-	build/resolved_templates/Map\ -\ Motorway.html \
-	build/media/_maps.js \
-	build/media/_zoombox.js \
-	build/media/_move_to_front.js
+	build/resolved_templates/Map\ -\ Motorway.html
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
 
