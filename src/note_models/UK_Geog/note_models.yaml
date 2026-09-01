@@ -8,7 +8,6 @@ fields:
   - name: County
   - name: Region
   - name: BoW
-  - name: Motorway
 templates:
   - name: BoW - Map
     html_file: build/resolved_templates/Bow - Map.html
@@ -26,12 +25,8 @@ templates:
     html_file: build/resolved_templates/Map - City.html
   - name: Map - County
     html_file: build/resolved_templates/Map - County.html
-  - name: Map - Motorway
-    html_file: build/resolved_templates/Map - Motorway.html
   - name: Map - Region
     html_file: build/resolved_templates/Map - Region.html
-  - name: Motorway - Map
-    html_file: build/resolved_templates/Motorway - Map.html
   - name: Region - Map
     html_file: build/resolved_templates/Region - Map.html
 

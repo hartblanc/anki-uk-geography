@@ -11,9 +11,7 @@ attributions below.
 |---|---|---|---|
 | UK top-level regions (ITL1) | ONS Open Geography Portal | Open Government Licence v3.0 | Source: Office for National Statistics licensed under the Open Government Licence v.3.0. Contains OS data © Crown copyright and database right 2026 |
 | GB ceremonial counties | Ordnance Survey Boundary-Line (Ceremonial counties layer via Esri UK hosted Feature Service) | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
-| GB motorways | Ordnance Survey Open Roads | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
 | GB city names/positions | OS Open Names | Open Government Licence v3.0 | Contains OS data © Crown copyright and database right 2026 |
-| Northern Ireland motorways | DfI Roads Highway Network (via OpenDataNI) | Open Government Licence v3.0 | Contains public sector information licensed under the Open Government Licence v3.0. Source: Department for Infrastructure (DfI) Roads |
 | Scottish council areas | ONS/OS/NRS data via martinjc/UK-GeoJSON | Open Government Licence v3.0 | Contains Ordnance Survey, Office of National Statistics, National Records Scotland and LPS Intellectual Property data © Crown copyright and database right 2016 |
 | Northern Ireland county boundaries | OSNI Largescale Boundaries via OpenDataNI | Open Government Licence v3.0 | Contains LPS Intellectual Property © Crown copyright and database right 2026. This information is licensed under the terms of the Open Government Licence |
 | Northern Ireland city points | OSNI Open Data Gazetteer - Place Names | Open Government Licence v3.0 | Contains LPS Intellectual Property © Crown copyright and database right 2026. This information is licensed under the terms of the Open Government Licence |
@@ -22,7 +20,7 @@ attributions below.
 
 ## Required attributions
 
-### Ordnance Survey (Boundary-Line, Open Names and Open Roads)
+### Ordnance Survey (Boundary-Line and Open Names)
 
 > Contains OS data © Crown copyright and database right 2026
 
@@ -37,10 +35,6 @@ Also include:
 > Contains OS data © Crown copyright and database right 2026
 
 > Contains National Statistics data © Crown copyright and database right 2026
-
-### DfI Roads (Northern Ireland motorways)
-
-> Contains public sector information licensed under the Open Government Licence v3.0. Source: Department for Infrastructure (DfI) Roads, via OpenDataNI.
 
 ### OSNI / Land & Property Services (Northern Ireland counties and place names)
 

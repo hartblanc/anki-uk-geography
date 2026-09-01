@@ -4,7 +4,7 @@ The Makefile renders each layer as its own SVG (build/maps/layers/*.min.svg),
 all sharing the same viewBox (fit-extent=canvas). This script composes the
 layers into the full per-map SVGs that used to live directly in each note type
 template (cities.min.svg, counties.min.svg, regions.min.svg,
-bodies_of_water.min.svg, motorways.min.svg).
+bodies_of_water.min.svg).
 
 Keeping the maps as static, inlined SVGs means map changes are part of the
 note type templates themselves, so they sync to AnkiWeb with the deck instead
@@ -22,7 +22,7 @@ from pathlib import Path
 # Layer names match both the SVG group ids and the layer file names
 # (e.g. the county layer lives in build/maps/layers/county.min.svg).
 LAYER_DIR = "build/maps/layers"
-LAYER_NAMES = ["extra_land", "county", "city", "region", "bow", "motorways"]
+LAYER_NAMES = ["extra_land", "county", "city", "region", "bow"]
 
 # Which layers each map is composed of, in paint order (DOM order).
 MAP_LAYERS = {
@@ -30,7 +30,6 @@ MAP_LAYERS = {
     "counties": ["extra_land", "county"],
     "regions": ["extra_land", "region"],
     "bodies_of_water": ["bow"],
-    "motorways": ["extra_land", "county", "motorways"],
 }
 
 # Element ids are namespaced by layer so a place name shared between layers
@@ -44,7 +43,6 @@ MAP_SVG_IDS = {
     "counties": "map",
     "regions": "regions_map",
     "bodies_of_water": None,
-    "motorways": "map",
 }
 
 # Output file name for each map.
@@ -53,7 +51,6 @@ MAP_OUTPUTS = {
     "counties": "build/maps/counties.min.svg",
     "regions": "build/maps/regions.min.svg",
     "bodies_of_water": "build/maps/bodies_of_water.min.svg",
-    "motorways": "build/maps/motorways.min.svg",
 }
 
 # Radius of the white ring drawn around each city marker.

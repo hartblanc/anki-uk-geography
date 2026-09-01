@@ -35,9 +35,7 @@ const REQUIRED_FIELDS = {
   "Map - BoW": ["BoW"],
   "Map - City": ["City"],
   "Map - County": ["County"],
-  "Map - Motorway": ["Motorway"],
   "Map - Region": ["Region"],
-  "Motorway - Map": ["Motorway"],
   "Region - Map": ["Region"],
 };
 

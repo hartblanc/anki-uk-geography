@@ -246,7 +246,7 @@ async function main() {
           filename: {
             type: "string",
             description:
-              "Optional output filename for the saved PNG (defaults to <template>-<side>[-dark].png, e.g. motorway-map-front.png)",
+              "Optional output filename for the saved PNG (defaults to <template>-<side>[-dark].png, e.g. city-map-front.png)",
           },
         },
         required: ["template"],

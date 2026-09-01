@@ -28,7 +28,6 @@
         County: County
         Region: Region
         BoW: BoW
-        motorway: Motorway
       personal_fields: []
 
     file_mappings:

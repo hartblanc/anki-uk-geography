@@ -25,7 +25,7 @@ Two supported ways to get screenshots:
    Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
    call reads the latest `deck.json` from disk, so screenshots always
    reflect the current build. Rendered PNGs are written to
-   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/motorway-map-front.png`)
+   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/city-map-front.png`)
    and the saved path is returned in the tool result. Pass an optional
    `filename` argument to `render_screenshot` to choose the saved PNG name.
    Use `/mcp` to verify the server is connected.
