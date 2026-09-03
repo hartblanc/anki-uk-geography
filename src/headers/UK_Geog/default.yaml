@@ -1,4 +1,4 @@
-crowdanki_uuid: 6583283a-ad9d-11ea-8887-f45c89c920a5
+crowdanki_uuid: 9767622e-998e-11f1-a0e6-ae68d1863a7f
 deck_config_uuid: b075974b-3d82-43d1-8947-28d8976a023d
 deck_configurations:
 - __type__: DeckConfig
@@ -53,15 +53,15 @@ desc: "<a href=\"https://github.com/HartBlanc/anki-uk-geography\"><b>Additional 
   >England</a>, <a href=\"https://en.wikipedia.org/wiki/Preserved_counties_of_Wales\"\
   >Wales</a>, and <a href=\"https://en.wikipedia.org/wiki/Counties_of_Northern_Ireland\"\
   >Northern Ireland</a></li>\n<li><a href=\"https://en.wikipedia.org/wiki/List_of_cities_in_the_United_Kingdom\"\
-  >76 Official Cities</a></li>\n<li>19 assorted seas, channels, estuaries, straits
-  and oceans</li></ul>\n\
-  <strong>Deck Features</strong>\n<ul><li>The deck is light-weight (<1MB, despite
-  containing hundreds of unique images)</li>\n<li>All images are Scalable Vector Graphics
-  and therefore scale gracefully to any screen size without distortion</li>\n<li>A
-  map with relevant areas highlighted is provided for every location</li>\nThis deck
-  is <a href=\"https://github.com/HartBlanc/anki-uk-geography\"><b>maintained on GitHub</b></a>.\n\
-  Found a bug? Interested in adding new cards or new features? <a href=\"https://github.com/HartBlanc/anki-uk-geography/issues\"\
-  >Raise an issue</a>\nor check out the project documentation on <a href=\"https://github.com/HartBlanc/anki-uk-geography\"\
+  >76 Official Cities</a></li>\n<li>20 assorted seas, channels, estuaries, straits
+  and oceans</li></ul>\n<strong>Deck Features</strong>\n<ul><li>The deck is light-weight
+  (<1MB, despite containing hundreds of unique images)</li>\n<li>All images are Scalable
+  Vector Graphics and therefore scale gracefully to any screen size without distortion</li>\n\
+  <li>A map with relevant areas highlighted is provided for every location</li>\n\
+  This deck is <a href=\"https://github.com/HartBlanc/anki-uk-geography\"><b>maintained
+  on GitHub</b></a>.\nFound a bug? Interested in adding new cards or new features?
+  <a href=\"https://github.com/HartBlanc/anki-uk-geography/issues\">Raise an issue</a>\n\
+  or check out the project documentation on <a href=\"https://github.com/HartBlanc/anki-uk-geography\"\
   >Github</a>.\n"
 dyn: 0
 extendNew: 1

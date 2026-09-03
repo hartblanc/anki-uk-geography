@@ -14,9 +14,17 @@
   </header>
   <div class="center">
     @[build/maps/bodies_of_water.min.svg]
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
   </div>
 </div>
 <script>
   @[utils/uk_geog/snippets/move_to_front.js]
   moveToFront("bow-{{BoW}}");
+  @[utils/uk_geog/snippets/zoombox.js]
+  setupZoombox({
+    mapId: "map",
+    targetId: "bow-{{BoW}}",
+    current: "{{BoW}}",
+    zoomNames: ["Poole Bay"],
+  });
 </script>
