@@ -45,20 +45,45 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   nothing about decks or cards, so it's runnable standalone
   (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
   any page, not just Anki cards.
-- `browser_connection.js` - gets a puppeteer browser. If the
-  `PUPPETEER_BROWSER_URL` env var is set (a CDP HTTP endpoint, e.g.
-  `http://127.0.0.1:9222`), it connects to that existing browser instead of
-  launching a new one.
-- `start_browser.js` - launches one long-lived headless Chromium with a CDP
-  endpoint and prints `PUPPETEER_BROWSER_URL=...` for a caller to export. An
-  agent session that expects to render many screenshots can run this once at
-  startup so every later `capture_screenshots.js` / `screenshot_mcp.js` /
-  `render_screenshot.js` call reuses the same warm browser instead of paying
-  launch cost per call.
+- `browser_connection.js` - gets a puppeteer browser, in order: (1) the
+  `PUPPETEER_BROWSER_URL` env var if set (a CDP HTTP endpoint, e.g.
+  `http://127.0.0.1:9222`) - an explicit override for manual/CI use; (2) a
+  hook-managed browser (see below), discovered via a connection file rather
+  than an env var, since Claude Code hooks can't set env vars that later tool
+  calls would see; (3) otherwise, launch and later close its own throwaway
+  browser.
+- `start_browser.js` - launches one headless Chromium with a CDP endpoint.
+  Standalone (no flags) it just prints `PUPPETEER_BROWSER_URL=...` and runs
+  until Ctrl+C, for manual/CI use with `PUPPETEER_BROWSER_URL` above. With
+  `--managed` (how the hooks below use it) it also writes the connection file
+  `browser_connection.js` looks for, and self-exits after 30 minutes of no
+  caller touching that file - a backstop in case cleanup never runs.
 
 `capture_screenshots.js` and `screenshot_mcp.js` are orchestrators built on
 top of these: they generate card HTML via `screenshot_common.js`, then hand
 the resulting `file://` URL to `render_screenshot.js` to screenshot. Neither
-launches or closes a browser it doesn't own - if `PUPPETEER_BROWSER_URL` is
-set they leave that browser running for other callers; otherwise they launch
-their own and close it when done.
+launches or closes a browser it doesn't own - a hook-managed or
+`PUPPETEER_BROWSER_URL` browser is left running for other callers; a
+self-launched one is closed when done.
+
+### Automatic browser lifecycle (Claude Code hooks)
+
+`.claude/settings.json` registers two hooks so an agent session gets a warm
+browser for free, scoped to just that session:
+
+- **SessionStart** runs `utils/uk_geog/hooks/session_start.js`, which checks
+  whether a hook-managed browser is already running (via the connection
+  file) and, if not, launches one detached with `start_browser.js --managed`
+  on a freshly-allocated free port. Idempotent, so it's cheap to run on
+  every SessionStart reason (startup, resume, clear, compact) - an already
+  live browser is just reused.
+- **SessionEnd** runs `utils/uk_geog/hooks/session_end.js`, which reads the
+  connection file, sends the browser process SIGTERM, and removes the file.
+
+The connection file lives outside the repo (under the OS temp dir, keyed by
+a hash of this repo's root) so `make` targets that clear `build/` can't pull
+it out from under a running browser, and so each worktree/checkout gets its
+own file and never shares a browser with a session running elsewhere.
+SessionEnd is documented by Claude Code as best-effort (short timeout, not
+guaranteed to fire on every exit path), so `start_browser.js --managed`'s
+own 30-minute idle self-timeout is the backstop if it doesn't run.
