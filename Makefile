@@ -1,5 +1,13 @@
-# TODO: M40, M20, A74(M) are too big for a viewbox on Motorway - Map
 # TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
+# TODO: consider including poole bay (once have zoombox)
+# TODO: test rendering in webkit browser for ankimobile
+# TODO: generate apkg from crowdanki
+# TODO: add github action for running make, generating release
+# TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
+# TODO: consider using <img> tags and <script> tags instead of @[] syntax so that the cards are valid html
+# TODO: consider deduplicating deck description
+# TODO: update size claim to <5MB
+# TODO: make new deck for motorways
 
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
