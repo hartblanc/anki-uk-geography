@@ -6,10 +6,11 @@
  *
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium via render_screenshot.js's
- * openBrowserPool(), which launches and closes its own browser unless
- * browser_mcp.js has one running for this repo, in which case it reuses that
- * instead - handy for long-lived agent sessions making repeated calls.
+ * with Puppeteer's headless Chromium via render_screenshot.js's renderMany(),
+ * which launches and closes its own browser unless browser_mcp.js has one
+ * running for this repo, in which case it reuses that instead - handy for
+ * long-lived agent sessions making repeated calls. This script never deals
+ * with the browser or a page pool directly.
  *
  * Examples:
  *   # All card types, light mode
@@ -55,7 +56,7 @@ const {
   cardPngPath,
   expandRenderRequests,
 } = require("./card_html.js");
-const { renderToFile, runWithPool, openBrowserPool, DEFAULT_VIEWPORT } = require("./render_screenshot.js");
+const { renderToFile, renderMany } = require("./render_screenshot.js");
 
 const USAGE = `Usage: capture_screenshots.js [options]
 
@@ -189,13 +190,12 @@ async function main() {
     return;
   }
 
-  // Reuse a small pool of pages across all screenshots. Navigating replaces
-  // the old DOM, so this avoids the per-screenshot page creation cost while
-  // still overlapping page loads when capturing many cards.
-  const pageCount = Math.min(args.concurrency, requests.length);
-  const { pool, close } = await openBrowserPool({ concurrency: pageCount, viewport: DEFAULT_VIEWPORT });
-  try {
-    const results = await runWithPool(pool, requests, async (page, req) => {
+  // renderMany spreads these across a small pool of browser tabs, reusing
+  // each one across cards instead of paying per-screenshot page creation
+  // cost - this script never sees the browser or the pool itself.
+  const results = await renderMany(
+    requests,
+    async (page, req, index) => {
       console.log(`Capturing ${req.template} ${req.side}`);
       const html = writeCardHtml({
         deckPath: args.deck,
@@ -204,7 +204,7 @@ async function main() {
         side: req.side,
         dark: req.dark,
         samples: req.samples,
-        scratchKey: page._poolIndex,
+        scratchKey: index,
       });
       const pngPath = cardPngPath({
         outDir: args.out,
@@ -216,32 +216,31 @@ async function main() {
       await renderToFile(page, { url: html.url, outPath: pngPath });
       console.log(`Captured ${pngPath}`);
       return { template: req.template, side: req.side, pngPath };
-    });
+    },
+    { concurrency: args.concurrency }
+  );
 
-    const byTemplate = new Map();
-    for (const result of results) {
-      if (!result) continue;
-      let entry = byTemplate.get(result.template);
-      if (!entry) {
-        entry = { front: null, back: null };
-        byTemplate.set(result.template, entry);
-      }
-      entry[result.side] = result.pngPath;
+  const byTemplate = new Map();
+  for (const result of results) {
+    if (!result) continue;
+    let entry = byTemplate.get(result.template);
+    if (!entry) {
+      entry = { front: null, back: null };
+      byTemplate.set(result.template, entry);
     }
+    entry[result.side] = result.pngPath;
+  }
 
-    const captured = [];
-    for (const name of usableTemplates) {
-      const entry = byTemplate.get(name);
-      if (entry && entry.front && entry.back) {
-        captured.push([name, entry.front, entry.back]);
-      }
+  const captured = [];
+  for (const name of usableTemplates) {
+    const entry = byTemplate.get(name);
+    if (entry && entry.front && entry.back) {
+      captured.push([name, entry.front, entry.back]);
     }
+  }
 
-    if (args.stitch && captured.length) {
-      stitch(captured, args.stitch, args.dark);
-    }
-  } finally {
-    await close();
+  if (args.stitch && captured.length) {
+    stitch(captured, args.stitch, args.dark);
   }
 }
 

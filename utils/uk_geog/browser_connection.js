@@ -2,6 +2,8 @@
 
 /**
  * Puppeteer browser lifecycle, decoupled from anything that renders with it.
+ * Callers never create tabs on a browser they don't own - see getBrowser()'s
+ * `tabs` option below and render_screenshot.js's renderMany().
  *
  * Resolution order for `getBrowser()`:
  *   1. A connection file written by browser_mcp.js (see there), which
@@ -128,7 +130,16 @@ async function getManagedBrowserURL() {
   return null;
 }
 
-async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
+/**
+ * `tabs` only matters when this ends up launching a fresh browser (no
+ * MCP-managed one running): a launch starts with exactly one tab, so this
+ * opens more to reach the requested count. It's ignored when connecting to
+ * an existing managed browser - that browser's tab count was already
+ * decided by whoever launched it (see browser_mcp.js), and callers use
+ * whatever's actually there (see render_screenshot.js's renderMany())
+ * rather than resizing a browser they don't own.
+ */
+async function getBrowser({ headless = true, args = LAUNCH_ARGS, tabs = 1 } = {}) {
   const managedURL = await getManagedBrowserURL();
   if (managedURL) {
     const browser = await puppeteer.connect({ browserURL: managedURL });
@@ -136,6 +147,10 @@ async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
   }
 
   const browser = await puppeteer.launch({ headless, args });
+  const existing = await browser.pages();
+  for (let i = existing.length; i < tabs; i++) {
+    await browser.newPage();
+  }
   return { browser, shouldClose: true };
 }
 

@@ -8,10 +8,15 @@
  * (built on render_screenshot.js / card_html.js), whether or not
  * this server is running.
  *
- * On startup this launches a headless Chromium and writes a connection file
- * (see browser_connection.js) exposing its CDP endpoint, so
- * capture_screenshots.js / render_screenshot.js calls made during the same
- * session discover and reuse this browser instead of launching their own.
+ * On startup this launches a headless Chromium, opens --concurrency tabs on
+ * it (default 4), and writes a connection file (see browser_connection.js)
+ * exposing its CDP endpoint, so capture_screenshots.js / render_screenshot.js
+ * calls made during the same session discover and reuse this browser instead
+ * of launching their own. Initializing the tabs here (rather than in
+ * render_screenshot.js, which just uses whatever tabs a browser already has)
+ * is what lets many separate capture_screenshots.js invocations share a
+ * fixed, bounded set of tabs instead of each accumulating its own on a
+ * browser they don't own and will never close.
  *
  * Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
  * stdio and holds its stdin pipe open for the life of the session, stdin
@@ -21,7 +26,7 @@
  * crashes. SIGINT/SIGTERM are also handled directly.
  *
  * Usage:
- *   node utils/uk_geog/browser_mcp.js
+ *   node utils/uk_geog/browser_mcp.js [--concurrency N]
  *
  * Configure in .mcp.json:
  *   {
@@ -38,6 +43,34 @@ const readline = require("readline");
 const puppeteer = require("puppeteer");
 
 const { LAUNCH_ARGS, writeConnectionFile, removeConnectionFile } = require("./browser_connection.js");
+
+const USAGE = `Usage: browser_mcp.js [--concurrency N]
+
+Options:
+  --concurrency N   Tabs to open on the shared browser at startup (default: 4)
+  --help            Show this help
+`;
+
+function parseArgs(argv) {
+  const args = { concurrency: 4, help: false };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    switch (arg) {
+      case "--concurrency":
+        args.concurrency = parseInt(argv[++i], 10);
+        break;
+      case "--help":
+      case "-h":
+        args.help = true;
+        break;
+      default:
+        console.error(`Unknown option: ${arg}`);
+        console.error(USAGE);
+        process.exit(2);
+    }
+  }
+  return args;
+}
 
 function send(msg) {
   process.stdout.write(`${JSON.stringify(msg)}\n`);
@@ -56,6 +89,12 @@ function sendResult(id, result) {
 }
 
 async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    console.log(USAGE);
+    return;
+  }
+
   // Leaving --remote-debugging-port unset lets Chrome pick and bind its own
   // free port atomically (puppeteer parses the actual port back out of its
   // startup log) - no separate probe-then-reuse step, so no window for
@@ -69,7 +108,19 @@ async function main() {
   // why that distinction matters (PID reuse, and an abrupt kill leaving an
   // orphaned browser process behind).
   writeConnectionFile({ pid: process.pid, port: Number(port), url: browserURL, browserId });
-  console.error(`Launched headless Chromium on ${browserURL} for capture_screenshots.js to reuse.`);
+
+  // A launch starts with exactly one tab; open the rest now so every
+  // capture_screenshots.js call that reuses this browser finds a fixed,
+  // ready pool instead of creating (and never closing) its own tabs.
+  const existing = await browser.pages();
+  for (let i = existing.length; i < args.concurrency; i++) {
+    await browser.newPage();
+  }
+
+  console.error(
+    `Launched headless Chromium on ${browserURL} with ${args.concurrency} ` +
+      "tabs for capture_screenshots.js to reuse."
+  );
 
   const rl = readline.createInterface({
     input: process.stdin,

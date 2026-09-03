@@ -39,22 +39,32 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   dependency.
 - `render_screenshot.js` - a thin puppeteer renderer: given a `file://` or
   `http(s)://` URL and an output path, navigates and screenshots. Knows
-  nothing about decks or cards, so it's runnable standalone
-  (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
-  any page, not just Anki cards. Also exports `openBrowserPool()`, which is
-  the only browser access `capture_screenshots.js` needs (see below).
+  nothing about decks or cards, so it's runnable standalone against any
+  page, not just Anki cards - and accepts one or many `--url`/`--out` pairs
+  in a single invocation. Also exports `renderMany(items, task, options)`
+  for rendering many screenshots against a shared browser and however many
+  tabs it already has - this is the only browser access
+  `capture_screenshots.js` needs (see below). Neither this CLI nor
+  `renderMany()` ever opens a tab of their own: the page pool `renderMany()`
+  builds internally (acquiring/releasing tabs across concurrent renders,
+  not exported) is populated from `browser.pages()` as found. Whoever
+  launches a browser owns creating its tabs - `browser_mcp.js` for a shared
+  one (see below), `browser_connection.js`'s `getBrowser({ tabs })` for a
+  fresh throwaway one.
 - `browser_connection.js` - gets a puppeteer browser: (1) the browser
   `browser_mcp.js` is running, discovered via a connection file (see below);
-  (2) otherwise, launch and later close its own throwaway browser. Only
-  `render_screenshot.js` and `browser_mcp.js` import this directly.
+  (2) otherwise, launch a throwaway one (opening `tabs` of them, since a
+  fresh launch starts with only one) that the caller should close when done.
+  Only `render_screenshot.js` and `browser_mcp.js` import this directly.
 
 `capture_screenshots.js` is the orchestrator built on top of these: it
-generates card HTML via `card_html.js`, then hands the resulting `file://`
-URL to `render_screenshot.js` to screenshot - `renderToFile()` for the
-render itself, `openBrowserPool()` for the browser and page pool it renders
-into. It never talks to `browser_connection.js` directly, and never closes
-a browser it doesn't own - an MCP-managed browser is left running for other
-callers; a self-launched one is closed when done.
+generates card HTML via `card_html.js`, then calls `render_screenshot.js`'s
+`renderMany()` with a task that, per card, finishes generating that card's
+HTML and calls `renderToFile()` on the page it's handed. It never talks to
+`browser_connection.js` directly, never sees a browser or page pool as a
+concept, and never closes a browser it doesn't own - `renderMany()` handles
+all of that: an MCP-managed browser is left running for other callers, a
+self-launched one is closed when done.
 
 `browser_mcp.js` deliberately does none of this rendering work itself -
 it doesn't import `card_html.js` or `render_screenshot.js` at all. Its only
@@ -65,10 +75,14 @@ MCP session is connected.
 
 ### Automatic browser lifecycle (MCP)
 
-`browser_mcp.js` launches its own browser at startup and writes a
-connection file exposing its CDP endpoint, so `capture_screenshots.js` /
-`render_screenshot.js` calls made during the same session discover and
-reuse it via `browser_connection.js` instead of launching their own.
+`browser_mcp.js` launches its own browser at startup, opens `--concurrency`
+tabs on it (default 4), and writes a connection file exposing its CDP
+endpoint, so `capture_screenshots.js` / `render_screenshot.js` calls made
+during the same session discover and reuse it via `browser_connection.js`
+instead of launching their own. Pre-opening a fixed set of tabs here -
+rather than each call creating its own on a browser it doesn't own - is
+what lets many separate invocations share a bounded pool instead of
+accumulating tabs nothing ever closes.
 
 Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
 stdio and holds its stdin pipe open for the life of the session, cleanup is
