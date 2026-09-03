@@ -8,6 +8,7 @@ pre-commit = "*"
 
 [packages]
 brain-brew = "*"
+genanki = "*"
 
 [requires]
 python_version = "3.9"
