@@ -25,10 +25,8 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all apkg screenshots FORCE
-all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
-
-apkg: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
+.PHONY: all screenshots FORCE
+all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
