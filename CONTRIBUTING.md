@@ -7,7 +7,7 @@ You're in the right place.
 
 1. Install the CrowdAnki add-on in Anki.
 2. Fork and clone this repository on your machine.
-3. Install Node.js (see `.nvmrc` for version). Run `npm install` to install everything, including Puppeteer for screenshots. If you only want to build the deck (no screenshots), `npm install --omit=dev` is enough — mapshaper and svgo are regular dependencies, Puppeteer is dev-only.
+3. Install Node.js (see `.nvmrc` for version). Run `npm install` to install everything, including Playwright for screenshots and the WebKit render check. If you only want to build the deck (no screenshots/checks), `npm install --omit=dev` is enough — mapshaper and svgo are regular dependencies, Playwright is dev-only. Playwright doesn't fetch its browsers on `npm install`, so also run `npx playwright install chromium webkit` once.
 4. install python and pipenv.
 5. In the root of the directory, run `pipenv install --dev` to install the python project env.
 6. optionally run `pipenv shell` to activate a new shell in the python environment.
@@ -55,7 +55,7 @@ node utils/uk_geog/capture_screenshots.js \
 
 Additional dependencies beyond the normal build:
 
-- **Puppeteer's bundled Chromium** – installed as a dev dependency by `npm install`; required for `make screenshots`
+- **Playwright's Chromium** – fetched via `npx playwright install chromium` (see Set-up above); required for `make screenshots`
 - **ImageMagick** (`montage`) – only required for `--stitch` grids
 
 Note: `make screenshots` needs the dev dependencies, so run `npm install` (not `npm install --omit=dev`) before generating screenshots.

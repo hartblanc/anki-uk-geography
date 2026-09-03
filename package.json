@@ -11,8 +11,7 @@
     "svgo": "^4.0"
   },
   "devDependencies": {
-    "playwright": "^1.62.1",
-    "puppeteer": "^25.9.0"
+    "playwright": "^1.62.1"
   },
   "author": "hartblanc",
   "license": "Unlicense"

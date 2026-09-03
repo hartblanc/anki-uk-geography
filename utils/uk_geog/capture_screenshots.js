@@ -2,11 +2,11 @@
 "use strict";
 
 /**
- * Generate front/back screenshots of card types using Puppeteer's bundled Chromium.
+ * Generate front/back screenshots of card types using Playwright's bundled Chromium.
  *
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium. A fresh browser instance is launched for
+ * with Playwright's headless Chromium. A fresh browser instance is launched for
  * each invocation; for long-lived agent sessions use the MCP server instead.
  *
  * Examples:
@@ -28,14 +28,14 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
-let puppeteer;
+let chromium;
 try {
-  puppeteer = require("puppeteer");
+  ({ chromium } = require("playwright"));
 } catch (err) {
   if (err.code === "MODULE_NOT_FOUND") {
     console.error(
-      "Puppeteer is required for screenshots. Run `npm install` first so " +
-        "the bundled Chromium is available."
+      "Playwright is required for screenshots. Run `npm install` first so " +
+        "its bundled Chromium is available."
     );
     process.exit(1);
   }
@@ -189,7 +189,7 @@ async function main() {
     return;
   }
 
-  const browser = await puppeteer.launch({
+  const browser = await chromium.launch({
     headless: true,
     args: ["--disable-gpu", "--hide-scrollbars"],
   });
@@ -200,8 +200,7 @@ async function main() {
     const pages = [];
     const pageCount = Math.min(args.concurrency, requests.length);
     for (let i = 0; i < pageCount; i++) {
-      const page = await browser.newPage();
-      await page.setViewport(VIEWPORT);
+      const page = await browser.newPage({ viewport: VIEWPORT });
       page._poolIndex = i;
       pages.push(page);
     }

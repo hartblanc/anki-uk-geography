@@ -38,7 +38,7 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
-const puppeteer = require("puppeteer");
+const { chromium } = require("playwright");
 
 const {
   REPO_ROOT,
@@ -129,14 +129,13 @@ async function main() {
   // Initialise the warm browser at startup with a pool of tabs, matching the
   // parallel page pool in capture_screenshots.js.
   console.error(`Launching headless Chromium (${args.concurrency} tabs)...`);
-  const browser = await puppeteer.launch({
+  const browser = await chromium.launch({
     headless: true,
     args: ["--disable-gpu", "--hide-scrollbars"],
   });
   const pages = [];
   for (let i = 0; i < args.concurrency; i++) {
-    const page = await browser.newPage();
-    await page.setViewport(VIEWPORT);
+    const page = await browser.newPage({ viewport: VIEWPORT });
     page._poolIndex = i;
     pages.push(page);
   }

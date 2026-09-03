@@ -7,7 +7,7 @@
  * The two scripts differ in how they are driven (one-off CLI vs long-lived MCP
  * server), but they render the same cards in the same headless Chromium way:
  * read deck.json, pick a note, render the template, wrap it in Anki's HTML
- * shell, navigate a Puppeteer page to it, and screenshot it. Anything that can
+ * shell, navigate a Playwright page to it, and screenshot it. Anything that can
  * be shared between those flows lives here.
  */
 
@@ -178,7 +178,7 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
 }
 
 /**
- * Render one card on a Puppeteer page and save the PNG. The page must have a
+ * Render one card on a Playwright page and save the PNG. The page must have a
  * unique `_poolIndex` property (assigned by the page pool) so parallel renders
  * write to separate scratch HTML files.
  */
@@ -274,7 +274,7 @@ function expandRenderRequests({
 }
 
 /**
- * Simple promise-based pool of Puppeteer pages. Each render takes one tab for
+ * Simple promise-based pool of Playwright pages. Each render takes one tab for
  * the duration of its navigation/screenshot and returns it afterwards, so
  * concurrent calls and batch renders are spread over all open tabs.
  */
