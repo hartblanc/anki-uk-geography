@@ -20,7 +20,6 @@ const DEFAULT_DECK = path.join(
   "deck.json"
 );
 const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
-const VIEWPORT = { width: 800, height: 1159 };
 
 // Fields that must be populated for each template to produce a meaningful card.
 const REQUIRED_FIELDS = {
@@ -277,7 +276,6 @@ module.exports = {
   REPO_ROOT,
   DEFAULT_DECK,
   DEFAULT_OUT,
-  VIEWPORT,
   REQUIRED_FIELDS,
   renderTemplate,
   findNote,

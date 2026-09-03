@@ -11,9 +11,10 @@
  * (see browser_connection.js); otherwise launches and closes its own
  * throwaway browser for the one render.
  *
- * Also exports PagePool/runWithPool, a small pool of puppeteer pages for
- * spreading many renders across a handful of open tabs - used by
- * capture_screenshots.js to batch-render cards.
+ * Also exports openBrowserPool/PagePool/runWithPool, a small pool of
+ * puppeteer pages for spreading many renders across a handful of open tabs -
+ * this is the only browser access capture_screenshots.js needs; it never
+ * imports browser_connection.js directly.
  *
  * Usage:
  *   node utils/uk_geog/render_screenshot.js --url URL --out PATH
@@ -66,6 +67,30 @@ class PagePool {
     if (waiter) waiter(page);
     else this.free.push(page);
   }
+}
+
+/**
+ * Acquires a browser (see browser_connection.js) and opens `concurrency`
+ * pages on it, each tagged with a stable `_poolIndex` (0..concurrency-1) so
+ * callers can key per-slot scratch files off it, wrapped in a PagePool for
+ * use with runWithPool. This is the sole entrypoint batch callers (like
+ * capture_screenshots.js) need for browser access - they never talk to
+ * browser_connection.js directly.
+ */
+async function openBrowserPool({ concurrency, viewport = DEFAULT_VIEWPORT } = {}) {
+  const { browser, shouldClose } = await getBrowser();
+  const pages = [];
+  for (let i = 0; i < concurrency; i++) {
+    const page = await browser.newPage();
+    await page.setViewport(viewport);
+    page._poolIndex = i;
+    pages.push(page);
+  }
+  const pool = new PagePool(pages);
+  const close = async () => {
+    if (shouldClose) await browser.close();
+  };
+  return { pool, close };
 }
 
 /**
@@ -204,4 +229,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { renderToFile, PagePool, runWithPool, DEFAULT_VIEWPORT };
+module.exports = { renderToFile, PagePool, runWithPool, openBrowserPool, DEFAULT_VIEWPORT };

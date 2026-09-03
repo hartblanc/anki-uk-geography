@@ -41,16 +41,20 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   `http(s)://` URL and an output path, navigates and screenshots. Knows
   nothing about decks or cards, so it's runnable standalone
   (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
-  any page, not just Anki cards.
+  any page, not just Anki cards. Also exports `openBrowserPool()`, which is
+  the only browser access `capture_screenshots.js` needs (see below).
 - `browser_connection.js` - gets a puppeteer browser: (1) the browser
   `browser_mcp.js` is running, discovered via a connection file (see below);
-  (2) otherwise, launch and later close its own throwaway browser.
+  (2) otherwise, launch and later close its own throwaway browser. Only
+  `render_screenshot.js` and `browser_mcp.js` import this directly.
 
 `capture_screenshots.js` is the orchestrator built on top of these: it
 generates card HTML via `card_html.js`, then hands the resulting `file://`
-URL to `render_screenshot.js` to screenshot. It never closes a browser it
-doesn't own - an MCP-managed browser is left running for other callers; a
-self-launched one is closed when done.
+URL to `render_screenshot.js` to screenshot - `renderToFile()` for the
+render itself, `openBrowserPool()` for the browser and page pool it renders
+into. It never talks to `browser_connection.js` directly, and never closes
+a browser it doesn't own - an MCP-managed browser is left running for other
+callers; a self-launched one is closed when done.
 
 `browser_mcp.js` deliberately does none of this rendering work itself -
 it doesn't import `card_html.js` or `render_screenshot.js` at all. Its only

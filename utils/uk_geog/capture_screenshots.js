@@ -6,10 +6,10 @@
  *
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium. Launches and closes its own browser
- * unless browser_mcp.js has one running for this repo (see
- * browser_connection.js), in which case it reuses that instead - handy for
- * long-lived agent sessions making repeated calls.
+ * with Puppeteer's headless Chromium via render_screenshot.js's
+ * openBrowserPool(), which launches and closes its own browser unless
+ * browser_mcp.js has one running for this repo, in which case it reuses that
+ * instead - handy for long-lived agent sessions making repeated calls.
  *
  * Examples:
  *   # All card types, light mode
@@ -47,7 +47,6 @@ const {
   REPO_ROOT,
   DEFAULT_DECK,
   DEFAULT_OUT,
-  VIEWPORT,
   REQUIRED_FIELDS,
   findNote,
   parseSamples,
@@ -56,8 +55,7 @@ const {
   cardPngPath,
   expandRenderRequests,
 } = require("./card_html.js");
-const { getBrowser } = require("./browser_connection.js");
-const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
+const { renderToFile, runWithPool, openBrowserPool, DEFAULT_VIEWPORT } = require("./render_screenshot.js");
 
 const USAGE = `Usage: capture_screenshots.js [options]
 
@@ -191,21 +189,12 @@ async function main() {
     return;
   }
 
-  const { browser, shouldClose } = await getBrowser();
+  // Reuse a small pool of pages across all screenshots. Navigating replaces
+  // the old DOM, so this avoids the per-screenshot page creation cost while
+  // still overlapping page loads when capturing many cards.
+  const pageCount = Math.min(args.concurrency, requests.length);
+  const { pool, close } = await openBrowserPool({ concurrency: pageCount, viewport: DEFAULT_VIEWPORT });
   try {
-    // Reuse a small pool of pages across all screenshots. Navigating replaces
-    // the old DOM, so this avoids the per-screenshot page creation cost while
-    // still overlapping page loads when capturing many cards.
-    const pages = [];
-    const pageCount = Math.min(args.concurrency, requests.length);
-    for (let i = 0; i < pageCount; i++) {
-      const page = await browser.newPage();
-      await page.setViewport(VIEWPORT);
-      page._poolIndex = i;
-      pages.push(page);
-    }
-    const pool = new PagePool(pages);
-
     const results = await runWithPool(pool, requests, async (page, req) => {
       console.log(`Capturing ${req.template} ${req.side}`);
       const html = writeCardHtml({
@@ -252,7 +241,7 @@ async function main() {
       stitch(captured, args.stitch, args.dark);
     }
   } finally {
-    if (shouldClose) await browser.close();
+    await close();
   }
 }
 
