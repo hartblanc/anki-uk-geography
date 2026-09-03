@@ -13,7 +13,7 @@
  *
  * Also exports PagePool/runWithPool, a small pool of puppeteer pages for
  * spreading many renders across a handful of open tabs - used by
- * capture_screenshots.js and screenshot_mcp.js to batch-render cards.
+ * capture_screenshots.js to batch-render cards.
  *
  * Usage:
  *   node utils/uk_geog/render_screenshot.js --url URL --out PATH

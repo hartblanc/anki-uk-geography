@@ -5,10 +5,10 @@
  * Starts a single long-lived headless Chromium with a CDP HTTP endpoint, and
  * stays running until killed. Prints "PUPPETEER_BROWSER_URL=<url>" once
  * ready - export that value so capture_screenshots.js / render_screenshot.js
- * / screenshot_mcp.js connect to this browser instead of launching their own
+ * / browser_mcp.js connect to this browser instead of launching their own
  * (see browser_connection.js).
  *
- * For an MCP-connected agent, screenshot_mcp.js already launches and manages
+ * For an MCP-connected agent, browser_mcp.js already launches and manages
  * its own browser this way automatically (see there) - this script is for
  * manual/CI use: running screenshots repeatedly by hand, or from a shell
  * script, without going through MCP at all.

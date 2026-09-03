@@ -21,14 +21,14 @@
  * crashes. SIGINT/SIGTERM are also handled directly.
  *
  * Usage:
- *   node utils/uk_geog/screenshot_mcp.js
+ *   node utils/uk_geog/browser_mcp.js
  *
- * Configure in .mcp.json (Claude Code) or .deepcode/settings.json (Deep Code):
+ * Configure in .mcp.json:
  *   {
  *     "mcpServers": {
- *       "uk-geography-screenshots": {
+ *       "uk-geography-browser": {
  *         "command": "node",
- *         "args": ["utils/uk_geog/screenshot_mcp.js"]
+ *         "args": ["utils/uk_geog/browser_mcp.js"]
  *       }
  *     }
  *   }
@@ -93,7 +93,7 @@ async function main() {
           protocolVersion: "2024-11-05",
           capabilities: { tools: {} },
           serverInfo: {
-            name: "uk-geography-screenshots",
+            name: "uk-geography-browser",
             version: "2.0.0",
           },
         });

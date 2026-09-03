@@ -23,10 +23,9 @@ taking a screenshot - agents included. This is what `make screenshots` uses.
 It gets a Puppeteer browser (see architecture below), captures the requested
 cards, and exits.
 
-`.mcp.json` (Claude Code) and `.deepcode/settings.json` (Deep Code) both
-register `utils/uk_geog/screenshot_mcp.js` as an MCP server, but it exposes
-no tools and does no rendering - its only job is keeping a warm shared
-browser alive for the session so repeated `capture_screenshots.js` calls
+`.mcp.json` registers `utils/uk_geog/browser_mcp.js` as an MCP server,
+but it exposes no tools and does no rendering - its only job is keeping a
+warm shared browser alive for the session so repeated `capture_screenshots.js` calls
 reuse it instead of paying launch cost each time (see below). Use `/mcp` to
 verify it's connected; take screenshots by running `capture_screenshots.js`
 regardless of whether it is.
@@ -45,7 +44,7 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   any page, not just Anki cards.
 - `browser_connection.js` - gets a puppeteer browser, in order: (1) the
   `PUPPETEER_BROWSER_URL` env var if set (a CDP HTTP endpoint) - an explicit
-  override for manual/CI use; (2) the browser `screenshot_mcp.js` is running,
+  override for manual/CI use; (2) the browser `browser_mcp.js` is running,
   discovered via a connection file (see below); (3) otherwise, launch and
   later close its own throwaway browser.
 - `start_browser.js` - a standalone "launch a browser, print
@@ -58,7 +57,7 @@ generates card HTML via `screenshot_common.js`, then hands the resulting
 browser it doesn't own - an MCP-managed or `PUPPETEER_BROWSER_URL` browser
 is left running for other callers; a self-launched one is closed when done.
 
-`screenshot_mcp.js` deliberately does none of this rendering work itself -
+`browser_mcp.js` deliberately does none of this rendering work itself -
 it doesn't import `screenshot_common.js` or `render_screenshot.js` at all.
 Its only responsibility is the browser's lifetime (see below); the tools it
 would otherwise expose over MCP don't exist, so
@@ -67,7 +66,7 @@ screenshot, whether or not an MCP session is connected.
 
 ### Automatic browser lifecycle (MCP)
 
-`screenshot_mcp.js` launches its own browser at startup and writes a
+`browser_mcp.js` launches its own browser at startup and writes a
 connection file exposing its CDP endpoint, so `capture_screenshots.js` /
 `render_screenshot.js` calls made during the same session discover and
 reuse it via `browser_connection.js` instead of launching their own.

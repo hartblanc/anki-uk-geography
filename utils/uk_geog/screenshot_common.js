@@ -1,11 +1,11 @@
 "use strict";
 
 /**
- * Card HTML generation, shared by the screenshot tooling (capture_screenshots.js
- * and screenshot_mcp.js): read deck.json, pick a note, render the template,
- * and wrap it in Anki's HTML shell. Deliberately has no puppeteer dependency -
- * turning that HTML into a screenshot is a separate concern handled by
- * render_screenshot.js, which just needs a URL to navigate to.
+ * Card HTML generation for capture_screenshots.js: read deck.json, pick a
+ * note, render the template, and wrap it in Anki's HTML shell. Deliberately
+ * has no puppeteer dependency - turning that HTML into a screenshot is a
+ * separate concern handled by render_screenshot.js, which just needs a URL
+ * to navigate to.
  */
 
 const fs = require("fs");

@@ -7,12 +7,12 @@
  *   1. PUPPETEER_BROWSER_URL env var, if set - an explicit override (e.g. for
  *      CI, or a developer pointing at a debug browser started by hand with
  *      start_browser.js). Never closed by the caller.
- *   2. A connection file written by screenshot_mcp.js (see there), which
+ *   2. A connection file written by browser_mcp.js (see there), which
  *      launches its own browser at startup and exposes it this way so
  *      one-off callers (capture_screenshots.js, render_screenshot.js) can
  *      discover and reuse it instead of launching their own. Reused only if
  *      its PID and CDP endpoint are both still alive. Never closed by the
- *      caller - screenshot_mcp.js owns its lifecycle, tied to its own
+ *      caller - browser_mcp.js owns its lifecycle, tied to its own
  *      process (it's spawned and reaped by the MCP host, e.g. Claude Code,
  *      so this is real process-lifecycle cleanup, not a heuristic).
  *   3. Otherwise, launch a throwaway headless Chromium that the caller should

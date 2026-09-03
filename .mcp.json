@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "uk-geography-screenshots": {
+    "uk-geography-browser": {
       "command": "node",
       "args": [
-        "utils/uk_geog/screenshot_mcp.js"
+        "utils/uk_geog/browser_mcp.js"
       ]
     }
   }
