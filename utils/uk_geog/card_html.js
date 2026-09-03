@@ -3,9 +3,9 @@
 /**
  * Card HTML generation for capture_screenshots.js: read deck.json, pick a
  * note, render the template, and wrap it in Anki's HTML shell. Deliberately
- * has no puppeteer dependency - turning that HTML into a screenshot is a
- * separate concern handled by render_screenshot.js, which just needs a URL
- * to navigate to.
+ * has no browser automation dependency - turning that HTML into a
+ * screenshot is a separate concern handled by render_screenshot.js, which
+ * just needs a URL to navigate to.
  */
 
 const fs = require("fs");
@@ -175,10 +175,11 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
 
 /**
  * Generate a card's HTML and write it to a scratch file, returning a URL a
- * renderer can navigate to. Pure HTML generation - no puppeteer involved, so
- * this can be tested or reused independently of how the resulting page gets
- * screenshotted. `scratchKey` distinguishes concurrent writers (e.g. a page
- * pool index) so parallel renders don't clobber each other's scratch file.
+ * renderer can navigate to. Pure HTML generation - no browser automation
+ * involved, so this can be tested or reused independently of how the
+ * resulting page gets screenshotted. `scratchKey` distinguishes concurrent
+ * writers (e.g. a page pool index) so parallel renders don't clobber each
+ * other's scratch file.
  */
 function writeCardHtml({ deckPath, htmlDir, template, side, dark, samples, scratchKey }) {
   const prep = prepareCard({ deckPath, template, side, dark, samples });

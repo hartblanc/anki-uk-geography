@@ -12,37 +12,36 @@
  * (see browser_connection.js); otherwise launches and closes its own
  * throwaway browser for the render(s).
  *
- * Also exports renderMany(), for rendering many screenshots against a
- * shared browser and however many tabs it already has - this is the only
- * browser access capture_screenshots.js needs; it never imports
- * browser_connection.js, or deals with a page pool, directly. renderMany()
- * never creates tabs itself either: an MCP-managed browser's tabs are
- * initialized by browser_mcp.js, and a freshly self-launched one gets its
- * tabs from browser_connection.js's getBrowser() at launch time - whoever
- * launches a browser owns deciding and creating its tabs.
+ * Also exports renderMany(), for rendering many screenshots against a pool
+ * of pages on a shared or throwaway browser - this is the only browser
+ * access capture_screenshots.js needs; it never imports
+ * browser_connection.js, or deals with a page pool, directly. `engine`
+ * selects which Playwright browser type to use (chromium/firefox/webkit),
+ * passed straight through to browser_connection.js's getBrowser().
  *
  * Usage:
  *   node utils/uk_geog/render_screenshot.js --url URL --out PATH [--url URL --out PATH ...]
- *     [--viewport WIDTHxHEIGHT] [--full-page] [--wait-until EVENT] [--timeout MS] [--concurrency N]
+ *     [--viewport WIDTHxHEIGHT] [--full-page] [--wait-until EVENT] [--timeout MS]
+ *     [--concurrency N] [--engine chromium|firefox|webkit]
  */
 
 const fs = require("fs");
 const path = require("path");
 
-const { getBrowser } = require("./browser_connection.js");
+const { getBrowser, DEFAULT_ENGINE } = require("./browser_connection.js");
 
 const DEFAULT_VIEWPORT = { width: 800, height: 1159 };
 
 /**
  * Navigate `page` to `url` and save a screenshot to `outPath`. This is the
- * entire puppeteer-rendering concern: no HTML generation, no deck/template
- * knowledge.
+ * entire rendering concern: no HTML generation, no deck/template knowledge,
+ * no browser lifecycle.
  */
 async function renderToFile(
   page,
   { url, outPath, viewport = DEFAULT_VIEWPORT, fullPage = false, waitUntil = "load", timeout = 30000 }
 ) {
-  await page.setViewport(viewport);
+  await page.setViewportSize(viewport);
   await page.goto(url, { waitUntil, timeout });
   const png = await page.screenshot({ type: "png", fullPage });
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -51,10 +50,10 @@ async function renderToFile(
 }
 
 /**
- * Simple promise-based pool of Puppeteer pages. Each render takes one tab for
- * the duration of its navigation/screenshot and returns it afterwards, so
- * concurrent calls and batch renders are spread over all open tabs. Purely
- * an implementation detail of renderMany() below - not exported.
+ * Simple promise-based pool of Playwright pages. Each render takes one tab
+ * for the duration of its navigation/screenshot and returns it afterwards,
+ * so concurrent calls and batch renders are spread over all open tabs.
+ * Purely an implementation detail of renderMany() below - not exported.
  */
 class PagePool {
   constructor(pages) {
@@ -103,33 +102,28 @@ async function runWithPool(pool, items, task) {
 }
 
 /**
- * Renders many screenshots against a shared browser (see browser_connection.js),
- * spread across whatever tabs it already has - this never opens tabs of its
- * own. For each item, calls `task(page, item, index)` - `index` is this
- * item's position in `items`, stable and unique across the whole batch
- * regardless of concurrency, for a caller that needs a per-item scratch key
- * (e.g. capture_screenshots.js's scratch HTML files). The caller decides
- * what "rendering an item" means (e.g. generating HTML first) and is
- * expected to call renderToFile itself. `concurrency` is only a hint for
- * browser_connection.js's getBrowser(): it's honored when this ends up
- * launching a fresh throwaway browser (which starts with a single tab), and
- * ignored when reusing an existing managed one, whose tab count was already
- * decided by whoever launched it. Closes the browser afterward if this call
- * is the one that launched it - the caller never sees the browser, a page
- * pool, or browser_connection.js at all.
+ * Renders many screenshots against a pool of `concurrency` pages, spread
+ * across whichever browser getBrowser() hands back (a shared MCP-managed
+ * one, or a throwaway one launched just for this call - see
+ * browser_connection.js for how that's decided and why every caller always
+ * creates its own pages either way). For each item, calls `task(page, item,
+ * index)` - `index` is this item's position in `items`, stable and unique
+ * across the whole batch regardless of concurrency, for a caller that needs
+ * a per-item scratch key (e.g. capture_screenshots.js's scratch HTML
+ * files). The caller decides what "rendering an item" means (e.g.
+ * generating HTML first) and is expected to call renderToFile itself.
+ * `browser.close()` is safe to call unconditionally here regardless of
+ * whether the browser was shared or freshly launched - see
+ * browser_connection.js's module doc for why. The caller never sees the
+ * browser, a page pool, or browser_connection.js at all.
  */
-async function renderMany(items, task, { concurrency = 4 } = {}) {
-  const { browser, shouldClose } = await getBrowser({ tabs: concurrency });
+async function renderMany(items, task, { concurrency = 4, engine = DEFAULT_ENGINE } = {}) {
+  const { browser, pages } = await getBrowser({ engine, tabs: concurrency });
   try {
-    const pages = await browser.pages();
     const pool = new PagePool(pages);
     return await runWithPool(pool, items, task);
   } finally {
-    // Reusing a shared browser still needs its own puppeteer-side connection
-    // detached, or the open transport keeps this process's event loop alive
-    // and it never exits on its own.
-    if (shouldClose) await browser.close();
-    else await browser.disconnect();
+    await browser.close();
   }
 }
 
@@ -138,17 +132,17 @@ const USAGE = `Usage: render_screenshot.js --url URL --out PATH [--url URL --out
 Renders one or more file:// or http(s):// URLs to PNGs - pass --url/--out as
 many times as needed, matched in order. Connects to the browser
 browser_mcp.js has running for this repo, if any, otherwise launches and
-closes its own headless Chromium.
+closes its own headless browser.
 
 Options:
   --url URL           Page to render (file:// or http(s)://); repeatable
   --out PATH           Output PNG path; repeatable, one per --url, in order
   --viewport WxH       Viewport size, e.g. 800x1159 (default: 800x1159)
   --full-page          Capture the full scrollable page, not just the viewport
-  --wait-until EVENT   Puppeteer waitUntil event (default: load)
+  --wait-until EVENT   Playwright waitUntil event (default: load)
   --timeout MS         Navigation timeout in ms (default: 30000)
-  --concurrency N      Max parallel tabs when launching a fresh browser;
-                       ignored when reusing browser_mcp.js's (default: 4)
+  --concurrency N      Max parallel tabs (default: 4)
+  --engine NAME        Browser engine: chromium (default), firefox, webkit
   --help               Show this help
 `;
 
@@ -161,6 +155,7 @@ function parseArgs(argv) {
     waitUntil: "load",
     timeout: 30000,
     concurrency: 4,
+    engine: DEFAULT_ENGINE,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -186,6 +181,9 @@ function parseArgs(argv) {
         break;
       case "--concurrency":
         args.concurrency = parseInt(argv[++i], 10);
+        break;
+      case "--engine":
+        args.engine = argv[++i];
         break;
       case "--help":
       case "-h":
@@ -240,7 +238,7 @@ async function main() {
       });
       console.log(`Captured ${outPath}`);
     },
-    { concurrency: args.concurrency }
+    { concurrency: args.concurrency, engine: args.engine }
   );
 }
 
