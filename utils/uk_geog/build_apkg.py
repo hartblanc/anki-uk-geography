@@ -29,13 +29,20 @@ def build_model(note_model: dict) -> genanki.Model:
         css=note_model["css"],
         model_type=note_model["type"],
         sort_field_index=note_model["sortf"],
+        latex_pre=note_model["latexPre"],
+        latex_post=note_model["latexPost"],
     )
 
 
-def build_deck(deck_json: dict, models_by_uuid: dict) -> genanki.Deck:
+def build_deck(deck_json: dict, models_by_uuid: dict, parent_name: str = "") -> genanki.Deck:
+    # CrowdAnki stores only the leaf name for a child deck (see Deck.DECK_NAME_DELIMITER
+    # in the CrowdAnki addon), so subdecks must be re-qualified with their parent's
+    # full name for Anki's "::" nesting to survive the round trip.
+    full_name = f"{parent_name}::{deck_json['name']}" if parent_name else deck_json["name"]
+
     deck = genanki.Deck(
         stable_id(deck_json["crowdanki_uuid"]),
-        deck_json["name"],
+        full_name,
         description=deck_json.get("desc", ""),
     )
 
@@ -53,10 +60,11 @@ def build_deck(deck_json: dict, models_by_uuid: dict) -> genanki.Deck:
     return deck
 
 
-def build_decks(deck_json: dict, models_by_uuid: dict) -> list:
-    decks = [build_deck(deck_json, models_by_uuid)]
+def build_decks(deck_json: dict, models_by_uuid: dict, parent_name: str = "") -> list:
+    deck = build_deck(deck_json, models_by_uuid, parent_name)
+    decks = [deck]
     for child in deck_json.get("children", []):
-        decks.extend(build_decks(child, models_by_uuid))
+        decks.extend(build_decks(child, models_by_uuid, deck.name))
     return decks
 
 
