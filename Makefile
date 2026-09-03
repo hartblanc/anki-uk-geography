@@ -1,5 +1,4 @@
 # TODO: test rendering in webkit browser for ankimobile
-# TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
 # TODO: make new deck for motorways
 
 SHELL:=/bin/bash

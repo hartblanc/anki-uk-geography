@@ -18,17 +18,17 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 
 ## Screenshots
 
-Two supported ways to get screenshots:
-
-1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
-   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches the warm
-   Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
-   call reads the latest `deck.json` from disk, so screenshots always
-   reflect the current build. Rendered PNGs are written to
-   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/city-map-front.png`)
-   and the saved path is returned in the tool result. Pass an optional
-   `filename` argument to `render_screenshot` to choose the saved PNG name.
-   Use `/mcp` to verify the server is connected.
-2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` launches
-   a fresh Puppeteer instance, captures the requested cards, and exits. This is
-   what `make screenshots` uses.
+- **Take a screenshot of an Anki card** - `node utils/uk_geog/capture_screenshots.js [options]`.
+  This is the only entrypoint for card screenshots; use it whether or not
+  an MCP session is connected. Key options: `--dark`, `--only LIST`,
+  `--sample TEMPLATE:FIELD=VALUE`, `--concurrency N`, `--stitch PATH`. Run
+  with `--help` for the full list. `make screenshots` is a shortcut that
+  runs it with a fixed set of options for the dark-mode example grid.
+- **Screenshot an arbitrary page** (not an Anki card) - `node utils/uk_geog/render_screenshot.js --url URL --out PATH`,
+  repeatable for multiple pages in one call. Works with any `file://` or
+  `http(s)://` URL.
+- **`browser_mcp.js`** (registered in `.mcp.json`) needs no direct
+  interaction - it exposes no tools. If connected (check with `/mcp`), it's
+  just keeping a browser warm in the background so the two commands above
+  run faster; screenshots are always taken by running them directly,
+  exactly the same either way.
