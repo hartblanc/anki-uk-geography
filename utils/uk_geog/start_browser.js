@@ -3,71 +3,42 @@
 
 /**
  * Starts a single long-lived headless Chromium with a CDP HTTP endpoint, and
- * stays running until killed. Meant to be launched detached by
- * hooks/session_start.js (a Claude Code SessionStart hook) with --managed, so
- * browser_connection.js's getBrowser() can find and reuse it via the
- * connection file instead of launching a fresh browser per screenshot call.
+ * stays running until killed. Prints "PUPPETEER_BROWSER_URL=<url>" once
+ * ready - export that value so capture_screenshots.js / render_screenshot.js
+ * / screenshot_mcp.js connect to this browser instead of launching their own
+ * (see browser_connection.js).
  *
- * With --managed, this writes that connection file (path is deterministic -
- * see browser_connection.js's connectionFilePath(), keyed by this repo's
- * root) and self-terminates after --idle-timeout ms of no callers touching
- * its mtime (default 4h). Screenshot calls touch it on reuse, and
- * hooks/touch_browser.js (a UserPromptSubmit hook) touches it on every user
- * message, so this is a long-stretch-of-total-silence backstop, not the
- * primary lifetime signal - it's there in case the SessionEnd hook never
- * fires (documented as best-effort, not guaranteed, by Claude Code).
- *
- * Without --managed, this is just a standalone "start a browser and print
- * its CDP URL" tool with no connection file or idle timeout - it prints
- * `PUPPETEER_BROWSER_URL=...` and runs until Ctrl+C, for manual/CI use
- * outside of Claude Code hooks.
+ * For an MCP-connected agent, screenshot_mcp.js already launches and manages
+ * its own browser this way automatically (see there) - this script is for
+ * manual/CI use: running screenshots repeatedly by hand, or from a shell
+ * script, without going through MCP at all.
  *
  * Usage:
  *   node utils/uk_geog/start_browser.js [--port PORT]
- *   node utils/uk_geog/start_browser.js --port PORT --managed [--idle-timeout MS]
  */
 
-const fs = require("fs");
 const puppeteer = require("puppeteer");
-const {
-  LAUNCH_ARGS,
-  connectionFilePath,
-  writeConnectionFile,
-  removeConnectionFile,
-} = require("./browser_connection.js");
+const { LAUNCH_ARGS } = require("./browser_connection.js");
 
-const DEFAULT_IDLE_TIMEOUT_MS = 4 * 60 * 60 * 1000;
-const IDLE_CHECK_INTERVAL_MS = 60 * 1000;
-
-const USAGE = `Usage: start_browser.js [--port PORT] [--managed] [--idle-timeout MS]
+const USAGE = `Usage: start_browser.js [--port PORT]
 
 Launches a headless Chromium with a CDP HTTP endpoint and keeps it running
 until killed (SIGINT/SIGTERM). Prints "PUPPETEER_BROWSER_URL=<url>" on its
-own stdout line once ready.
+own stdout line once ready - export that value so other screenshot tools in
+this repo connect to it instead of launching their own browser.
 
 Options:
-  --port PORT         Remote debugging port (default: 9222)
-  --managed           Write the connection file browser_connection.js looks
-                      for, and self-exit after --idle-timeout ms of no
-                      caller touching it (used by hooks/session_start.js)
-  --idle-timeout MS   Idle shutdown window when --managed is set
-                      (default: ${DEFAULT_IDLE_TIMEOUT_MS})
-  --help              Show this help
+  --port PORT   Remote debugging port (default: 9222)
+  --help        Show this help
 `;
 
 function parseArgs(argv) {
-  const args = { port: 9222, managed: false, idleTimeout: DEFAULT_IDLE_TIMEOUT_MS, help: false };
+  const args = { port: 9222, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--port":
         args.port = parseInt(argv[++i], 10);
-        break;
-      case "--managed":
-        args.managed = true;
-        break;
-      case "--idle-timeout":
-        args.idleTimeout = parseInt(argv[++i], 10);
         break;
       case "--help":
       case "-h":
@@ -97,11 +68,7 @@ async function main() {
   console.log(`PUPPETEER_BROWSER_URL=${browserURL}`);
   console.error(`Browser ready at ${browserURL}. Press Ctrl+C to stop.`);
 
-  let idleInterval = null;
-
   const shutdown = async () => {
-    if (idleInterval) clearInterval(idleInterval);
-    if (args.managed) removeConnectionFile();
     try {
       await browser.close();
     } catch {
@@ -109,24 +76,6 @@ async function main() {
     }
     process.exit(0);
   };
-
-  if (args.managed) {
-    writeConnectionFile({ pid: process.pid, port: args.port, url: browserURL });
-    idleInterval = setInterval(() => {
-      let mtimeMs;
-      try {
-        mtimeMs = fs.statSync(connectionFilePath()).mtimeMs;
-      } catch {
-        // Connection file removed out from under us (e.g. a SessionEnd
-        // hook already cleaned up) - nothing left to stay alive for.
-        mtimeMs = -Infinity;
-      }
-      if (Date.now() - mtimeMs > args.idleTimeout) {
-        console.error(`Idle for ${args.idleTimeout}ms, shutting down.`);
-        shutdown();
-      }
-    }, IDLE_CHECK_INTERVAL_MS).unref();
-  }
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
   browser.on("disconnected", () => process.exit(0));

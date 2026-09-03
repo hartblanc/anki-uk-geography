@@ -5,22 +5,25 @@
  *
  * Resolution order for `getBrowser()`:
  *   1. PUPPETEER_BROWSER_URL env var, if set - an explicit override (e.g. for
- *      CI, or a developer pointing at a debug browser by hand). Never closed
- *      by the caller.
- *   2. A connection file written by a browser that a Claude Code SessionStart
- *      hook launched for this project directory (see hooks/session_start.js
- *      and start_browser.js) - reused if its PID and CDP endpoint are both
- *      still alive. Never closed by the caller; a SessionEnd hook owns
- *      killing it (with a self-idle-timeout in start_browser.js as a
- *      backstop if the hook never fires).
+ *      CI, or a developer pointing at a debug browser started by hand with
+ *      start_browser.js). Never closed by the caller.
+ *   2. A connection file written by screenshot_mcp.js (see there), which
+ *      launches its own browser at startup and exposes it this way so
+ *      one-off callers (capture_screenshots.js, render_screenshot.js) can
+ *      discover and reuse it instead of launching their own. Reused only if
+ *      its PID and CDP endpoint are both still alive. Never closed by the
+ *      caller - screenshot_mcp.js owns its lifecycle, tied to its own
+ *      process (it's spawned and reaped by the MCP host, e.g. Claude Code,
+ *      so this is real process-lifecycle cleanup, not a heuristic).
  *   3. Otherwise, launch a throwaway headless Chromium that the caller should
  *      close when done (`shouldClose: true`) - this is what one-off CLI
- *      invocations fall back to when no hook-managed browser is running
- *      (e.g. running `make screenshots` outside of Claude Code).
+ *      invocations fall back to when no MCP-managed browser is running
+ *      (e.g. running `make screenshots` outside of an MCP-connected agent).
  */
 
 const crypto = require("crypto");
 const fs = require("fs");
+const net = require("net");
 const os = require("os");
 const path = require("path");
 const puppeteer = require("puppeteer");
@@ -57,17 +60,6 @@ function removeConnectionFile() {
   }
 }
 
-// Bumps the file's mtime so start_browser.js's idle-timeout treats this as
-// recent activity and doesn't shut itself down while still in use.
-function touchConnectionFile() {
-  try {
-    const now = new Date();
-    fs.utimesSync(connectionFilePath(), now, now);
-  } catch {
-    // Best-effort; a missed touch just makes the idle timeout a bit tighter.
-  }
-}
-
 function isPidAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -88,12 +80,11 @@ async function isEndpointAlive(browserURL) {
   }
 }
 
-async function getHookManagedBrowser() {
+async function getManagedBrowserURL() {
   const info = readConnectionFile();
   if (!info || !info.url || !info.pid) return null;
   if (!isPidAlive(info.pid)) return null;
   if (!(await isEndpointAlive(info.url))) return null;
-  touchConnectionFile();
   return info.url;
 }
 
@@ -104,9 +95,9 @@ async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
     return { browser, shouldClose: false };
   }
 
-  const hookURL = await getHookManagedBrowser();
-  if (hookURL) {
-    const browser = await puppeteer.connect({ browserURL: hookURL });
+  const managedURL = await getManagedBrowserURL();
+  if (managedURL) {
+    const browser = await puppeteer.connect({ browserURL: managedURL });
     return { browser, shouldClose: false };
   }
 
@@ -114,14 +105,27 @@ async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
   return { browser, shouldClose: true };
 }
 
+// Finds a free TCP port for a browser's --remote-debugging-port. Used by
+// screenshot_mcp.js when it becomes the managed browser.
+function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+}
+
 module.exports = {
   getBrowser,
+  getFreePort,
   LAUNCH_ARGS,
   connectionFilePath,
   readConnectionFile,
   writeConnectionFile,
   removeConnectionFile,
-  touchConnectionFile,
   isPidAlive,
   isEndpointAlive,
 };

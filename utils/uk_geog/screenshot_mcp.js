@@ -7,16 +7,24 @@
  * Speaks the Model Context Protocol over stdio (JSON-RPC 2.0) so MCP clients
  * such as Deep Code, Claude, or Cursor can render card screenshots directly.
  *
- * On startup this process gets a warm headless Chromium instance (launching
- * its own, or connecting to one already running at PUPPETEER_BROWSER_URL -
- * see browser_connection.js / start_browser.js) with a small pool of open
- * tabs (default 4, like capture_screenshots.js). Each `render_screenshot`
- * call reads deck.json fresh from disk, builds the card HTML, and renders it
- * immediately on the next free tab. This means screenshots always reflect the
- * latest build without any manual lifecycle management, and concurrent/batch
- * requests are spread across the tabs instead of being serialised. Each
- * render is also written to build/screenshots/mcp/ (or --out DIR) as a PNG so
- * it can be opened directly from disk.
+ * On startup this process launches its own warm headless Chromium with a
+ * small pool of open tabs (default 4, like capture_screenshots.js), and
+ * writes a connection file (see browser_connection.js) exposing its CDP
+ * endpoint so one-off callers - capture_screenshots.js, render_screenshot.js
+ * - can discover and reuse this same browser instead of launching their own.
+ * Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
+ * stdio and holds its stdin open for the life of the session, stdin closing
+ * (rl.on("close")) is a real, OS-level "the session ended" signal - not a
+ * heuristic - so the browser and its connection file are always cleaned up
+ * exactly when the owning session goes away, including most crashes.
+ *
+ * Each `render_screenshot` call reads deck.json fresh from disk, builds the
+ * card HTML, and renders it immediately on the next free tab. This means
+ * screenshots always reflect the latest build without any manual lifecycle
+ * management, and concurrent/batch requests are spread across the tabs
+ * instead of being serialised. Each render is also written to
+ * build/screenshots/mcp/ (or --out DIR) as a PNG so it can be opened
+ * directly from disk.
  *
  * `render_screenshots` is the batch equivalent of `capture_screenshots.js`: it
  * can render every card type, or a selected list of templates, on either side,
@@ -25,7 +33,7 @@
  * Usage:
  *   node utils/uk_geog/screenshot_mcp.js [--deck PATH] [--out DIR] [--concurrency N]
  *
- * Configure in .deepcode/settings.json (or ~/.deepcode/settings.json):
+ * Configure in .mcp.json (Claude Code) or .deepcode/settings.json (Deep Code):
  *   {
  *     "mcpServers": {
  *       "uk-geography-screenshots": {
@@ -39,6 +47,7 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const puppeteer = require("puppeteer");
 
 const {
   REPO_ROOT,
@@ -49,7 +58,7 @@ const {
   cardPngPath,
   expandRenderRequests,
 } = require("./screenshot_common.js");
-const { getBrowser } = require("./browser_connection.js");
+const { LAUNCH_ARGS, getFreePort, writeConnectionFile, removeConnectionFile } = require("./browser_connection.js");
 const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
 
 const DEFAULT_MCP_OUT = path.join(REPO_ROOT, "build", "screenshots", "mcp");
@@ -127,15 +136,17 @@ async function main() {
   fs.mkdirSync(htmlDir, { recursive: true });
   fs.mkdirSync(pngDir, { recursive: true });
 
-  // Initialise the warm browser at startup with a pool of tabs, matching the
-  // parallel page pool in capture_screenshots.js. Connects to an existing
-  // browser via PUPPETEER_BROWSER_URL if set, otherwise launches its own.
-  const { browser, shouldClose } = await getBrowser();
-  console.error(
-    shouldClose
-      ? `Launched headless Chromium (${args.concurrency} tabs)...`
-      : `Connected to browser at ${process.env.PUPPETEER_BROWSER_URL} (${args.concurrency} tabs)...`
-  );
+  // Launch the warm browser at startup with a pool of tabs, matching the
+  // parallel page pool in capture_screenshots.js, and announce it via the
+  // connection file so other callers can discover and reuse it.
+  const port = await getFreePort();
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [...LAUNCH_ARGS, `--remote-debugging-port=${port}`],
+  });
+  const browserURL = `http://127.0.0.1:${port}`;
+  writeConnectionFile({ pid: process.pid, port, url: browserURL });
+  console.error(`Launched headless Chromium on ${browserURL} (${args.concurrency} tabs)...`);
   const pages = [];
   for (let i = 0; i < args.concurrency; i++) {
     const page = await browser.newPage();
@@ -465,18 +476,11 @@ async function main() {
 
   const shutdown = async () => {
     await whenIdle();
-    if (shouldClose) {
-      try {
-        await browser.close();
-      } catch {
-        // Browser may already be closed.
-      }
-    } else {
-      try {
-        await browser.disconnect();
-      } catch {
-        // Already disconnected.
-      }
+    removeConnectionFile();
+    try {
+      await browser.close();
+    } catch {
+      // Browser may already be closed.
     }
     process.exit(0);
   };

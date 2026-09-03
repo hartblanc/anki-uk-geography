@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "uk-geography-screenshots": {
+      "command": "node",
+      "args": [
+        "utils/uk_geog/screenshot_mcp.js"
+      ]
+    }
+  }
+}

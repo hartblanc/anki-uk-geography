@@ -20,10 +20,11 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 
 Two supported ways to get screenshots:
 
-1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
-   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It gets a warm
-   Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
-   call reads the latest `deck.json` from disk, so screenshots always
+1. **Agents via MCP (preferred).** `.mcp.json` (Claude Code) and
+   `.deepcode/settings.json` (Deep Code) both register
+   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches its own
+   warm Puppeteer instance at startup and exposes a `render_screenshot` tool.
+   Each call reads the latest `deck.json` from disk, so screenshots always
    reflect the current build. Rendered PNGs are written to
    `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/city-map-front.png`)
    and the saved path is returned in the tool result. Pass an optional
@@ -46,53 +47,42 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
   any page, not just Anki cards.
 - `browser_connection.js` - gets a puppeteer browser, in order: (1) the
-  `PUPPETEER_BROWSER_URL` env var if set (a CDP HTTP endpoint, e.g.
-  `http://127.0.0.1:9222`) - an explicit override for manual/CI use; (2) a
-  hook-managed browser (see below), discovered via a connection file rather
-  than an env var, since Claude Code hooks can't set env vars that later tool
-  calls would see; (3) otherwise, launch and later close its own throwaway
-  browser.
-- `start_browser.js` - launches one headless Chromium with a CDP endpoint.
-  Standalone (no flags) it just prints `PUPPETEER_BROWSER_URL=...` and runs
-  until Ctrl+C, for manual/CI use with `PUPPETEER_BROWSER_URL` above. With
-  `--managed` (how the hooks below use it) it also writes the connection file
-  `browser_connection.js` looks for, and self-exits after 30 minutes of no
-  caller touching that file - a backstop in case cleanup never runs.
+  `PUPPETEER_BROWSER_URL` env var if set (a CDP HTTP endpoint) - an explicit
+  override for manual/CI use; (2) the browser `screenshot_mcp.js` is running,
+  discovered via a connection file (see below); (3) otherwise, launch and
+  later close its own throwaway browser.
+- `start_browser.js` - a standalone "launch a browser, print
+  `PUPPETEER_BROWSER_URL=...`, run until Ctrl+C" tool for manual/CI use with
+  (1) above, independent of MCP.
 
 `capture_screenshots.js` and `screenshot_mcp.js` are orchestrators built on
 top of these: they generate card HTML via `screenshot_common.js`, then hand
 the resulting `file://` URL to `render_screenshot.js` to screenshot. Neither
-launches or closes a browser it doesn't own - a hook-managed or
+launches or closes a browser it doesn't own - an MCP-managed or
 `PUPPETEER_BROWSER_URL` browser is left running for other callers; a
 self-launched one is closed when done.
 
-### Automatic browser lifecycle (Claude Code hooks)
+### Automatic browser lifecycle (MCP)
 
-`.claude/settings.json` registers three hooks so an agent session gets a
-warm browser for free, scoped to just that session, and it lives for the
-session's actual lifetime rather than being reaped during a quiet stretch:
+`screenshot_mcp.js` launches its own browser at startup (on an explicit
+`--remote-debugging-port`) and writes a connection file exposing that CDP
+endpoint, so `capture_screenshots.js` / `render_screenshot.js` calls made
+during the same session discover and reuse it via `browser_connection.js`
+instead of launching their own.
 
-- **SessionStart** runs `utils/uk_geog/hooks/session_start.js`, which checks
-  whether a hook-managed browser is already running (via the connection
-  file) and, if not, launches one detached with `start_browser.js --managed`
-  on a freshly-allocated free port. Idempotent, so it's cheap to run on
-  every SessionStart reason (startup, resume, clear, compact) - an already
-  live browser is just reused (and its idle timer touched).
-- **SessionEnd** runs `utils/uk_geog/hooks/session_end.js`, which reads the
-  connection file, sends the browser process SIGTERM, and removes the file.
-- **UserPromptSubmit** runs `utils/uk_geog/hooks/touch_browser.js`
-  (`"async": true`, so it never adds latency to sending a message), which
-  touches the connection file's mtime on every user message. Screenshot
-  calls also touch it on reuse, but messages are far more frequent, so this
-  is what actually keeps the browser alive for as long as the conversation
-  is being used, independent of how often screenshots happen.
+Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
+stdio and holds its stdin pipe open for the life of the session, cleanup is
+tied to a real OS-level signal, not a heuristic: when the host process exits
+- normal quit, `/clear`-driven restart, most crashes - the pipe closes,
+Node's `readline` interface fires its `"close"` event, and the shutdown
+handler closes the browser and removes the connection file. `SIGINT`/
+`SIGTERM` are also handled directly as a second path to the same cleanup.
+This was chosen over a hooks-based approach (SessionStart/SessionEnd) after
+confirming hooks have no equivalent: they're one-shot invocations with no
+persistent connection to the session and no exposed PID, and Claude Code
+documents `SessionEnd` itself as best-effort, not guaranteed to fire.
 
 The connection file lives outside the repo (under the OS temp dir, keyed by
 a hash of this repo's root) so `make` targets that clear `build/` can't pull
 it out from under a running browser, and so each worktree/checkout gets its
 own file and never shares a browser with a session running elsewhere.
-SessionEnd is documented by Claude Code as best-effort (short timeout, not
-guaranteed to fire on every exit path), so `start_browser.js --managed`'s
-own idle self-timeout (default 4h, reset by the heartbeat above) is a
-backstop for a session that crashes or is killed outright, not the primary
-cleanup mechanism.
