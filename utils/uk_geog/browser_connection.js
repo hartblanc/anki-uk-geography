@@ -10,19 +10,14 @@
  *      launches its own browser at startup and exposes it this way so
  *      one-off callers (capture_screenshots.js, render_screenshot.js) can
  *      discover and reuse it instead of launching their own. Reused only if
- *      the browser actually answering at the recorded URL still reports the
- *      exact browser id (a UUID Chrome generates fresh per launch, embedded
- *      in its devtools endpoint) recorded when the file was written -
- *      checking that a PID is alive and a port answers isn't enough, since
- *      an abrupt kill (SIGKILL) skips browser_mcp.js's own cleanup and can
- *      leave both a stale file and an orphaned browser process behind, and
- *      OS PIDs get reused. If the id matches but the recording PID is dead,
- *      the browser is an orphan (its owner never got to close it) - this
- *      closes it and removes the file rather than reusing or leaving it to
- *      leak. Never closed on a genuine reuse - browser_mcp.js owns that
- *      lifecycle, tied to its own process (spawned and reaped by the MCP
- *      host, e.g. Claude Code, so that's real process-lifecycle cleanup,
- *      not a heuristic).
+ *      the recorded owning PID is alive and the recorded URL answers.
+ *      If the PID is dead, the browser it launched is an orphan (an abrupt
+ *      kill, e.g. SIGKILL, skips browser_mcp.js's own cleanup) - this closes
+ *      it if still reachable and removes the stale file, rather than
+ *      leaving it to leak. Never closed on a genuine reuse - browser_mcp.js
+ *      owns that lifecycle, tied to its own process (spawned and reaped by
+ *      the MCP host, e.g. Claude Code, so that's real process-lifecycle
+ *      cleanup, not a heuristic).
  *   2. Otherwise, launch a throwaway headless Chromium that the caller should
  *      close when done (`shouldClose: true`) - this is what one-off CLI
  *      invocations fall back to when no MCP-managed browser is running
@@ -76,57 +71,38 @@ function isPidAlive(pid) {
   }
 }
 
-// The browser id is the UUID Chrome embeds in its devtools endpoint
-// (ws://host:port/devtools/browser/<uuid>), generated fresh on every
-// launch. Returns null if nothing answers at browserURL.
-async function getLiveBrowserId(browserURL) {
+async function isEndpointAlive(browserURL) {
   try {
     const res = await fetch(`${browserURL}/json/version`, {
       signal: AbortSignal.timeout(500),
     });
-    if (!res.ok) return null;
-    const { webSocketDebuggerUrl } = await res.json();
-    if (!webSocketDebuggerUrl) return null;
-    return new URL(webSocketDebuggerUrl).pathname.split("/").pop();
+    return res.ok;
   } catch {
-    return null;
+    return false;
   }
-}
-
-async function isEndpointAlive(browserURL) {
-  return (await getLiveBrowserId(browserURL)) !== null;
 }
 
 async function getManagedBrowserURL() {
   const info = readConnectionFile();
-  if (!info || !info.url || !info.pid || !info.browserId) return null;
+  if (!info || !info.url || !info.pid) return null;
 
-  const liveId = await getLiveBrowserId(info.url);
-  const isOurs = liveId !== null && liveId === info.browserId;
-  const ownerAlive = isPidAlive(info.pid);
+  if (isPidAlive(info.pid)) {
+    return (await isEndpointAlive(info.url)) ? info.url : null;
+  }
 
-  if (isOurs && ownerAlive) return info.url;
-
-  if (isOurs && !ownerAlive) {
-    // Confirmed to be the exact browser we recorded, but its owning
-    // browser_mcp.js process is gone (e.g. killed abruptly, skipping its
-    // own cleanup) - it's orphaned. Close it so it doesn't leak forever
-    // unwatched, then let the caller fall back to launching a fresh one.
+  // Owner is dead - the browser it launched is orphaned (e.g. killed
+  // abruptly, skipping browser_mcp.js's own cleanup). Close it if it's
+  // still reachable so it doesn't leak forever unwatched, then remove the
+  // stale record and let the caller fall back to launching a fresh one.
+  if (await isEndpointAlive(info.url)) {
     try {
       const orphan = await puppeteer.connect({ browserURL: info.url });
       await orphan.close();
     } catch {
       // Already gone.
     }
-    removeConnectionFile();
-    return null;
   }
-
-  // Not confirmed as ours (id mismatch, or nothing answered). Never touch
-  // whatever - if anything - is actually at that URL, since we can't
-  // positively identify it as a browser we started; only forget the stale
-  // record once its recorded owner is also confirmed dead.
-  if (!ownerAlive) removeConnectionFile();
+  removeConnectionFile();
   return null;
 }
 
@@ -163,5 +139,4 @@ module.exports = {
   removeConnectionFile,
   isPidAlive,
   isEndpointAlive,
-  getLiveBrowserId,
 };

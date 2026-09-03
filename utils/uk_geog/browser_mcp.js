@@ -100,14 +100,9 @@ async function main() {
   // startup log) - no separate probe-then-reuse step, so no window for
   // something else to grab that port first.
   const browser = await puppeteer.launch({ headless: true, args: LAUNCH_ARGS });
-  const { port, pathname } = new URL(browser.wsEndpoint());
-  const browserId = pathname.split("/").pop();
+  const { port } = new URL(browser.wsEndpoint());
   const browserURL = `http://127.0.0.1:${port}`;
-  // browserId is Chrome's own devtools UUID for this launch, not just this
-  // process's PID - see browser_connection.js's getManagedBrowserURL() for
-  // why that distinction matters (PID reuse, and an abrupt kill leaving an
-  // orphaned browser process behind).
-  writeConnectionFile({ pid: process.pid, port: Number(port), url: browserURL, browserId });
+  writeConnectionFile({ pid: process.pid, port: Number(port), url: browserURL });
 
   // A launch starts with exactly one tab; open the rest now so every
   // capture_screenshots.js call that reuses this browser finds a fixed,

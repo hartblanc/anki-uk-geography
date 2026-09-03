@@ -104,13 +104,7 @@ own file and never shares a browser with a session running elsewhere.
 **Surviving an abrupt kill (SIGKILL).** A hard kill skips `browser_mcp.js`'s
 own cleanup entirely, which can leave both a stale connection file and an
 orphaned (still-running) browser process behind. `browser_connection.js`
-guards against a caller picking that up: reuse requires the browser actually
-answering at the recorded URL to report the exact browser id recorded in the
-file - a UUID Chrome generates fresh on every launch, embedded in its
-devtools endpoint - not just that a PID is alive and a port answers. A bare
-PID check alone isn't enough, since OS PIDs get reused. If the id matches
-but the recording PID is dead, it's confirmed to be our own orphaned
-browser (and only then): it gets closed and the file removed instead of
-reused or left leaking. If the id doesn't match, whatever's actually there
-is left untouched (it can't be identified as ours), and only the stale file
-record is forgotten, once its recorded owner is also confirmed dead.
+guards against a caller picking that up: reuse requires the recorded owning
+PID to be alive and the recorded URL to answer. If the PID is dead, the
+browser it launched is treated as an orphan - it gets closed if still
+reachable, and the stale file removed, rather than reused or left leaking.
