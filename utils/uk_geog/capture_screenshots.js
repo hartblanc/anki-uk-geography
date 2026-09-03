@@ -6,8 +6,10 @@
  *
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium. A fresh browser instance is launched for
- * each invocation; for long-lived agent sessions use the MCP server instead.
+ * with Puppeteer's headless Chromium. Launches and closes its own browser
+ * unless PUPPETEER_BROWSER_URL points at an already-running one (see
+ * browser_connection.js / start_browser.js), in which case it reuses that
+ * instead - handy for long-lived agent sessions making repeated calls.
  *
  * Examples:
  *   # All card types, light mode
@@ -28,9 +30,8 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
-let puppeteer;
 try {
-  puppeteer = require("puppeteer");
+  require.resolve("puppeteer");
 } catch (err) {
   if (err.code === "MODULE_NOT_FOUND") {
     console.error(
@@ -51,11 +52,12 @@ const {
   findNote,
   parseSamples,
   loadDeck,
-  renderCardToPng,
+  writeCardHtml,
+  cardPngPath,
   expandRenderRequests,
-  PagePool,
-  runWithPool,
 } = require("./screenshot_common.js");
+const { getBrowser } = require("./browser_connection.js");
+const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
 
 const USAGE = `Usage: capture_screenshots.js [options]
 
@@ -189,10 +191,7 @@ async function main() {
     return;
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--disable-gpu", "--hide-scrollbars"],
-  });
+  const { browser, shouldClose } = await getBrowser();
   try {
     // Reuse a small pool of pages across all screenshots. Navigating replaces
     // the old DOM, so this avoids the per-screenshot page creation cost while
@@ -209,16 +208,23 @@ async function main() {
 
     const results = await runWithPool(pool, requests, async (page, req) => {
       console.log(`Capturing ${req.template} ${req.side}`);
-      const { pngPath } = await renderCardToPng(page, {
+      const html = writeCardHtml({
         deckPath: args.deck,
         htmlDir,
-        outDir: args.out,
         template: req.template,
         side: req.side,
         dark: req.dark,
         samples: req.samples,
+        scratchKey: page._poolIndex,
+      });
+      const pngPath = cardPngPath({
+        outDir: args.out,
+        template: req.template,
+        side: html.side,
+        dark: html.dark,
         filename: req.filename,
       });
+      await renderToFile(page, { url: html.url, outPath: pngPath });
       console.log(`Captured ${pngPath}`);
       return { template: req.template, side: req.side, pngPath };
     });
@@ -246,7 +252,7 @@ async function main() {
       stitch(captured, args.stitch, args.dark);
     }
   } finally {
-    await browser.close();
+    if (shouldClose) await browser.close();
   }
 }
 

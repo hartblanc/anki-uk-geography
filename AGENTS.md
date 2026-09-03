@@ -21,7 +21,7 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 Two supported ways to get screenshots:
 
 1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
-   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches the warm
+   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It gets a warm
    Puppeteer instance at startup and exposes a `render_screenshot` tool. Each
    call reads the latest `deck.json` from disk, so screenshots always
    reflect the current build. Rendered PNGs are written to
@@ -29,6 +29,36 @@ Two supported ways to get screenshots:
    and the saved path is returned in the tool result. Pass an optional
    `filename` argument to `render_screenshot` to choose the saved PNG name.
    Use `/mcp` to verify the server is connected.
-2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` launches
-   a fresh Puppeteer instance, captures the requested cards, and exits. This is
-   what `make screenshots` uses.
+2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` gets a
+   Puppeteer instance, captures the requested cards, and exits. This is what
+   `make screenshots` uses.
+
+### Screenshot tooling architecture
+
+The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
+
+- `screenshot_common.js` - card HTML generation only (reads `deck.json`,
+  renders a note template, wraps it in Anki's HTML shell). No puppeteer
+  dependency.
+- `render_screenshot.js` - a thin puppeteer renderer: given a `file://` or
+  `http(s)://` URL and an output path, navigates and screenshots. Knows
+  nothing about decks or cards, so it's runnable standalone
+  (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
+  any page, not just Anki cards.
+- `browser_connection.js` - gets a puppeteer browser. If the
+  `PUPPETEER_BROWSER_URL` env var is set (a CDP HTTP endpoint, e.g.
+  `http://127.0.0.1:9222`), it connects to that existing browser instead of
+  launching a new one.
+- `start_browser.js` - launches one long-lived headless Chromium with a CDP
+  endpoint and prints `PUPPETEER_BROWSER_URL=...` for a caller to export. An
+  agent session that expects to render many screenshots can run this once at
+  startup so every later `capture_screenshots.js` / `screenshot_mcp.js` /
+  `render_screenshot.js` call reuses the same warm browser instead of paying
+  launch cost per call.
+
+`capture_screenshots.js` and `screenshot_mcp.js` are orchestrators built on
+top of these: they generate card HTML via `screenshot_common.js`, then hand
+the resulting `file://` URL to `render_screenshot.js` to screenshot. Neither
+launches or closes a browser it doesn't own - if `PUPPETEER_BROWSER_URL` is
+set they leave that browser running for other callers; otherwise they launch
+their own and close it when done.

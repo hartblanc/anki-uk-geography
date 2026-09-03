@@ -7,15 +7,16 @@
  * Speaks the Model Context Protocol over stdio (JSON-RPC 2.0) so MCP clients
  * such as Deep Code, Claude, or Cursor can render card screenshots directly.
  *
- * On startup this process launches the warm headless Chromium instance with a
- * small pool of open tabs (default 4, like capture_screenshots.js). Each
- * `render_screenshot` call reads deck.json fresh from disk, builds the card
- * HTML, and renders it immediately on the next free tab. This
- * means screenshots always reflect the latest build without any manual
- * lifecycle management, and concurrent/batch requests are spread across the
- * tabs instead of being serialised. Each render is also written to
- * build/screenshots/mcp/ (or --out DIR) as a PNG so it can be opened directly
- * from disk.
+ * On startup this process gets a warm headless Chromium instance (launching
+ * its own, or connecting to one already running at PUPPETEER_BROWSER_URL -
+ * see browser_connection.js / start_browser.js) with a small pool of open
+ * tabs (default 4, like capture_screenshots.js). Each `render_screenshot`
+ * call reads deck.json fresh from disk, builds the card HTML, and renders it
+ * immediately on the next free tab. This means screenshots always reflect the
+ * latest build without any manual lifecycle management, and concurrent/batch
+ * requests are spread across the tabs instead of being serialised. Each
+ * render is also written to build/screenshots/mcp/ (or --out DIR) as a PNG so
+ * it can be opened directly from disk.
  *
  * `render_screenshots` is the batch equivalent of `capture_screenshots.js`: it
  * can render every card type, or a selected list of templates, on either side,
@@ -38,18 +39,18 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
-const puppeteer = require("puppeteer");
 
 const {
   REPO_ROOT,
   DEFAULT_DECK,
   VIEWPORT,
   loadDeck,
-  renderCardToPng,
+  writeCardHtml,
+  cardPngPath,
   expandRenderRequests,
-  PagePool,
-  runWithPool,
 } = require("./screenshot_common.js");
+const { getBrowser } = require("./browser_connection.js");
+const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
 
 const DEFAULT_MCP_OUT = path.join(REPO_ROOT, "build", "screenshots", "mcp");
 
@@ -127,12 +128,14 @@ async function main() {
   fs.mkdirSync(pngDir, { recursive: true });
 
   // Initialise the warm browser at startup with a pool of tabs, matching the
-  // parallel page pool in capture_screenshots.js.
-  console.error(`Launching headless Chromium (${args.concurrency} tabs)...`);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--disable-gpu", "--hide-scrollbars"],
-  });
+  // parallel page pool in capture_screenshots.js. Connects to an existing
+  // browser via PUPPETEER_BROWSER_URL if set, otherwise launches its own.
+  const { browser, shouldClose } = await getBrowser();
+  console.error(
+    shouldClose
+      ? `Launched headless Chromium (${args.concurrency} tabs)...`
+      : `Connected to browser at ${process.env.PUPPETEER_BROWSER_URL} (${args.concurrency} tabs)...`
+  );
   const pages = [];
   for (let i = 0; i < args.concurrency; i++) {
     const page = await browser.newPage();
@@ -145,16 +148,24 @@ async function main() {
   async function renderOne(argsObj) {
     const page = await pagePool.acquire();
     try {
-      return await renderCardToPng(page, {
+      const html = writeCardHtml({
         deckPath: args.deck,
         htmlDir,
-        outDir: pngDir,
         template: argsObj.template,
         side: argsObj.side,
         dark: argsObj.dark,
         samples: argsObj.samples,
+        scratchKey: page._poolIndex,
+      });
+      const pngPath = cardPngPath({
+        outDir: pngDir,
+        template: argsObj.template,
+        side: html.side,
+        dark: html.dark,
         filename: argsObj.filename,
       });
+      const { png } = await renderToFile(page, { url: html.url, outPath: pngPath });
+      return { png, pngPath };
     } finally {
       pagePool.release(page);
     }
@@ -162,7 +173,7 @@ async function main() {
 
   async function renderBatch(argsObj) {
     // Read the deck once here so we can support "all templates" as the default;
-    // renderCardToPng still reads it fresh for each screenshot, matching the
+    // writeCardHtml still reads it fresh for each screenshot, matching the
     // existing guarantee that renders reflect the latest build on disk.
     const { templatesByName } = loadDeck(args.deck);
     const allTemplateNames = Object.keys(templatesByName);
@@ -178,16 +189,23 @@ async function main() {
 
     const results = await runWithPool(pagePool, requests, async (page, req) => {
       try {
-        const { pngPath } = await renderCardToPng(page, {
+        const html = writeCardHtml({
           deckPath: args.deck,
           htmlDir,
-          outDir: pngDir,
           template: req.template,
           side: req.side,
           dark: req.dark,
           samples: req.samples,
+          scratchKey: page._poolIndex,
+        });
+        const pngPath = cardPngPath({
+          outDir: pngDir,
+          template: req.template,
+          side: html.side,
+          dark: html.dark,
           filename: req.filename,
         });
+        await renderToFile(page, { url: html.url, outPath: pngPath });
         return {
           ok: true,
           template: req.template,
@@ -447,10 +465,18 @@ async function main() {
 
   const shutdown = async () => {
     await whenIdle();
-    try {
-      await browser.close();
-    } catch {
-      // Browser may already be closed.
+    if (shouldClose) {
+      try {
+        await browser.close();
+      } catch {
+        // Browser may already be closed.
+      }
+    } else {
+      try {
+        await browser.disconnect();
+      } catch {
+        // Already disconnected.
+      }
     }
     process.exit(0);
   };

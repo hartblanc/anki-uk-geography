@@ -1,14 +1,11 @@
 "use strict";
 
 /**
- * Shared helpers for the screenshot tooling (capture_screenshots.js and
- * screenshot_mcp.js).
- *
- * The two scripts differ in how they are driven (one-off CLI vs long-lived MCP
- * server), but they render the same cards in the same headless Chromium way:
- * read deck.json, pick a note, render the template, wrap it in Anki's HTML
- * shell, navigate a Puppeteer page to it, and screenshot it. Anything that can
- * be shared between those flows lives here.
+ * Card HTML generation, shared by the screenshot tooling (capture_screenshots.js
+ * and screenshot_mcp.js): read deck.json, pick a note, render the template,
+ * and wrap it in Anki's HTML shell. Deliberately has no puppeteer dependency -
+ * turning that HTML into a screenshot is a separate concern handled by
+ * render_screenshot.js, which just needs a URL to navigate to.
  */
 
 const fs = require("fs");
@@ -178,32 +175,35 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
 }
 
 /**
- * Render one card on a Puppeteer page and save the PNG. The page must have a
- * unique `_poolIndex` property (assigned by the page pool) so parallel renders
- * write to separate scratch HTML files.
+ * Generate a card's HTML and write it to a scratch file, returning a URL a
+ * renderer can navigate to. Pure HTML generation - no puppeteer involved, so
+ * this can be tested or reused independently of how the resulting page gets
+ * screenshotted. `scratchKey` distinguishes concurrent writers (e.g. a page
+ * pool index) so parallel renders don't clobber each other's scratch file.
  */
-async function renderCardToPng(
-  page,
-  { deckPath, htmlDir, outDir, template, side, dark, samples, filename }
-) {
+function writeCardHtml({ deckPath, htmlDir, template, side, dark, samples, scratchKey }) {
   const prep = prepareCard({ deckPath, template, side, dark, samples });
-
-  const htmlPath = path.join(htmlDir, `card-${page._poolIndex}.html`);
+  const htmlPath = path.join(htmlDir, `card-${scratchKey}.html`);
   fs.writeFileSync(htmlPath, prep.html);
+  return {
+    htmlPath,
+    url: pathToFileURL(htmlPath).href,
+    tmpl: prep.tmpl,
+    side: prep.side,
+    dark: prep.dark,
+  };
+}
 
-  await page.goto(pathToFileURL(htmlPath).href, {
-    waitUntil: "load",
-    timeout: 30000,
-  });
-  const png = await page.screenshot({ type: "png" });
-
+/**
+ * Resolve the output PNG path for a rendered card, honouring an explicit
+ * filename override or falling back to the `<template>-<side>[-dark].png`
+ * convention.
+ */
+function cardPngPath({ outDir, template, side, dark, filename }) {
   const finalFilename = filename
     ? ensurePngExtension(path.basename(String(filename)))
-    : defaultPngName(template, prep.side, prep.dark);
-  const pngPath = path.join(outDir, finalFilename);
-  fs.writeFileSync(pngPath, png);
-
-  return { png, pngPath, side: prep.side, dark: prep.dark };
+    : defaultPngName(template, side, dark);
+  return path.join(outDir, finalFilename);
 }
 
 /**
@@ -273,57 +273,6 @@ function expandRenderRequests({
   return expanded;
 }
 
-/**
- * Simple promise-based pool of Puppeteer pages. Each render takes one tab for
- * the duration of its navigation/screenshot and returns it afterwards, so
- * concurrent calls and batch renders are spread over all open tabs.
- */
-class PagePool {
-  constructor(pages) {
-    this.free = pages.slice();
-    this.total = this.free.length;
-    this.waiters = [];
-  }
-
-  async acquire() {
-    const page = this.free.shift();
-    if (page) return page;
-    return new Promise((resolve) => this.waiters.push(resolve));
-  }
-
-  release(page) {
-    const waiter = this.waiters.shift();
-    if (waiter) waiter(page);
-    else this.free.push(page);
-  }
-}
-
-/**
- * Run `task(page, item)` for each item across a page pool, preserving input
- * order in the returned results array.
- */
-async function runWithPool(pool, items, task) {
-  const results = new Array(items.length);
-  let nextJob = 0;
-
-  async function worker() {
-    while (true) {
-      const index = nextJob++;
-      if (index >= items.length) return;
-      const page = await pool.acquire();
-      try {
-        results[index] = await task(page, items[index], index);
-      } finally {
-        pool.release(page);
-      }
-    }
-  }
-
-  const workerCount = Math.min(pool.total, items.length);
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
-  return results;
-}
-
 module.exports = {
   REPO_ROOT,
   DEFAULT_DECK,
@@ -339,8 +288,7 @@ module.exports = {
   defaultPngName,
   loadDeck,
   prepareCard,
-  renderCardToPng,
+  writeCardHtml,
+  cardPngPath,
   expandRenderRequests,
-  PagePool,
-  runWithPool,
 };
