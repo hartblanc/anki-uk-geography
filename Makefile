@@ -1,4 +1,3 @@
-# TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
 # TODO: consider including poole bay (once have zoombox)
 # TODO: test rendering in webkit browser for ankimobile
 # TODO: generate apkg from crowdanki
@@ -402,10 +401,10 @@ build/resolved_templates/City\ -\ County.html: build/maps/cities.min.svg utils/u
 build/resolved_templates/County\ -\ Region.html: build/maps/counties.min.svg build/maps/regions.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Region)
 
-build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Bow - Map)
 
-build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv src/data/city.csv src/data/uk_geog.csv
