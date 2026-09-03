@@ -18,21 +18,18 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 
 ## Screenshots
 
-Two supported ways to get screenshots:
+`node utils/uk_geog/capture_screenshots.js ...` is the only entrypoint for
+taking a screenshot - agents included. This is what `make screenshots` uses.
+It gets a Puppeteer browser (see architecture below), captures the requested
+cards, and exits.
 
-1. **Agents via MCP (preferred).** `.mcp.json` (Claude Code) and
-   `.deepcode/settings.json` (Deep Code) both register
-   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches its own
-   warm Puppeteer instance at startup and exposes a `render_screenshot` tool.
-   Each call reads the latest `deck.json` from disk, so screenshots always
-   reflect the current build. Rendered PNGs are written to
-   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/city-map-front.png`)
-   and the saved path is returned in the tool result. Pass an optional
-   `filename` argument to `render_screenshot` to choose the saved PNG name.
-   Use `/mcp` to verify the server is connected.
-2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` gets a
-   Puppeteer instance, captures the requested cards, and exits. This is what
-   `make screenshots` uses.
+`.mcp.json` (Claude Code) and `.deepcode/settings.json` (Deep Code) both
+register `utils/uk_geog/screenshot_mcp.js` as an MCP server, but it exposes
+no tools and does no rendering - its only job is keeping a warm shared
+browser alive for the session so repeated `capture_screenshots.js` calls
+reuse it instead of paying launch cost each time (see below). Use `/mcp` to
+verify it's connected; take screenshots by running `capture_screenshots.js`
+regardless of whether it is.
 
 ### Screenshot tooling architecture
 
@@ -55,20 +52,25 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   `PUPPETEER_BROWSER_URL=...`, run until Ctrl+C" tool for manual/CI use with
   (1) above, independent of MCP.
 
-`capture_screenshots.js` and `screenshot_mcp.js` are orchestrators built on
-top of these: they generate card HTML via `screenshot_common.js`, then hand
-the resulting `file://` URL to `render_screenshot.js` to screenshot. Neither
-launches or closes a browser it doesn't own - an MCP-managed or
-`PUPPETEER_BROWSER_URL` browser is left running for other callers; a
-self-launched one is closed when done.
+`capture_screenshots.js` is the orchestrator built on top of these: it
+generates card HTML via `screenshot_common.js`, then hands the resulting
+`file://` URL to `render_screenshot.js` to screenshot. It never closes a
+browser it doesn't own - an MCP-managed or `PUPPETEER_BROWSER_URL` browser
+is left running for other callers; a self-launched one is closed when done.
+
+`screenshot_mcp.js` deliberately does none of this rendering work itself -
+it doesn't import `screenshot_common.js` or `render_screenshot.js` at all.
+Its only responsibility is the browser's lifetime (see below); the tools it
+would otherwise expose over MCP don't exist, so
+`capture_screenshots.js` stays the single entrypoint that actually takes a
+screenshot, whether or not an MCP session is connected.
 
 ### Automatic browser lifecycle (MCP)
 
-`screenshot_mcp.js` launches its own browser at startup (on an explicit
-`--remote-debugging-port`) and writes a connection file exposing that CDP
-endpoint, so `capture_screenshots.js` / `render_screenshot.js` calls made
-during the same session discover and reuse it via `browser_connection.js`
-instead of launching their own.
+`screenshot_mcp.js` launches its own browser at startup and writes a
+connection file exposing its CDP endpoint, so `capture_screenshots.js` /
+`render_screenshot.js` calls made during the same session discover and
+reuse it via `browser_connection.js` instead of launching their own.
 
 Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
 stdio and holds its stdin pipe open for the life of the session, cleanup is
