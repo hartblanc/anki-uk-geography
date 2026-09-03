@@ -13,12 +13,12 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    @[build/maps/cities.min.svg]
+    <img src="build/maps/cities.min.svg">
     <svg id="zoombox" viewBox="0 0 800 1159"></svg>
   </div>
 </div>
+<script src="utils/uk_geog/snippets/zoombox.js"></script>
 <script>
-  @[utils/uk_geog/snippets/zoombox.js]
   (function () {
     // Keep the highlighted city on top of any city it overlaps. A few city
     // pairs sit almost on top of each other (Salford/Manchester, City of

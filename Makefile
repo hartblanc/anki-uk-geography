@@ -3,7 +3,6 @@
 # TODO: test rendering in webkit browser for ankimobile
 # TODO: generate apkg from crowdanki
 # TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
-# TODO: consider using <img> tags and <script> tags instead of @[] syntax so that the cards are valid html
 # TODO: make new deck for motorways
 
 SHELL:=/bin/bash
