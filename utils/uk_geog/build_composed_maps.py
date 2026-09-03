@@ -42,7 +42,7 @@ MAP_SVG_IDS = {
     "cities": "map",
     "counties": "map",
     "regions": "regions_map",
-    "bodies_of_water": None,
+    "bodies_of_water": "map",
 }
 
 # Output file name for each map.

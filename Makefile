@@ -1,5 +1,4 @@
-# TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
-# TODO: consider including poole bay (once have zoombox)
+# TODO: consider extending zoombox to other small features (e.g. counties, bodies of water) — Poole Bay now has an explicit zoombox entry, but the general auto-detect heuristic is still on todo/zoombox-extend, unmerged
 # TODO: test rendering in webkit browser for ankimobile
 # TODO: generate apkg from crowdanki
 # TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
@@ -141,7 +140,7 @@ build/maps/raw/seavox.geojson:
 		--data-urlencode 'request=GetFeature' \
 		--data-urlencode 'typeName=MarineRegions:seavox_v19' \
 		--data-urlencode 'outputFormat=application/json' \
-		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
+		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24202,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
 		-o $@
 
 build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
@@ -226,7 +225,7 @@ build/maps/bow.topojson build/bow.csv: build/maps/base_27700/seavox.topojson bui
 		-dissolve + name=l4 target=seavox mrgid_l4 \
 		-filter target=l2 '"23637,".indexOf(mrgid_l2) > -1' \
 		-filter target=l3 '"23647,23649,23728,23729,23731".indexOf(mrgid_l3) > -1' \
-		-filter target=seavox '"24188,24192,24193,24195,24210,24218".indexOf(mrgid_sr) > -1' \
+		-filter target=seavox '"24188,24192,24193,24195,24202,24210,24218".indexOf(mrgid_sr) > -1' \
 		-filter target=l4 '"23735,23737,23738,23739,23740,23741,23742".indexOf(mrgid_l4) > -1' \
 		-each 'mrgid=Number(mrgid_sr)' target=seavox \
 		-each 'mrgid=Number(mrgid_l2)' target=l2 \
