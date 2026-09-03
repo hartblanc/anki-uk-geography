@@ -28,12 +28,16 @@ own stdout line once ready - export that value so other screenshot tools in
 this repo connect to it instead of launching their own browser.
 
 Options:
-  --port PORT   Remote debugging port (default: 9222)
+  --port PORT   Remote debugging port. Default: none - Chrome picks and
+                binds its own free port atomically, avoiding the conflict
+                risk of naming a fixed port (e.g. two invocations, or
+                anything else already using it) up front. Pass this only
+                when you specifically want a stable, known port.
   --help        Show this help
 `;
 
 function parseArgs(argv) {
-  const args = { port: 9222, help: false };
+  const args = { port: null, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
@@ -60,11 +64,10 @@ async function main() {
     return;
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [...LAUNCH_ARGS, `--remote-debugging-port=${args.port}`],
-  });
-  const browserURL = `http://127.0.0.1:${args.port}`;
+  const launchArgs = args.port ? [...LAUNCH_ARGS, `--remote-debugging-port=${args.port}`] : LAUNCH_ARGS;
+  const browser = await puppeteer.launch({ headless: true, args: launchArgs });
+  const port = args.port || new URL(browser.wsEndpoint()).port;
+  const browserURL = `http://127.0.0.1:${port}`;
   console.log(`PUPPETEER_BROWSER_URL=${browserURL}`);
   console.error(`Browser ready at ${browserURL}. Press Ctrl+C to stop.`);
 

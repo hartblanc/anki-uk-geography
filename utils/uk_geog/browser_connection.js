@@ -23,7 +23,6 @@
 
 const crypto = require("crypto");
 const fs = require("fs");
-const net = require("net");
 const os = require("os");
 const path = require("path");
 const puppeteer = require("puppeteer");
@@ -105,22 +104,8 @@ async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
   return { browser, shouldClose: true };
 }
 
-// Finds a free TCP port for a browser's --remote-debugging-port. Used by
-// screenshot_mcp.js when it becomes the managed browser.
-function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
-    });
-  });
-}
-
 module.exports = {
   getBrowser,
-  getFreePort,
   LAUNCH_ARGS,
   connectionFilePath,
   readConnectionFile,

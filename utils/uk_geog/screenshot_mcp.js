@@ -58,7 +58,7 @@ const {
   cardPngPath,
   expandRenderRequests,
 } = require("./screenshot_common.js");
-const { LAUNCH_ARGS, getFreePort, writeConnectionFile, removeConnectionFile } = require("./browser_connection.js");
+const { LAUNCH_ARGS, writeConnectionFile, removeConnectionFile } = require("./browser_connection.js");
 const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
 
 const DEFAULT_MCP_OUT = path.join(REPO_ROOT, "build", "screenshots", "mcp");
@@ -138,14 +138,15 @@ async function main() {
 
   // Launch the warm browser at startup with a pool of tabs, matching the
   // parallel page pool in capture_screenshots.js, and announce it via the
-  // connection file so other callers can discover and reuse it.
-  const port = await getFreePort();
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [...LAUNCH_ARGS, `--remote-debugging-port=${port}`],
-  });
+  // connection file so other callers can discover and reuse it. Leaving
+  // --remote-debugging-port unset lets Chrome pick and bind its own free
+  // port atomically (puppeteer parses the actual port back out of its
+  // startup log) - no separate probe-then-reuse step, so no window for
+  // something else to grab that port first.
+  const browser = await puppeteer.launch({ headless: true, args: LAUNCH_ARGS });
+  const { port } = new URL(browser.wsEndpoint());
   const browserURL = `http://127.0.0.1:${port}`;
-  writeConnectionFile({ pid: process.pid, port, url: browserURL });
+  writeConnectionFile({ pid: process.pid, port: Number(port), url: browserURL });
   console.error(`Launched headless Chromium on ${browserURL} (${args.concurrency} tabs)...`);
   const pages = [];
   for (let i = 0; i < args.concurrency; i++) {
