@@ -10,33 +10,40 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 - Build the deck using `make`
 - Generate screenshots using Playwright's Chromium via `make screenshots` for some visual feedback
 - Run `make webkit-check` to render every note template (front/back, light/dark)
-  in Playwright's real WebKit engine and fail on any JS error or a zoombox
-  that doesn't populate. This stands in for AnkiMobile's WebKit-based webview.
-  Requires the Playwright WebKit browser: run `npx playwright install webkit`
-  once (Playwright does not fetch browsers automatically on `npm install`).
-  See `utils/uk_geog/webkit_check.js`.
+  in Playwright's real WebKit engine and fail on any JS error, console
+  error/warning, or a zoombox that doesn't populate. This stands in for
+  AnkiMobile's WebKit-based webview. It's `capture_screenshots.js --engine
+  webkit --check` under the hood - not a separate script - so any engine
+  (`--engine chromium|firefox|webkit`) can run the same check. Requires the
+  Playwright WebKit browser: run `npx playwright install webkit` once
+  (Playwright does not fetch browsers automatically on `npm install`).
 - For live inspection in Anki, launch Anki with `QTWEBENGINE_REMOTE_DEBUGGING=9292` and connect to `localhost:9292` via CDP.
   - A human must be in the loop: they need to import the rebuilt CrowdAnki deck into Anki (`make` does not update a running Anki), navigate to the relevant cards, and switch between fronts/backs as needed.
   - CDP gives access to the real Qt WebEngine renderer, so it can catch issues that headless Chromium/WebKit can not.
 - Tradeoffs:
   - Screenshots are fast, scriptable, deterministic, and good for regression checks and docs, but they render in headless Chromium rather than Anki's real runtime.
-  - `webkit-check` closes most of the WebKit-vs-Chromium gap (it caught, and current templates pass: no external `<script src>` races and no `<use>` shadow-tree CSS quirks, since the composed map SVGs are inlined as plain `<g>`/`<circle>` elements rather than `<use>` references). It still runs desktop WebKit, not iOS WebKit/AnkiMobile itself, so it can't catch iOS-only issues (viewport quirks, touch events, AnkiMobile's own JS bridge).
+  - `--engine webkit --check` closes most of the WebKit-vs-Chromium gap (it caught, and current templates pass: no external `<script src>` races and no `<use>` shadow-tree CSS quirks, since the composed map SVGs are inlined as plain `<g>`/`<circle>` elements rather than `<use>` references - see `build_note_templates.py`). It still runs desktop WebKit, not iOS WebKit/AnkiMobile itself, so it can't catch iOS-only issues (viewport quirks, touch events, AnkiMobile's own JS bridge).
   - CDP in Anki (or a real AnkiMobile device) is the source of truth for actual behaviour, but requires human involvement for import/navigation, is slower, and is harder to repeat deterministically.
 
 ## Screenshots
 
-Two supported ways to get screenshots, both via Playwright's bundled Chromium
-(run `npx playwright install chromium` once, if you haven't already):
+All via Playwright (run `npx playwright install chromium webkit` once, if you
+haven't already):
 
-1. **Agents via MCP (preferred).** `.deepcode/settings.json` registers
-   `utils/uk_geog/screenshot_mcp.js` as an MCP server. It launches a warm
-   Chromium instance at startup and exposes a `render_screenshot` tool. Each
-   call reads the latest `deck.json` from disk, so screenshots always
-   reflect the current build. Rendered PNGs are written to
-   `build/screenshots/mcp/` (e.g. `build/screenshots/mcp/city-map-front.png`)
-   and the saved path is returned in the tool result. Pass an optional
-   `filename` argument to `render_screenshot` to choose the saved PNG name.
-   Use `/mcp` to verify the server is connected.
-2. **Manual snapshot.** `node utils/uk_geog/capture_screenshots.js ...` launches
-   a fresh Chromium instance, captures the requested cards, and exits. This is
-   what `make screenshots` uses.
+- **Take a screenshot of an Anki card** - `node utils/uk_geog/capture_screenshots.js [options]`.
+  This is the only entrypoint for card screenshots; use it whether or not
+  an MCP session is connected. Key options: `--dark`, `--only LIST`,
+  `--sample TEMPLATE:FIELD=VALUE`, `--concurrency N`, `--stitch PATH`,
+  `--engine chromium|firefox|webkit` (default: chromium), `--check` (assert
+  every render is free of JS/console errors and that zoomboxes populate -
+  see Testing above). Run with `--help` for the full list. `make
+  screenshots` is a shortcut that runs it with a fixed set of options for
+  the dark-mode example grid.
+- **Screenshot an arbitrary page** (not an Anki card) - `node utils/uk_geog/render_screenshot.js --url URL --out PATH`,
+  repeatable for multiple pages in one call. Works with any `file://` or
+  `http(s)://` URL. Also takes `--engine chromium|firefox|webkit`.
+- **`browser_mcp.js`** (registered in `.mcp.json`) needs no direct
+  interaction - it exposes no tools. If connected (check with `/mcp`), it's
+  just keeping a browser process warm in the background (chromium, by
+  default) so the two commands above skip the launch cost; screenshots are
+  always taken by running them directly, exactly the same either way.

@@ -1,0 +1,56 @@
+name: Release
+
+# Builds the deck with `make` and attaches the CrowdAnki export to the
+# GitHub release for the pushed tag (creating the release if it doesn't
+# already exist). Also runnable manually to sanity-check the build.
+#
+# Note: this ships the CrowdAnki export (deck.json + media), not a .apkg.
+# Converting that to a .apkg is a separate piece of work (see the "generate
+# apkg from crowdanki" TODO) and isn't done in CI yet.
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - run: npm ci --omit=dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pipenv"
+
+      - run: pip install pipenv
+
+      - run: pipenv install --deploy
+
+      - run: make
+
+      - name: Package CrowdAnki export
+        id: package
+        run: |
+          deck_dir="build/United Kingdom Geography - Regions Counties and Cities"
+          zip_name="United.Kingdom.Geography.-.Regions.Counties.and.Cities.crowdanki.zip"
+          (cd build && zip -r "../$zip_name" "$(basename "$deck_dir")")
+          echo "zip_name=$zip_name" >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ steps.package.outputs.zip_name }}
+          fail_on_unmatched_files: true

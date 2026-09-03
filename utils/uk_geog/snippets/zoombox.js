@@ -1,10 +1,4 @@
 function setupZoombox(options) {
-  var zoomNames = options.zoomNames;
-  var current = options.current;
-  if (zoomNames.indexOf(current) === -1) {
-    return null;
-  }
-
   var targetEl = document.getElementById(options.targetId);
   var zoombox = document.getElementById("zoombox");
   var mapSvg = document.getElementById(options.mapId);
@@ -14,6 +8,28 @@ function setupZoombox(options) {
 
   var bbox = targetEl.getBBox();
   var zsize = options.zsize || 40;
+
+  if (options.zoomNames) {
+    // Explicit allowlist: for features that are all the same size (e.g. city
+    // markers) but need zooming to tell apart specific pairs that sit almost
+    // on top of each other, rather than because any single one is too small
+    // to see.
+    if (options.zoomNames.indexOf(options.current) === -1) {
+      return null;
+    }
+  } else {
+    // Otherwise zoom automatically for any feature small enough that its
+    // bounding box comfortably fits inside the zoom window. Bounding-box
+    // area (rather than width or height alone) catches both compact tiny
+    // features (e.g. City of London) and long, thin ones (e.g. a narrow
+    // strait) that are hard to see despite spanning a large width or height.
+    // Bigger features are already legible on the main map and would just
+    // get cropped by the zoom window.
+    var bboxArea = bbox.width * bbox.height;
+    if (bboxArea > 0.35 * zsize * zsize) {
+      return null;
+    }
+  }
 
   zoombox.style.display = "block";
 

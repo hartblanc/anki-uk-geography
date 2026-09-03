@@ -9,7 +9,7 @@
   }
 </style>
 
-<div id="svg-counties">@[build/maps/counties.min.svg]</div>
+<div id="svg-counties"><img src="build/maps/counties.min.svg"></div>
 
 <div id="fitcontent">
   <header>
@@ -22,12 +22,12 @@
     <div class="center">{{MacroLocation}}</div>
   </header>
   <div class="center">
-    @[build/maps/regions.min.svg]
+    <img src="build/maps/regions.min.svg">
     <svg id="zoombox" viewBox="0 0 800 1159"></svg>
   </div>
 </div>
+<script src="utils/uk_geog/snippets/zoombox.js"></script>
 <script>
-  @[utils/uk_geog/snippets/zoombox.js]
   (function () {
     var countyEl = document.getElementById("county-{{County}}");
     var regionsSvg = document.getElementById("regions_map");
@@ -45,7 +45,5 @@
   setupZoombox({
     mapId: "regions_map",
     targetId: "selected-county",
-    current: "{{County}}",
-    zoomNames: ["City of London"],
   });
 </script>

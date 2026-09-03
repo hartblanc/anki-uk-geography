@@ -16,10 +16,10 @@ The deck will help you to learn:
 - [12 top level regions](https://en.wikipedia.org/wiki/International_Territorial_Level) (e.g. Scotland, East of England...)
 - [32 Scottish Council Areas](https://en.wikipedia.org/wiki/Subdivisions_of_Scotland) and 64 Ceremonial Counties for [England](https://en.wikipedia.org/wiki/Ceremonial_counties_of_England), [Wales](https://en.wikipedia.org/wiki/Preserved_counties_of_Wales), and [Northern Ireland](https://en.wikipedia.org/wiki/Counties_of_Northern_Ireland)
 - [76 Official Cities](https://en.wikipedia.org/wiki/List_of_cities_in_the_United_Kingdom)
-- 19 assorted seas, channels, estuaries, straits and oceans
+- 20 assorted seas, channels, estuaries, straits and oceans
 
 **Deck Features**
-- The deck is light-weight (<1MB, despite containing hundreds of unique images)
+- The deck is light-weight (<5MB, despite containing hundreds of unique images)
 - All images are Scalable Vector Graphics and therefore scale gracefully to any screen size without distortion (tested on AnkiMobile and MacOS desktop app)
 - A map with relevant areas highlighted is provided for every location
 

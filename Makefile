@@ -1,11 +1,3 @@
-# TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
-# TODO: consider including poole bay (once have zoombox)
-# TODO: generate apkg from crowdanki
-# TODO: add github action for running make, generating release
-# TODO: think about simplifying playwright screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the playwright renderer, agent should just start browser and set env var on startup.
-# TODO: consider using <img> tags and <script> tags instead of @[] syntax so that the cards are valid html
-# TODO: consider deduplicating deck description
-# TODO: update size claim to <5MB
 # TODO: make new deck for motorways
 
 SHELL:=/bin/bash
@@ -26,7 +18,7 @@ SIMPLIFY_INTERVAL := 250m
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
 .PHONY: all screenshots webkit-check FORCE
-all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
@@ -43,7 +35,7 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 # the Playwright WebKit browser: `npx playwright install webkit` (Playwright
 # does not fetch browsers automatically on `npm install`).
 webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
-	node utils/uk_geog/webkit_check.js
+	node utils/uk_geog/capture_screenshots.js --engine webkit --check
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
@@ -152,7 +144,7 @@ build/maps/raw/seavox.geojson:
 		--data-urlencode 'request=GetFeature' \
 		--data-urlencode 'typeName=MarineRegions:seavox_v19' \
 		--data-urlencode 'outputFormat=application/json' \
-		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
+		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24202,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
 		-o $@
 
 build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
@@ -237,7 +229,7 @@ build/maps/bow.topojson build/bow.csv: build/maps/base_27700/seavox.topojson bui
 		-dissolve + name=l4 target=seavox mrgid_l4 \
 		-filter target=l2 '"23637,".indexOf(mrgid_l2) > -1' \
 		-filter target=l3 '"23647,23649,23728,23729,23731".indexOf(mrgid_l3) > -1' \
-		-filter target=seavox '"24188,24192,24193,24195,24210,24218".indexOf(mrgid_sr) > -1' \
+		-filter target=seavox '"24188,24192,24193,24195,24202,24210,24218".indexOf(mrgid_sr) > -1' \
 		-filter target=l4 '"23735,23737,23738,23739,23740,23741,23742".indexOf(mrgid_l4) > -1' \
 		-each 'mrgid=Number(mrgid_sr)' target=seavox \
 		-each 'mrgid=Number(mrgid_l2)' target=l2 \
@@ -409,10 +401,10 @@ build/resolved_templates/City\ -\ County.html: build/maps/cities.min.svg utils/u
 build/resolved_templates/County\ -\ Region.html: build/maps/counties.min.svg build/maps/regions.min.svg utils/uk_geog/templates/County\ -\ Region.front.html utils/uk_geog/templates/County\ -\ Region.back.html utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,County - Region)
 
-build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Bow\ -\ Map.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Bow\ -\ Map.front.html utils/uk_geog/templates/Bow\ -\ Map.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Bow - Map)
 
-build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/build_note_templates.py
+build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg utils/uk_geog/templates/Map\ -\ BoW.front.html utils/uk_geog/templates/Map\ -\ BoW.back.html utils/uk_geog/snippets/move_to_front.js utils/uk_geog/snippets/zoombox.js utils/uk_geog/build_note_templates.py
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv src/data/city.csv src/data/uk_geog.csv
@@ -446,6 +438,20 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/Map\ -\ BoW.html
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
+
+# ==============================================================================
+# 5. DISTRIBUTABLE .APKG
+# ==============================================================================
+
+# CrowdAnki has no CLI of its own for this (it's an Anki add-on, driven from
+# Anki's GUI), so utils/uk_geog/build_apkg.py converts the CrowdAnki export
+# directly into a .apkg using genanki, without needing Anki installed.
+build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg: \
+	build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json \
+	utils/uk_geog/build_apkg.py
+	pipenv run python utils/uk_geog/build_apkg.py \
+		"build/United Kingdom Geography - Regions Counties and Cities" \
+		"$@"
 
 clean:
 	find build -mindepth 1 -not -path "build/maps/raw" -not -path "build/maps/raw/*" -delete

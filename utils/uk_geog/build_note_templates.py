@@ -1,72 +1,56 @@
 """
-A barebones CLI for substituting file contents into CrowdAnki Note Template.
-The external file reference syntax is @[path/to/file]. Where the path is
-relative to the path that the script is run from (advised to be project root).
+A barebones CLI for inlining file references into CrowdAnki note templates.
+
+Templates reference external files with plain, valid-HTML placeholder tags
+so the source templates stay parseable as HTML on their own:
+  - an empty <img src="path/to/file"> is replaced with the referenced
+    file's contents (e.g. a full <svg>...</svg> element).
+  - an empty <script src="path/to/file"></script> is replaced with a
+    <script> tag containing the referenced file's contents.
+<script> tags that already have a body (i.e. have no src attribute) are
+left untouched, so hand-written inline JS can sit alongside an inlined
+snippet. Paths are relative to the directory the script is run from
+(advised to be project root).
 """
 
 import argparse
 import re
 import textwrap
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+IMG_PATTERN = re.compile(r'([\t ]*)<img src="([^"]+)">')
+SCRIPT_SRC_PATTERN = re.compile(r'([\t ]*)<script src="([^"]+)"></script>')
 
-@dataclass
-class Template:
-    filepath: Path
-    contents: str
-    placeholders: dict[str, set[str]]
 
-    FILE_REF_PATTERN = re.compile(r"([\t ]*)@\[(.*)\]")
+def find_file_references(contents: str) -> set[str]:
+    return {path for _, path in IMG_PATTERN.findall(contents)} | {
+        path for _, path in SCRIPT_SRC_PATTERN.findall(contents)
+    }
 
-    @classmethod
-    def from_path(cls, path: Path) -> "Template":
-        with path.open(mode="r") as template_file:
-            template = Template(
-                filepath=path,
-                contents=template_file.read(),
-                placeholders=dict(),
-            )
 
-        file_ref_placeholders = cls.FILE_REF_PATTERN.findall(template.contents)
+def inline_file_references(contents: str, file_contents: dict[str, str]) -> str:
+    def replace_img(match: re.Match) -> str:
+        whitespace, path = match.groups()
+        return textwrap.indent(file_contents[path], whitespace)
 
-        for whitespace, file_ref in file_ref_placeholders:
-            if file_ref not in template.placeholders:
-                template.placeholders[file_ref] = {whitespace}
-            else:
-                template.placeholders[file_ref].add(whitespace)
+    def replace_script(match: re.Match) -> str:
+        whitespace, path = match.groups()
+        return (
+            f"{whitespace}<script>\n"
+            f"{textwrap.indent(file_contents[path], whitespace)}\n"
+            f"{whitespace}</script>"
+        )
 
-        return template
-
-    def replace_placeholders(self, placeholder_values: dict[str, str]) -> str:
-        """
-        replace_placeholders replaces the placeholders in a template's contents
-        with the values provided in placeholder_values.
-
-        placeholder_values is dict of placeholder names to placeholder values.
-        """
-
-        resolved_contents = self.contents
-        for placeholder in self.placeholders:
-            # Placeholders with more leading whitespace are replaced first.
-            # This is because placeholders with less whitespace are substrings of
-            # those with more whitespace. If the template has mixed tabs and spaces
-            # there are no guarantees on expected behaviour.
-            for whitespace in sorted(self.placeholders[placeholder], reverse=True):
-                indented_value = textwrap.indent(placeholder_values[placeholder], whitespace)
-                resolved_contents = resolved_contents.replace(
-                    f"{whitespace}@[{placeholder}]", indented_value
-                )
-
-        return resolved_contents
+    contents = IMG_PATTERN.sub(replace_img, contents)
+    contents = SCRIPT_SRC_PATTERN.sub(replace_script, contents)
+    return contents
 
 
 def read_file_references(file_references: Iterable[str]) -> dict[str, str]:
     file_ref_values = dict()
     for file_ref in file_references:
-        file_ref_path = Path(file_ref)
-        with file_ref_path.open(mode="r") as referenced_file:
+        with Path(file_ref).open(mode="r") as referenced_file:
             file_ref_values[file_ref] = referenced_file.read()
 
     return file_ref_values
@@ -75,17 +59,17 @@ def read_file_references(file_references: Iterable[str]) -> dict[str, str]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "A barebones CLI for substituting file contents into "
-            "CrowdAnki Note Template. The external file reference syntax is "
-            "@[path/to/file]. Where the path is relative to current directory "
-            "(i.e. the directory that the python script is run from)."
+            'Inlines <img src="..."> and empty <script src="..."></script> '
+            "placeholder tags in CrowdAnki note templates with the contents "
+            "of the referenced file, so map/script changes ship as part of "
+            "the note type instead of relying on Anki media sync."
         )
     )
     parser.add_argument(
         "templates",
         type=Path,
         nargs="+",
-        help="The paths to the template files which contain external file references.",
+        help="The paths to the template files which contain file references.",
     )
     parser.add_argument(
         "-o",
@@ -99,17 +83,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    templates = [Template.from_path(t_path) for t_path in args.templates]
+    template_contents = {t_path: t_path.read_text() for t_path in args.templates}
 
     file_references: set[str] = set()
-    for template in templates:
-        file_references |= template.placeholders.keys()
+    for contents in template_contents.values():
+        file_references |= find_file_references(contents)
 
     file_ref_values = read_file_references(file_references)
 
-    for template in templates:
-        resolved_contents = template.replace_placeholders(file_ref_values)
-        suffix = template.filepath.suffixes[-1]
-        out_path = args.out_directory / template.filepath.with_suffix("").with_suffix(suffix).name
-        with out_path.open(mode="w") as out_file:
-            out_file.write(resolved_contents)
+    for t_path, contents in template_contents.items():
+        resolved_contents = inline_file_references(contents, file_ref_values)
+        suffix = t_path.suffixes[-1]
+        out_path = args.out_directory / t_path.with_suffix("").with_suffix(suffix).name
+        out_path.write_text(resolved_contents)

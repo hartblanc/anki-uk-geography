@@ -13,10 +13,19 @@
     <div class="type">Location on the map</div>
   </header>
   <div class="center">
-    @[build/maps/bodies_of_water.min.svg]
+    <img src="build/maps/bodies_of_water.min.svg">
+    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+    <script src="utils/uk_geog/snippets/zoombox.js"></script>
+    <script>
+      setupZoombox({
+        mapId: "map",
+        targetId: "bow-{{BoW}}",
+        zsize: 100,
+      });
+    </script>
   </div>
 </div>
+<script src="utils/uk_geog/snippets/move_to_front.js"></script>
 <script>
-  @[utils/uk_geog/snippets/move_to_front.js]
   moveToFront("bow-{{BoW}}");
 </script>
