@@ -1,6 +1,5 @@
 # TODO: consider extending zoombox to other small features (e.g. counties, bodies of water)
 # TODO: consider including poole bay (once have zoombox)
-# TODO: test rendering in webkit browser for ankimobile
 # TODO: generate apkg from crowdanki
 # TODO: add github action for running make, generating release
 # TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
@@ -26,7 +25,7 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all screenshots FORCE
+.PHONY: all screenshots webkit-check FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -37,6 +36,14 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 		--sample "City - County:City=Gloucester" \
 		--sample "BoW - Map:BoW=Bristol Channel" \
 		--stitch build/screenshots/dark-mode-grid.png
+
+# Renders every note template (front/back, light/dark) in Playwright's real
+# WebKit engine, standing in for AnkiMobile's WebKit-based webview, and fails
+# if any render throws a JS error or the zoombox fails to populate. Requires
+# the Playwright WebKit browser (fetched by `npm install`, or manually via
+# `npx playwright install webkit`).
+webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+	node utils/uk_geog/webkit_check.js
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
