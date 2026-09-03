@@ -1,5 +1,4 @@
 # TODO: test rendering in webkit browser for ankimobile
-# TODO: generate apkg from crowdanki
 # TODO: think about simplifying puppeteer screenshot thing so that it just renders a file at a given location, env var connects to existing browser instance, decouple the thing that generates the HTML from the puppeteer renderer, agent should just start browser and set env var on startup.
 # TODO: make new deck for motorways
 
@@ -21,7 +20,7 @@ SIMPLIFY_INTERVAL := 250m
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
 .PHONY: all screenshots FORCE
-all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
@@ -433,6 +432,20 @@ build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json: \
 	build/resolved_templates/Map\ -\ BoW.html
 	mkdir -p build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/media
 	pipenv run brainbrew run recipes/UK_Geog/source_to_crowdanki.yaml
+
+# ==============================================================================
+# 5. DISTRIBUTABLE .APKG
+# ==============================================================================
+
+# CrowdAnki has no CLI of its own for this (it's an Anki add-on, driven from
+# Anki's GUI), so utils/uk_geog/build_apkg.py converts the CrowdAnki export
+# directly into a .apkg using genanki, without needing Anki installed.
+build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg: \
+	build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json \
+	utils/uk_geog/build_apkg.py
+	pipenv run python utils/uk_geog/build_apkg.py \
+		"build/United Kingdom Geography - Regions Counties and Cities" \
+		"$@"
 
 clean:
 	find build -mindepth 1 -not -path "build/maps/raw" -not -path "build/maps/raw/*" -delete
