@@ -21,6 +21,18 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/utils/uk_geog/hooks/touch_browser.js\"",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

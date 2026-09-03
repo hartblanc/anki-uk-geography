@@ -68,17 +68,24 @@ self-launched one is closed when done.
 
 ### Automatic browser lifecycle (Claude Code hooks)
 
-`.claude/settings.json` registers two hooks so an agent session gets a warm
-browser for free, scoped to just that session:
+`.claude/settings.json` registers three hooks so an agent session gets a
+warm browser for free, scoped to just that session, and it lives for the
+session's actual lifetime rather than being reaped during a quiet stretch:
 
 - **SessionStart** runs `utils/uk_geog/hooks/session_start.js`, which checks
   whether a hook-managed browser is already running (via the connection
   file) and, if not, launches one detached with `start_browser.js --managed`
   on a freshly-allocated free port. Idempotent, so it's cheap to run on
   every SessionStart reason (startup, resume, clear, compact) - an already
-  live browser is just reused.
+  live browser is just reused (and its idle timer touched).
 - **SessionEnd** runs `utils/uk_geog/hooks/session_end.js`, which reads the
   connection file, sends the browser process SIGTERM, and removes the file.
+- **UserPromptSubmit** runs `utils/uk_geog/hooks/touch_browser.js`
+  (`"async": true`, so it never adds latency to sending a message), which
+  touches the connection file's mtime on every user message. Screenshot
+  calls also touch it on reuse, but messages are far more frequent, so this
+  is what actually keeps the browser alive for as long as the conversation
+  is being used, independent of how often screenshots happen.
 
 The connection file lives outside the repo (under the OS temp dir, keyed by
 a hash of this repo's root) so `make` targets that clear `build/` can't pull
@@ -86,4 +93,6 @@ it out from under a running browser, and so each worktree/checkout gets its
 own file and never shares a browser with a session running elsewhere.
 SessionEnd is documented by Claude Code as best-effort (short timeout, not
 guaranteed to fire on every exit path), so `start_browser.js --managed`'s
-own 30-minute idle self-timeout is the backstop if it doesn't run.
+own idle self-timeout (default 4h, reset by the heartbeat above) is a
+backstop for a session that crashes or is killed outright, not the primary
+cleanup mechanism.

@@ -11,7 +11,10 @@
  * With --managed, this writes that connection file (path is deterministic -
  * see browser_connection.js's connectionFilePath(), keyed by this repo's
  * root) and self-terminates after --idle-timeout ms of no callers touching
- * its mtime (default 30 min) - a backstop in case the SessionEnd hook never
+ * its mtime (default 4h). Screenshot calls touch it on reuse, and
+ * hooks/touch_browser.js (a UserPromptSubmit hook) touches it on every user
+ * message, so this is a long-stretch-of-total-silence backstop, not the
+ * primary lifetime signal - it's there in case the SessionEnd hook never
  * fires (documented as best-effort, not guaranteed, by Claude Code).
  *
  * Without --managed, this is just a standalone "start a browser and print
@@ -33,7 +36,7 @@ const {
   removeConnectionFile,
 } = require("./browser_connection.js");
 
-const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+const DEFAULT_IDLE_TIMEOUT_MS = 4 * 60 * 60 * 1000;
 const IDLE_CHECK_INTERVAL_MS = 60 * 1000;
 
 const USAGE = `Usage: start_browser.js [--port PORT] [--managed] [--idle-timeout MS]
