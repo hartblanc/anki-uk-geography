@@ -31,9 +31,8 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 
 # Renders every note template (front/back, light/dark) in Playwright's real
 # WebKit engine, standing in for AnkiMobile's WebKit-based webview, and fails
-# if any render throws a JS error or the zoombox fails to populate. Requires
-# the Playwright WebKit browser: `npx playwright install webkit` (Playwright
-# does not fetch browsers automatically on `npm install`).
+# if any render throws a JS error or the zoombox fails to populate. `npm
+# install` fetches the Playwright WebKit browser automatically.
 webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js --engine webkit --check
 

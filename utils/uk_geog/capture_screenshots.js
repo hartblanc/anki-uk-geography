@@ -49,9 +49,8 @@ try {
 } catch (err) {
   if (err.code === "MODULE_NOT_FOUND") {
     console.error(
-      "Playwright is required for screenshots. Run `npm install` first so " +
-        "its bundled browsers are available (then `npx playwright install " +
-        "<engine>` once, since Playwright doesn't fetch browsers automatically)."
+      "Playwright is required for screenshots. Run `npm install` first - " +
+        "its postinstall script fetches the browsers too."
     );
     process.exit(1);
   }

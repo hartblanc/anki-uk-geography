@@ -14,9 +14,9 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
   error/warning, or a zoombox that doesn't populate. This stands in for
   AnkiMobile's WebKit-based webview. It's `capture_screenshots.js --engine
   webkit --check` under the hood - not a separate script - so any engine
-  (`--engine chromium|firefox|webkit`) can run the same check. Requires the
-  Playwright WebKit browser: run `npx playwright install webkit` once
-  (Playwright does not fetch browsers automatically on `npm install`).
+  (`--engine chromium|firefox|webkit`) can run the same check. `npm install`
+  fetches the Playwright WebKit browser automatically (see `postinstall` in
+  `package.json`).
 - For live inspection in Anki, launch Anki with `QTWEBENGINE_REMOTE_DEBUGGING=9292` and connect to `localhost:9292` via CDP.
   - A human must be in the loop: they need to import the rebuilt CrowdAnki deck into Anki (`make` does not update a running Anki), navigate to the relevant cards, and switch between fronts/backs as needed.
   - CDP gives access to the real Qt WebEngine renderer, so it can catch issues that headless Chromium/WebKit can not.
@@ -27,8 +27,7 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 
 ## Screenshots
 
-All via Playwright (run `npx playwright install chromium webkit` once, if you
-haven't already):
+All via Playwright (`npm install` fetches its Chromium/WebKit browsers automatically):
 
 - **Take a screenshot of an Anki card** - `node utils/uk_geog/capture_screenshots.js [options]`.
   This is the only entrypoint for card screenshots; use it whether or not

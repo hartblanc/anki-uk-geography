@@ -4,7 +4,8 @@
   "description": "Anki deck for UK geography",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "playwright install chromium webkit"
   },
   "dependencies": {
     "mapshaper": "^0.7",
