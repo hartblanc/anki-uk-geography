@@ -4,10 +4,7 @@
  * Puppeteer browser lifecycle, decoupled from anything that renders with it.
  *
  * Resolution order for `getBrowser()`:
- *   1. PUPPETEER_BROWSER_URL env var, if set - an explicit override (e.g. for
- *      CI, or a developer pointing at a debug browser started by hand with
- *      start_browser.js). Never closed by the caller.
- *   2. A connection file written by browser_mcp.js (see there), which
+ *   1. A connection file written by browser_mcp.js (see there), which
  *      launches its own browser at startup and exposes it this way so
  *      one-off callers (capture_screenshots.js, render_screenshot.js) can
  *      discover and reuse it instead of launching their own. Reused only if
@@ -24,7 +21,7 @@
  *      lifecycle, tied to its own process (spawned and reaped by the MCP
  *      host, e.g. Claude Code, so that's real process-lifecycle cleanup,
  *      not a heuristic).
- *   3. Otherwise, launch a throwaway headless Chromium that the caller should
+ *   2. Otherwise, launch a throwaway headless Chromium that the caller should
  *      close when done (`shouldClose: true`) - this is what one-off CLI
  *      invocations fall back to when no MCP-managed browser is running
  *      (e.g. running `make screenshots` outside of an MCP-connected agent).
@@ -132,12 +129,6 @@ async function getManagedBrowserURL() {
 }
 
 async function getBrowser({ headless = true, args = LAUNCH_ARGS } = {}) {
-  const envURL = process.env.PUPPETEER_BROWSER_URL;
-  if (envURL) {
-    const browser = await puppeteer.connect({ browserURL: envURL });
-    return { browser, shouldClose: false };
-  }
-
   const managedURL = await getManagedBrowserURL();
   if (managedURL) {
     const browser = await puppeteer.connect({ browserURL: managedURL });

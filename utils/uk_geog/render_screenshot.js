@@ -5,11 +5,11 @@
  * Thin, decoupled screenshot renderer: given a URL (file:// or http(s)://)
  * and an output path, renders it to a PNG. It knows nothing about Anki cards,
  * decks, or templates - anything that produces HTML worth screenshotting
- * (screenshot_common.js, or anything else) just needs to hand this a URL.
+ * (card_html.js, or anything else) just needs to hand this a URL.
  *
- * Connects to an existing browser via PUPPETEER_BROWSER_URL when set (see
- * browser_connection.js / start_browser.js); otherwise launches and closes
- * its own throwaway browser for the one render.
+ * Connects to the browser browser_mcp.js has running for this repo, if any
+ * (see browser_connection.js); otherwise launches and closes its own
+ * throwaway browser for the one render.
  *
  * Also exports PagePool/runWithPool, a small pool of puppeteer pages for
  * spreading many renders across a handful of open tabs - used by
@@ -96,9 +96,9 @@ async function runWithPool(pool, items, task) {
 
 const USAGE = `Usage: render_screenshot.js --url URL --out PATH [options]
 
-Renders a file:// or http(s):// URL to a PNG. Connects to an existing browser
-via the PUPPETEER_BROWSER_URL env var (see start_browser.js) if set, otherwise
-launches and closes its own headless Chromium.
+Renders a file:// or http(s):// URL to a PNG. Connects to the browser
+browser_mcp.js has running for this repo, if any, otherwise launches and
+closes its own headless Chromium.
 
 Options:
   --url URL           Page to render (file:// or http(s)://); required

@@ -34,7 +34,7 @@ regardless of whether it is.
 
 The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
 
-- `screenshot_common.js` - card HTML generation only (reads `deck.json`,
+- `card_html.js` - card HTML generation only (reads `deck.json`,
   renders a note template, wraps it in Anki's HTML shell). No puppeteer
   dependency.
 - `render_screenshot.js` - a thin puppeteer renderer: given a `file://` or
@@ -42,27 +42,22 @@ The screenshot pipeline is split into decoupled pieces (`utils/uk_geog/`):
   nothing about decks or cards, so it's runnable standalone
   (`node utils/uk_geog/render_screenshot.js --url URL --out PATH`) against
   any page, not just Anki cards.
-- `browser_connection.js` - gets a puppeteer browser, in order: (1) the
-  `PUPPETEER_BROWSER_URL` env var if set (a CDP HTTP endpoint) - an explicit
-  override for manual/CI use; (2) the browser `browser_mcp.js` is running,
-  discovered via a connection file (see below); (3) otherwise, launch and
-  later close its own throwaway browser.
-- `start_browser.js` - a standalone "launch a browser, print
-  `PUPPETEER_BROWSER_URL=...`, run until Ctrl+C" tool for manual/CI use with
-  (1) above, independent of MCP.
+- `browser_connection.js` - gets a puppeteer browser: (1) the browser
+  `browser_mcp.js` is running, discovered via a connection file (see below);
+  (2) otherwise, launch and later close its own throwaway browser.
 
 `capture_screenshots.js` is the orchestrator built on top of these: it
-generates card HTML via `screenshot_common.js`, then hands the resulting
-`file://` URL to `render_screenshot.js` to screenshot. It never closes a
-browser it doesn't own - an MCP-managed or `PUPPETEER_BROWSER_URL` browser
-is left running for other callers; a self-launched one is closed when done.
+generates card HTML via `card_html.js`, then hands the resulting `file://`
+URL to `render_screenshot.js` to screenshot. It never closes a browser it
+doesn't own - an MCP-managed browser is left running for other callers; a
+self-launched one is closed when done.
 
 `browser_mcp.js` deliberately does none of this rendering work itself -
-it doesn't import `screenshot_common.js` or `render_screenshot.js` at all.
-Its only responsibility is the browser's lifetime (see below); the tools it
-would otherwise expose over MCP don't exist, so
-`capture_screenshots.js` stays the single entrypoint that actually takes a
-screenshot, whether or not an MCP session is connected.
+it doesn't import `card_html.js` or `render_screenshot.js` at all. Its only
+responsibility is the browser's lifetime (see below); the tools it would
+otherwise expose over MCP don't exist, so `capture_screenshots.js` stays
+the single entrypoint that actually takes a screenshot, whether or not an
+MCP session is connected.
 
 ### Automatic browser lifecycle (MCP)
 

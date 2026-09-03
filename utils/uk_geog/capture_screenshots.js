@@ -7,9 +7,9 @@
  * Reads the built CrowdAnki deck, renders each note template with a real note's
  * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
  * with Puppeteer's headless Chromium. Launches and closes its own browser
- * unless PUPPETEER_BROWSER_URL points at an already-running one (see
- * browser_connection.js / start_browser.js), in which case it reuses that
- * instead - handy for long-lived agent sessions making repeated calls.
+ * unless browser_mcp.js has one running for this repo (see
+ * browser_connection.js), in which case it reuses that instead - handy for
+ * long-lived agent sessions making repeated calls.
  *
  * Examples:
  *   # All card types, light mode
@@ -55,7 +55,7 @@ const {
   writeCardHtml,
   cardPngPath,
   expandRenderRequests,
-} = require("./screenshot_common.js");
+} = require("./card_html.js");
 const { getBrowser } = require("./browser_connection.js");
 const { renderToFile, PagePool, runWithPool } = require("./render_screenshot.js");
 

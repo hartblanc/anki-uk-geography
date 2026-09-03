@@ -5,7 +5,7 @@
  * MCP server that manages a shared Puppeteer browser's lifetime for this
  * repo's screenshot tooling - nothing else. It exposes no tools: the only
  * entrypoint for actually taking a screenshot is capture_screenshots.js
- * (built on render_screenshot.js / screenshot_common.js), whether or not
+ * (built on render_screenshot.js / card_html.js), whether or not
  * this server is running.
  *
  * On startup this launches a headless Chromium and writes a connection file
