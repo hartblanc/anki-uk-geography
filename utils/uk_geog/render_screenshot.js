@@ -102,23 +102,28 @@ async function runWithPool(pool, items, task) {
 }
 
 /**
- * Renders many screenshots against a pool of `concurrency` pages, spread
- * across whichever browser getBrowser() hands back (a shared MCP-managed
- * one, or a throwaway one launched just for this call - see
+ * Renders many screenshots against a pool of up to `concurrency` pages,
+ * spread across whichever browser getBrowser() hands back (a shared
+ * MCP-managed one, or a throwaway one launched just for this call - see
  * browser_connection.js for how that's decided and why every caller always
- * creates its own pages either way). For each item, calls `task(page, item,
- * index)` - `index` is this item's position in `items`, stable and unique
- * across the whole batch regardless of concurrency, for a caller that needs
- * a per-item scratch key (e.g. capture_screenshots.js's scratch HTML
- * files). The caller decides what "rendering an item" means (e.g.
- * generating HTML first) and is expected to call renderToFile itself.
- * `browser.close()` is safe to call unconditionally here regardless of
- * whether the browser was shared or freshly launched - see
- * browser_connection.js's module doc for why. The caller never sees the
- * browser, a page pool, or browser_connection.js at all.
+ * creates its own pages either way). Only `min(concurrency, items.length)`
+ * pages are actually created - each `newPage()` has a real, measurable cost
+ * (e.g. ~200ms for WebKit even against an already-running server), so a
+ * single-item call doesn't pay for tabs it will never touch. For each item,
+ * calls `task(page, item, index)` - `index` is this item's position in
+ * `items`, stable and unique across the whole batch regardless of
+ * concurrency, for a caller that needs a per-item scratch key (e.g.
+ * capture_screenshots.js's scratch HTML files). The caller decides what
+ * "rendering an item" means (e.g. generating HTML first) and is expected to
+ * call renderToFile itself. `browser.close()` is safe to call
+ * unconditionally here regardless of whether the browser was shared or
+ * freshly launched - see browser_connection.js's module doc for why. The
+ * caller never sees the browser, a page pool, or browser_connection.js at
+ * all.
  */
 async function renderMany(items, task, { concurrency = 4, engine = DEFAULT_ENGINE } = {}) {
-  const { browser, pages } = await getBrowser({ engine, tabs: concurrency });
+  const tabs = Math.max(1, Math.min(concurrency, items.length));
+  const { browser, pages } = await getBrowser({ engine, tabs });
   try {
     const pool = new PagePool(pages);
     return await runWithPool(pool, items, task);
