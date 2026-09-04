@@ -1,5 +1,7 @@
 # TODO: test rendering in webkit browser for ankimobile
 # TODO: make new deck for motorways
+# TODO: explore how we can generate a modern apkg too (i.e. zstd + protobufs). Does ankigen support this? Perhaps we can fork ankigen, and eventually I could consider raising a PR
+# TODO: Test that the generated apkg can actually be imported in anki. My idea for how to achieve this is to spin up a headless anki instance in a container, and import the apkg using anki connect. Open to other ideas too though.
 
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
