@@ -34,7 +34,7 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 # if any render throws a JS error or the zoombox fails to populate. `npm
 # install` fetches the Playwright WebKit browser automatically.
 webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
-	node utils/uk_geog/capture_screenshots.js --engine webkit --check
+	node utils/uk_geog/check_cards.js --engine webkit
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)

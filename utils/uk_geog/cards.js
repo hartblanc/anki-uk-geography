@@ -1,25 +1,29 @@
 "use strict";
 
 /**
- * Card HTML generation for capture_screenshots.js: read deck.json, pick a
- * note, render the template, and wrap it in Anki's HTML shell. Deliberately
- * has no browser automation dependency - turning that HTML into a
- * screenshot is a separate concern handled by render_screenshot.js, which
- * just needs a URL to navigate to.
+ * Deck and card-HTML utilities for Anki's CrowdAnki export format: load a
+ * deck.json, find a note that satisfies a template's required fields,
+ * render a template's `{{Field}}`/`{{#Field}}...{{/Field}}` syntax against
+ * it, and wrap the result in Anki's HTML card shell (front/back,
+ * light/dark). Has no browser automation dependency - the output is a
+ * written HTML file, for something else to open and render.
+ *
+ * `samples` throughout is a list of `"TEMPLATE:FIELD=VALUE"` strings (or
+ * just `"FIELD=VALUE"` when it's already scoped to one template) used to
+ * pick a specific note instead of the first one that satisfies the
+ * template's required fields.
  */
 
 const fs = require("fs");
 const path = require("path");
-const { pathToFileURL } = require("url");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_DECK = path.join(
   REPO_ROOT,
   "build",
   "United Kingdom Geography - Regions Counties and Cities",
-  "deck.json"
+  "deck.json",
 );
-const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
 
 // Fields that must be populated for each template to produce a meaningful card.
 const REQUIRED_FIELDS = {
@@ -39,12 +43,16 @@ function renderTemplate(template, fields) {
   // Sections first ({{#Field}}...{{/Field}}), then simple substitutions.
   let out = template.replace(
     /\{\{#(\w+)\}\}(.*?)\{\{\/\1\}\}/gs,
-    (match, name, inner) => (String(fields[name] || "").trim() ? inner : "")
+    (match, name, inner) => (String(fields[name] || "").trim() ? inner : ""),
   );
   out = out.replace(/\{\{(\w+)\}\}/g, (match, name) => fields[name] ?? "");
   return out;
 }
 
+// Find the first note with every field in `required` populated, optionally
+// narrowed further to one whose fields match `sample` (a {field: value} map
+// - see parseSamples() below). Returns a {fieldName: value} map, or null if
+// no note qualifies.
 function findNote(notes, fieldNames, required, sample) {
   required = required || [];
   for (const note of notes) {
@@ -56,7 +64,7 @@ function findNote(notes, fieldNames, required, sample) {
       sample &&
       Object.keys(sample).some(
         (field) =>
-          String(values[field] || "").trim() !== String(sample[field]).trim()
+          String(values[field] || "").trim() !== String(sample[field]).trim(),
       )
     ) {
       continue;
@@ -66,10 +74,6 @@ function findNote(notes, fieldNames, required, sample) {
     }
   }
   return null;
-}
-
-function slug(name) {
-  return name.toLowerCase().replace(" - ", "-").replace(/ /g, "-");
 }
 
 function wrapHtml(css, body, dark) {
@@ -104,6 +108,7 @@ ${body}
 `;
 }
 
+// Parse "TEMPLATE:FIELD=VALUE" spec strings into {TEMPLATE: {FIELD: VALUE}}.
 function parseSamples(items) {
   const samples = {};
   for (const item of items) {
@@ -116,14 +121,8 @@ function parseSamples(items) {
   return samples;
 }
 
-function ensurePngExtension(name) {
-  return /\.png$/i.test(name) ? name : `${name}.png`;
-}
-
-function defaultPngName(template, side, dark) {
-  return `${slug(template)}-${side}${dark ? "-dark" : ""}.png`;
-}
-
+// Load a CrowdAnki deck.json and flatten its single note model into the
+// shape the rest of this file works with.
 function loadDeck(deckPath) {
   const deck = JSON.parse(fs.readFileSync(deckPath, "utf8"));
   const model = deck.note_models[0];
@@ -134,11 +133,14 @@ function loadDeck(deckPath) {
     fieldNames,
     css: model.css,
     templatesByName: Object.fromEntries(
-      model.tmpls.map((tmpl) => [tmpl.name, tmpl])
+      model.tmpls.map((tmpl) => [tmpl.name, tmpl]),
     ),
   };
 }
 
+// Find a usable note for `template` and render it into wrapped HTML - the
+// non-I/O core of writeCardHtml() below. Throws (with a `.status` of 404)
+// if the template doesn't exist or no note satisfies it.
 function prepareCard({ deckPath, template, side, dark, samples }) {
   const { deck, fieldNames, css, templatesByName } = loadDeck(deckPath);
   const tmpl = templatesByName[String(template || "")];
@@ -150,14 +152,14 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
 
   const required = REQUIRED_FIELDS[tmpl.name] || [];
   const sampleSpecs = (samples || []).map((spec) =>
-    String(spec).includes(":") ? String(spec) : `${tmpl.name}:${spec}`
+    String(spec).includes(":") ? String(spec) : `${tmpl.name}:${spec}`,
   );
   const parsedSamples = parseSamples(sampleSpecs);
   const fields = findNote(
     deck.notes,
     fieldNames,
     required,
-    parsedSamples[tmpl.name]
+    parsedSamples[tmpl.name],
   );
   if (!fields) {
     const err = new Error(`No matching note for template: ${tmpl.name}`);
@@ -170,46 +172,17 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
   const source = actualSide === "back" ? tmpl.afmt : tmpl.qfmt;
   const html = wrapHtml(css, renderTemplate(source, fields), isDark);
 
-  return { tmpl, fields, html, side: actualSide, dark: isDark };
+  return { html };
 }
 
 /**
- * Generate a card's HTML and write it to a scratch file, returning a URL a
- * renderer can navigate to. Pure HTML generation - no browser automation
- * involved, so this can be tested or reused independently of how the
- * resulting page gets screenshotted. `scratchKey` distinguishes concurrent
- * writers (e.g. a page pool index) so parallel renders don't clobber each
- * other's scratch file.
- */
-function writeCardHtml({ deckPath, htmlDir, template, side, dark, samples, scratchKey }) {
-  const prep = prepareCard({ deckPath, template, side, dark, samples });
-  const htmlPath = path.join(htmlDir, `card-${scratchKey}.html`);
-  fs.writeFileSync(htmlPath, prep.html);
-  return {
-    htmlPath,
-    url: pathToFileURL(htmlPath).href,
-    tmpl: prep.tmpl,
-    side: prep.side,
-    dark: prep.dark,
-  };
-}
-
-/**
- * Resolve the output PNG path for a rendered card, honouring an explicit
- * filename override or falling back to the `<template>-<side>[-dark].png`
- * convention.
- */
-function cardPngPath({ outDir, template, side, dark, filename }) {
-  const finalFilename = filename
-    ? ensurePngExtension(path.basename(String(filename)))
-    : defaultPngName(template, side, dark);
-  return path.join(outDir, finalFilename);
-}
-
-/**
- * Expand tool/CLI arguments into a flat list of render requests. Supports both
- * the capture_screenshots.js style (templates x sides) and the MCP style
- * (explicit requests with per-render overrides).
+ * Expand a set of options into a flat list of render requests
+ * (`{template, side, dark, samples, filename}`). Two modes:
+ *   - `requests`: an explicit array of `{template, side?, dark?, samples?,
+ *     filename?}` objects, each with its own overrides.
+ *   - otherwise: the cross product of `templates` (or `allTemplateNames`)
+ *     and `sides` (both default to "every template"/"front and back"),
+ *     all sharing the same `dark`/`samples`.
  */
 function expandRenderRequests({
   allTemplateNames,
@@ -273,21 +246,63 @@ function expandRenderRequests({
   return expanded;
 }
 
+/**
+ * Load the deck, work out which templates actually have a usable note -
+ * skipping (and logging) any that don't, before any rendering is attempted,
+ * so a missing note shows up as a reported skip rather than a render
+ * failure - and expand those into a flat list of render requests across
+ * each of `darkModes`. `only`, if given, narrows to just those template
+ * names (silently ignoring ones that don't exist); omit it to check every
+ * template in the deck. Returns `{usableTemplates, requests}`.
+ */
+function resolveRenderRequests({
+  deckPath,
+  only,
+  darkModes = [false],
+  samples,
+} = {}) {
+  const { deck, fieldNames, templatesByName } = loadDeck(deckPath);
+
+  let templateNames = Object.keys(templatesByName);
+  if (only && only.length) {
+    templateNames = only.filter((name) => templatesByName[name]);
+  }
+
+  const parsedSamples = parseSamples(samples || []);
+  const usableTemplates = [];
+  for (const name of templateNames) {
+    const required = REQUIRED_FIELDS[name] || [];
+    const fields = findNote(
+      deck.notes,
+      fieldNames,
+      required,
+      parsedSamples[name],
+    );
+    if (!fields) {
+      console.log(`Skipping ${name}: no matching note found`);
+      continue;
+    }
+    usableTemplates.push(name);
+  }
+
+  let requests = [];
+  for (const dark of darkModes) {
+    requests = requests.concat(
+      expandRenderRequests({
+        allTemplateNames: usableTemplates,
+        sides: ["front", "back"],
+        dark,
+        samples,
+      }),
+    );
+  }
+
+  return { usableTemplates, requests };
+}
+
 module.exports = {
   REPO_ROOT,
   DEFAULT_DECK,
-  DEFAULT_OUT,
-  REQUIRED_FIELDS,
-  renderTemplate,
-  findNote,
-  slug,
-  wrapHtml,
-  parseSamples,
-  ensurePngExtension,
-  defaultPngName,
-  loadDeck,
   prepareCard,
-  writeCardHtml,
-  cardPngPath,
-  expandRenderRequests,
+  resolveRenderRequests,
 };

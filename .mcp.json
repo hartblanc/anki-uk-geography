@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "uk-geography-browser": {
+    "browser": {
+      "type": "stdio",
       "command": "node",
-      "args": [
-        "utils/uk_geog/browser_mcp.js"
-      ]
+      "args": ["utils/uk_geog/browser_mcp.js", "--cdp-pool-size"],
+      "env": {}
     }
   }
 }

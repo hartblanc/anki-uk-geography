@@ -2,82 +2,90 @@
 "use strict";
 
 /**
- * MCP server that keeps a shared Playwright browser process warm for this
- * repo's screenshot tooling - nothing else. It exposes no tools: the only
- * entrypoint for actually taking a screenshot is capture_screenshots.js
- * (built on render_screenshot.js / card_html.js), whether or not
- * this server is running.
+ * MCP server that keeps a shared Playwright browser process warm in the
+ * background. Exposes no tools of its own - nothing here takes a
+ * screenshot or checks a page; it only manages a browser's lifetime so
+ * other commands in this toolkit can skip the cost of launching their own.
  *
- * On startup this launches a headless browser server (default engine:
- * chromium; pass --engine to run a different one) and writes a connection
- * file (see browser_connection.js) exposing its endpoint, so
- * capture_screenshots.js / render_screenshot.js calls made during the same
- * session can connect to the already-running process instead of paying to
- * launch their own.
+ * On startup, launches a headless browser (default engine: chromium; pass
+ * --engine for a different one) and writes a connection file describing how
+ * to reach it, so other processes can connect to this one for as long as it
+ * keeps running.
  *
- * For Chromium this also pre-creates a pool of --concurrency pages up
- * front (see browser_connection.js's launchManagedChromium()), exposed via
- * a real CDP endpoint so later callers can connectOverCDP() and reuse an
- * already-existing page at ~zero cost instead of paying to create a fresh
- * one on every single call - the single biggest chunk of what used to make
- * Chromium tool-call latency scale linearly with the number of separate
- * calls in a session (see commit history for the benchmarks). This
- * ASSUMES callers don't run concurrently against it - see
- * browser_connection.js's module doc for why that matters here.
- * WebKit/Firefox don't speak CDP, so they launch via Playwright's own
- * launchServer() protocol instead, with no shared pages: each caller still
- * creates fully private pages, same as before.
+ * By default that's a plain connection: each caller that connects still
+ * creates its own private pages. Pass --cdp-pool-size [N] (Chromium only) to
+ * instead expose a real CDP endpoint with N pages pre-created up front (N
+ * defaults to this machine's CPU core count if omitted) - callers then reuse
+ * those pages directly at near-zero cost instead of creating fresh ones.
+ * However, when using --cdp-pool-size, independent processes will share a
+ * single browser instance, these processes must therefore tolerate any state
+ * that previous runs leave behind, and should avoid accessing the browser at
+ * the same time. Pre-created pages are not supported for WebKit or Firefox.
  *
- * Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
- * stdio and holds its stdin pipe open for the life of the session, stdin
- * closing (rl.on("close")) is a real, OS-level "the session ended" signal -
- * not a heuristic - so the browser and its connection file are always
- * cleaned up exactly when the owning session goes away, including most
- * crashes. SIGINT/SIGTERM are also handled directly.
+ * Because MCP hosts spawn this process over stdio and hold the stdin pipe open
+ * for the life of the session, stdin closing is treated as a "the session
+ * ended" signal - the browser and its connection file are always cleaned up
+ * when that happens, including most crashes. SIGINT/SIGTERM are also handled
+ * directly.
  *
  * Usage:
- *   node utils/uk_geog/browser_mcp.js [--engine chromium|firefox|webkit] [--concurrency N]
+ *   node utils/uk_geog/browser_mcp.js [--engine chromium|firefox|webkit] [--cdp-pool-size [N]]
  *
  * Configure in .mcp.json:
  *   {
  *     "mcpServers": {
  *       "uk-geography-browser": {
  *         "command": "node",
- *         "args": ["utils/uk_geog/browser_mcp.js"]
+ *         "args": ["utils/uk_geog/browser_mcp.js", "--cdp-pool-size"]
  *       }
  *     }
  *   }
  */
 
+const os = require("os");
 const readline = require("readline");
 
-const {
-  resolveEngine,
-  DEFAULT_ENGINE,
-  launchManagedChromium,
-  writeConnectionFile,
-  removeConnectionFile,
-} = require("./browser_connection.js");
+const { createPagePool } = require("./page_pool.js");
 
-const USAGE = `Usage: browser_mcp.js [--engine chromium|firefox|webkit] [--concurrency N]
+const USAGE = `Usage: browser_mcp.js [--engine chromium|firefox|webkit] [--cdp-pool-size [N]]
 
 Options:
-  --engine NAME     Browser engine to keep warm (default: ${DEFAULT_ENGINE})
-  --concurrency N   Pages to pre-create in the pool; Chromium only (default: 4)
-  --help            Show this help
+  --engine NAME        Browser engine to keep warm (default: chromium)
+  --cdp-pool-size [N]  Pre-create a shared pool of N pages over a real CDP
+                       endpoint, instead of a plain connection with no
+                       shared pages. Chromium only; off by default (see
+                       this file's module doc for the tradeoff it makes).
+                       N defaults to CPU core count if omitted.
+  --help               Show this help
 `;
 
 function parseArgs(argv) {
-  const args = { engine: DEFAULT_ENGINE, concurrency: 4, help: false };
+  const args = {
+    engine: "chromium",
+    // Presence, not just truthiness, is what enables --cdp-pool-size - null
+    // means the flag was never passed, so a plain connection is used.
+    cdpPoolSize: null,
+    help: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--engine":
         args.engine = argv[++i];
         break;
-      case "--concurrency":
-        args.concurrency = parseInt(argv[++i], 10);
+      case "--cdp-pool-size": {
+        // The size is optional - only consume the next token as N if it's
+        // actually numeric, so a bare --cdp-pool-size before another flag
+        // (or at the end of argv) isn't misparsed as swallowing it.
+        const next = argv[i + 1];
+        if (next !== undefined && /^\d+$/.test(next)) {
+          args.cdpPoolSize = parseInt(next, 10);
+          i++;
+        } else {
+          args.cdpPoolSize = os.cpus().length;
+        }
         break;
+      }
       case "--help":
       case "-h":
         args.help = true;
@@ -114,29 +122,21 @@ async function main() {
     return;
   }
 
-  let server, cdpUrl, wsEndpoint;
-  if (args.engine === "chromium") {
-    ({ server, cdpUrl } = await launchManagedChromium({
-      headless: true,
-      tabs: args.concurrency,
-    }));
-  } else {
-    const browserType = resolveEngine(args.engine);
-    server = await browserType.launchServer({ headless: true, args: [] });
-    wsEndpoint = server.wsEndpoint();
+  let pool;
+  try {
+    pool = await createPagePool({
+      engine: args.engine,
+      cdpPoolSize: args.cdpPoolSize,
+    });
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
   }
 
-  writeConnectionFile(args.engine, {
-    ownerPid: process.pid,
-    browserPid: server.process().pid,
-    engine: args.engine,
-    ...(cdpUrl ? { cdpUrl } : { wsEndpoint }),
-  });
-
   console.error(
-    `Launched headless ${args.engine} on ${cdpUrl ?? wsEndpoint}` +
-      (cdpUrl ? ` with ${args.concurrency} pre-created pages` : "") +
-      " for capture_screenshots.js to connect to."
+    `Launched headless ${args.engine} on ${pool.endpoint}` +
+      (pool.cdpPool ? ` with ${args.cdpPoolSize} pre-created pages` : "") +
+      " for other processes to connect to.",
   );
 
   const rl = readline.createInterface({
@@ -178,7 +178,6 @@ async function main() {
 
       case "tools/list":
         // No tools - this server only keeps a shared browser alive.
-        // Take screenshots via capture_screenshots.js instead.
         sendResult(msg.id, { tools: [] });
         break;
 
@@ -186,8 +185,7 @@ async function main() {
         sendError(
           msg.id,
           -32601,
-          "This server exposes no tools - it only manages the shared browser's " +
-            "lifetime. Take screenshots with capture_screenshots.js."
+          "This server exposes no tools - it only manages the shared browser's lifetime.",
         );
         break;
 
@@ -199,12 +197,7 @@ async function main() {
   rl.on("line", handleMCPLine);
 
   const shutdown = async () => {
-    removeConnectionFile(args.engine);
-    try {
-      await server.close();
-    } catch {
-      // Already gone.
-    }
+    await pool.close();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
