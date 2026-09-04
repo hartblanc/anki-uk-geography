@@ -95,11 +95,8 @@ build/maps/raw/n_ire_counties.zip:
 		'https://admin.opendatani.gov.uk/dataset/d0385f2d-6beb-4aff-87dc-f1bf357d792d/resource/636d6e61-593b-461c-ba5b-01214fecf6cb/download/osni_open_data_largescale_boundaries_county_boundaries.zip' -o $@
 
 build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
-	rm -rf build/maps/.tmp/n_ire_counties
-	mkdir -p $(@D) build/maps/.tmp/n_ire_counties
-	bsdtar -xf $< -C build/maps/.tmp/n_ire_counties -s '|.*/||'
-	$(MAPSHAPER) -i build/maps/.tmp/n_ire_counties/*.shp -proj EPSG:27700 -clean -o $@
-	rm -rf build/maps/.tmp/n_ire_counties
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
 build/maps/raw/ni_cities.geojson:
 	mkdir -p $(@D)
@@ -124,7 +121,7 @@ build/maps/raw/gb_cities.zip:
 build/maps/base_27700/gb_cities.topojson: build/maps/raw/gb_cities.zip
 	rm -rf build/maps/.tmp/gb_cities
 	mkdir -p $(@D) build/maps/.tmp/gb_cities
-	bsdtar -xf $< -C build/maps/.tmp/gb_cities
+	unzip -q $< -d build/maps/.tmp/gb_cities
 	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Doc/OS_Open_Names_Header.csv > build/maps/gb_cities_temp.csv
 	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Data/* | grep ,City, >> build/maps/gb_cities_temp.csv
 	$(MAPSHAPER) -i build/maps/gb_cities_temp.csv -points x=GEOMETRY_X y=GEOMETRY_Y -clean -o $@
