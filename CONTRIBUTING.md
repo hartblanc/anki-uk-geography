@@ -14,7 +14,7 @@ You're in the right place.
 
 Additional dependencies include:
 1. jq
-2. bsdtar
+2. unzip
 3. curl
 
 Note that this repo uses git pre-commit hooks to maintain code style and to type
