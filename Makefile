@@ -119,7 +119,7 @@ build/maps/raw/gb_cities.zip:
 build/maps/base_27700/gb_cities.topojson: build/maps/raw/gb_cities.zip
 	rm -rf build/maps/.tmp/gb_cities
 	mkdir -p $(@D) build/maps/.tmp/gb_cities
-	bsdtar -xf $< -C build/maps/.tmp/gb_cities
+	unzip -q $< -d build/maps/.tmp/gb_cities
 	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Doc/OS_Open_Names_Header.csv > build/maps/gb_cities_temp.csv
 	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Data/* | grep ,City, >> build/maps/gb_cities_temp.csv
 	$(MAPSHAPER) -i build/maps/gb_cities_temp.csv -points x=GEOMETRY_X y=GEOMETRY_Y -clean -o $@
