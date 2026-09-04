@@ -45,4 +45,11 @@ All via Playwright (`npm install` fetches its Chromium/WebKit browsers automatic
   interaction - it exposes no tools. If connected (check with `/mcp`), it's
   just keeping a browser process warm in the background (chromium, by
   default) so the two commands above skip the launch cost; screenshots are
-  always taken by running them directly, exactly the same either way.
+  always taken by running them directly, exactly the same either way. For
+  Chromium specifically it also pre-creates a pool of pages up front
+  (`--concurrency`, default 4) that later calls reuse directly instead of
+  creating their own - this assumes callers don't run concurrently against
+  it (two calls could grab the same page and race); this repo's usual
+  one-at-a-time usage doesn't hit that. WebKit/Firefox don't get this - they
+  don't support the CDP connection it relies on - so each call there still
+  creates its own private pages.

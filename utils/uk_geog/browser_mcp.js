@@ -9,17 +9,24 @@
  * this server is running.
  *
  * On startup this launches a headless browser server (default engine:
- * chromium; pass --engine to run a different one) via launchServer() and
- * writes a connection file (see browser_connection.js) exposing its
- * endpoint, so capture_screenshots.js / render_screenshot.js calls made
- * during the same session can connect to the already-running process
- * instead of paying to launch their own.
+ * chromium; pass --engine to run a different one) and writes a connection
+ * file (see browser_connection.js) exposing its endpoint, so
+ * capture_screenshots.js / render_screenshot.js calls made during the same
+ * session can connect to the already-running process instead of paying to
+ * launch their own.
  *
- * Unlike the old Puppeteer version, this server never pre-creates any tabs:
- * Playwright's connect() gives every caller its own private tabs regardless
- * of what another client already created on the same server (see
- * browser_connection.js), so there is nothing here worth pre-creating -
- * this process purely holds the browser open for others to connect to.
+ * For Chromium this also pre-creates a pool of --concurrency pages up
+ * front (see browser_connection.js's launchManagedChromium()), exposed via
+ * a real CDP endpoint so later callers can connectOverCDP() and reuse an
+ * already-existing page at ~zero cost instead of paying to create a fresh
+ * one on every single call - the single biggest chunk of what used to make
+ * Chromium tool-call latency scale linearly with the number of separate
+ * calls in a session (see commit history for the benchmarks). This
+ * ASSUMES callers don't run concurrently against it - see
+ * browser_connection.js's module doc for why that matters here.
+ * WebKit/Firefox don't speak CDP, so they launch via Playwright's own
+ * launchServer() protocol instead, with no shared pages: each caller still
+ * creates fully private pages, same as before.
  *
  * Because an MCP host (Claude Code, Cursor, etc.) spawns this process over
  * stdio and holds its stdin pipe open for the life of the session, stdin
@@ -29,7 +36,7 @@
  * crashes. SIGINT/SIGTERM are also handled directly.
  *
  * Usage:
- *   node utils/uk_geog/browser_mcp.js [--engine chromium|firefox|webkit]
+ *   node utils/uk_geog/browser_mcp.js [--engine chromium|firefox|webkit] [--concurrency N]
  *
  * Configure in .mcp.json:
  *   {
@@ -47,25 +54,29 @@ const readline = require("readline");
 const {
   resolveEngine,
   DEFAULT_ENGINE,
-  LAUNCH_ARGS,
+  launchManagedChromium,
   writeConnectionFile,
   removeConnectionFile,
 } = require("./browser_connection.js");
 
-const USAGE = `Usage: browser_mcp.js [--engine chromium|firefox|webkit]
+const USAGE = `Usage: browser_mcp.js [--engine chromium|firefox|webkit] [--concurrency N]
 
 Options:
-  --engine NAME   Browser engine to keep warm (default: ${DEFAULT_ENGINE})
-  --help          Show this help
+  --engine NAME     Browser engine to keep warm (default: ${DEFAULT_ENGINE})
+  --concurrency N   Pages to pre-create in the pool; Chromium only (default: 4)
+  --help            Show this help
 `;
 
 function parseArgs(argv) {
-  const args = { engine: DEFAULT_ENGINE, help: false };
+  const args = { engine: DEFAULT_ENGINE, concurrency: 4, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--engine":
         args.engine = argv[++i];
+        break;
+      case "--concurrency":
+        args.concurrency = parseInt(argv[++i], 10);
         break;
       case "--help":
       case "-h":
@@ -103,20 +114,29 @@ async function main() {
     return;
   }
 
-  const browserType = resolveEngine(args.engine);
-  const launchArgs = args.engine === "chromium" ? LAUNCH_ARGS : [];
-  const server = await browserType.launchServer({ headless: true, args: launchArgs });
-  const wsEndpoint = server.wsEndpoint();
+  let server, cdpUrl, wsEndpoint;
+  if (args.engine === "chromium") {
+    ({ server, cdpUrl } = await launchManagedChromium({
+      headless: true,
+      tabs: args.concurrency,
+    }));
+  } else {
+    const browserType = resolveEngine(args.engine);
+    server = await browserType.launchServer({ headless: true, args: [] });
+    wsEndpoint = server.wsEndpoint();
+  }
+
   writeConnectionFile(args.engine, {
     ownerPid: process.pid,
     browserPid: server.process().pid,
     engine: args.engine,
-    wsEndpoint,
+    ...(cdpUrl ? { cdpUrl } : { wsEndpoint }),
   });
 
   console.error(
-    `Launched headless ${args.engine} on ${wsEndpoint} for capture_screenshots.js ` +
-      "to connect to."
+    `Launched headless ${args.engine} on ${cdpUrl ?? wsEndpoint}` +
+      (cdpUrl ? ` with ${args.concurrency} pre-created pages` : "") +
+      " for capture_screenshots.js to connect to."
   );
 
   const rl = readline.createInterface({
