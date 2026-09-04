@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "mapshaper": "^0.7",
+    "mapshaper": "^0.7.58",
     "svgo": "^4.0"
   },
   "devDependencies": {

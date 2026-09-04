@@ -93,11 +93,8 @@ build/maps/raw/n_ire_counties.zip:
 		'https://admin.opendatani.gov.uk/dataset/d0385f2d-6beb-4aff-87dc-f1bf357d792d/resource/636d6e61-593b-461c-ba5b-01214fecf6cb/download/osni_open_data_largescale_boundaries_county_boundaries.zip' -o $@
 
 build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
-	rm -rf build/maps/.tmp/n_ire_counties
-	mkdir -p $(@D) build/maps/.tmp/n_ire_counties
-	bsdtar -xf $< -C build/maps/.tmp/n_ire_counties -s '|.*/||'
-	$(MAPSHAPER) -i build/maps/.tmp/n_ire_counties/*.shp -proj EPSG:27700 -clean -o $@
-	rm -rf build/maps/.tmp/n_ire_counties
+	mkdir -p $(@D)
+	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -o $@
 
 build/maps/raw/ni_cities.geojson:
 	mkdir -p $(@D)
