@@ -4,14 +4,15 @@
   "description": "Anki deck for UK geography",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "playwright install chromium webkit"
   },
   "dependencies": {
     "mapshaper": "^0.7.58",
     "svgo": "^4.0"
   },
   "devDependencies": {
-    "puppeteer": "^25.9.0"
+    "playwright": "^1.62.1"
   },
   "author": "hartblanc",
   "license": "Unlicense"

@@ -2,15 +2,12 @@
 "use strict";
 
 /**
- * Generate front/back screenshots of card types using Puppeteer's bundled Chromium.
+ * Generate front/back screenshots of Anki card templates, using Playwright's
+ * bundled browsers (chromium by default; see --engine).
  *
- * Reads the built CrowdAnki deck, renders each note template with a real note's
- * fields, wraps it in the same HTML shell Anki uses, and screenshots each side
- * with Puppeteer's headless Chromium via render_screenshot.js's renderMany(),
- * which launches and closes its own browser unless browser_mcp.js has one
- * running for this repo, in which case it reuses that instead - handy for
- * long-lived agent sessions making repeated calls. This script never deals
- * with the browser or a page pool directly.
+ * Reads the built CrowdAnki deck, renders each requested note template with
+ * a real note's fields, wraps it in Anki's HTML card shell, and screenshots
+ * each side to a PNG.
  *
  * Examples:
  *   # All card types, light mode
@@ -28,35 +25,20 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
-
-try {
-  require.resolve("puppeteer");
-} catch (err) {
-  if (err.code === "MODULE_NOT_FOUND") {
-    console.error(
-      "Puppeteer is required for screenshots. Run `npm install` first so " +
-        "the bundled Chromium is available."
-    );
-    process.exit(1);
-  }
-  throw err;
-}
 
 const {
   REPO_ROOT,
   DEFAULT_DECK,
-  DEFAULT_OUT,
-  REQUIRED_FIELDS,
-  findNote,
-  parseSamples,
-  loadDeck,
-  writeCardHtml,
-  cardPngPath,
-  expandRenderRequests,
-} = require("./card_html.js");
-const { renderToFile, renderMany } = require("./render_screenshot.js");
+  prepareCard,
+  resolveRenderRequests,
+} = require("./cards.js");
+const { renderMany } = require("./render_screenshot.js");
+
+const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
 
 const USAGE = `Usage: capture_screenshots.js [options]
 
@@ -66,8 +48,9 @@ Options:
   --dark             Render in dark mode
   --only LIST        Comma-separated template names to capture
   --sample SPEC      TEMPLATE:FIELD=VALUE note selector; repeatable
-  --concurrency N    Number of parallel browser tabs (default: 4)
+  --concurrency N    Number of parallel browser pages (default: CPU core count)
   --stitch PATH      Stitch captured front/back pairs into a 2-column grid
+  --engine NAME      Browser engine: chromium (default), firefox, webkit
   --help             Show this help
 `;
 
@@ -78,8 +61,9 @@ function parseArgs(argv) {
     dark: false,
     only: null,
     sample: [],
-    concurrency: 4,
+    concurrency: os.cpus().length,
     stitch: null,
+    engine: "chromium",
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -109,6 +93,9 @@ function parseArgs(argv) {
         break;
       case "--stitch":
         args.stitch = argv[++i];
+        break;
+      case "--engine":
+        args.engine = argv[++i];
         break;
       case "--help":
       case "-h":
@@ -141,7 +128,7 @@ function stitch(captured, outPng, dark) {
       background,
       outPng,
     ],
-    { stdio: "inherit" }
+    { stdio: "inherit" },
   );
   console.log(`Stitched ${captured.length} cards -> ${outPng}`);
 }
@@ -153,36 +140,13 @@ async function main() {
     return;
   }
 
-  const htmlDir = path.join(REPO_ROOT, "build", "screenshots", "html");
-  fs.mkdirSync(htmlDir, { recursive: true });
-  fs.mkdirSync(args.out, { recursive: true });
-
-  const { deck, fieldNames, templatesByName } = loadDeck(args.deck);
-  const samples = parseSamples(args.sample);
-
-  let templateNames = Object.keys(templatesByName);
-  if (args.only) {
-    const onlyNames = args.only.split(",").map((name) => name.trim());
-    templateNames = onlyNames.filter((name) => templatesByName[name]);
-  }
-
-  // Skip templates that have no usable note before opening a browser, so the
-  // CLI reports them as skips rather than per-side render failures.
-  const usableTemplates = [];
-  for (const name of templateNames) {
-    const required = REQUIRED_FIELDS[name] || [];
-    const fields = findNote(deck.notes, fieldNames, required, samples[name]);
-    if (!fields) {
-      console.log(`Skipping ${name}: no matching note found`);
-      continue;
-    }
-    usableTemplates.push(name);
-  }
-
-  const requests = expandRenderRequests({
-    allTemplateNames: usableTemplates,
-    sides: ["front", "back"],
-    dark: args.dark,
+  const only = args.only
+    ? args.only.split(",").map((name) => name.trim())
+    : null;
+  const { usableTemplates, requests } = resolveRenderRequests({
+    deckPath: args.deck,
+    only,
+    darkModes: [args.dark],
     samples: args.sample,
   });
 
@@ -190,35 +154,35 @@ async function main() {
     return;
   }
 
-  // renderMany spreads these across a small pool of browser tabs, reusing
-  // each one across cards instead of paying per-screenshot page creation
-  // cost - this script never sees the browser or the pool itself.
-  const results = await renderMany(
-    requests,
-    async (page, req, index) => {
-      console.log(`Capturing ${req.template} ${req.side}`);
-      const html = writeCardHtml({
-        deckPath: args.deck,
-        htmlDir,
-        template: req.template,
-        side: req.side,
-        dark: req.dark,
-        samples: req.samples,
-        scratchKey: index,
-      });
-      const pngPath = cardPngPath({
-        outDir: args.out,
-        template: req.template,
-        side: html.side,
-        dark: html.dark,
-        filename: req.filename,
-      });
-      await renderToFile(page, { url: html.url, outPath: pngPath });
-      console.log(`Captured ${pngPath}`);
-      return { template: req.template, side: req.side, pngPath };
-    },
-    { concurrency: args.concurrency }
-  );
+  // HTML generation doesn't touch a page or the browser at all, so it
+  // happens here as plain preprocessing - one scratch HTML file per
+  // request, keyed by its position so concurrent renders never collide.
+  const items = requests.map((req, index) => {
+    const { html } = prepareCard({
+      deckPath: args.deck,
+      template: req.template,
+      side: req.side,
+      dark: req.dark,
+      samples: req.samples,
+    });
+    const outPath = cardPngPath({
+      outDir: args.out,
+      template: req.template,
+      side: req.side,
+      dark: req.dark,
+      filename: req.filename,
+    });
+    return { html, outPath, template: req.template, side: req.side };
+  });
+
+  // Renders everything in parallel over a small pool of browser pages,
+  // reusing each one across cards instead of paying per-screenshot page
+  // creation cost.
+  const results = await renderMany(items, {
+    concurrency: args.concurrency,
+    engine: args.engine,
+    onRendered: (result) => console.log(`Captured ${result.outPath}`),
+  });
 
   const byTemplate = new Map();
   for (const result of results) {
@@ -228,7 +192,7 @@ async function main() {
       entry = { front: null, back: null };
       byTemplate.set(result.template, entry);
     }
-    entry[result.side] = result.pngPath;
+    entry[result.side] = result.outPath;
   }
 
   const captured = [];
@@ -242,6 +206,30 @@ async function main() {
   if (args.stitch && captured.length) {
     stitch(captured, args.stitch, args.dark);
   }
+}
+
+/**
+ * Resolve the output PNG path for a rendered card, honouring an explicit
+ * filename override or falling back to the `<template>-<side>[-dark].png`
+ * convention.
+ */
+function cardPngPath({ outDir, template, side, dark, filename }) {
+  const finalFilename = filename
+    ? ensurePngExtension(path.basename(String(filename)))
+    : defaultPngName(template, side, dark);
+  return path.join(outDir, finalFilename);
+}
+
+function ensurePngExtension(name) {
+  return /\.png$/i.test(name) ? name : `${name}.png`;
+}
+
+function defaultPngName(template, side, dark) {
+  return `${slug(template)}-${side}${dark ? "-dark" : ""}.png`;
+}
+
+function slug(name) {
+  return name.toLowerCase().replace(" - ", "-").replace(/ /g, "-");
 }
 
 if (require.main === module) {

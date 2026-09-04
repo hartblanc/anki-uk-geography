@@ -1,4 +1,3 @@
-# TODO: test rendering in webkit browser for ankimobile
 # TODO: make new deck for motorways
 # TODO: explore how we can generate a modern apkg too (i.e. zstd + protobufs). Does ankigen support this? Perhaps we can fork ankigen, and eventually I could consider raising a PR
 # TODO: Test that the generated apkg can actually be imported in anki. My idea for how to achieve this is to spin up a headless anki instance in a container, and import the apkg using anki connect. Open to other ideas too though.
@@ -20,7 +19,7 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all screenshots FORCE
+.PHONY: all screenshots webkit-check FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -31,6 +30,13 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 		--sample "City - County:City=Gloucester" \
 		--sample "BoW - Map:BoW=Bristol Channel" \
 		--stitch build/screenshots/dark-mode-grid.png
+
+# Renders every note template (front/back, light/dark) in Playwright's real
+# WebKit engine, standing in for AnkiMobile's WebKit-based webview, and fails
+# if any render throws a JS error or the zoombox fails to populate. `npm
+# install` fetches the Playwright WebKit browser automatically.
+webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+	node utils/uk_geog/check_cards.js --engine webkit
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
