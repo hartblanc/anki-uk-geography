@@ -219,12 +219,15 @@ build/maps/county.topojson build/county.csv: build/maps/base_27700/gb_boundaries
 		-o build/maps/county.topojson target=county \
 		-o build/county.csv target=county
 
+# no-repair on the grouped dissolves below restores mapshaper's pre-0.7
+# dissolve behaviour: the newer topology-repairing default throws "Invalid
+# node geometry" building a polygon mosaic over this seavox data.
 build/maps/bow.topojson build/bow.csv: build/maps/base_27700/seavox.topojson build/maps/uk.topojson build/maps/extra_land.topojson build/maps/canvas.topojson src/data/mrgid_name_mapping.csv
 	$(MAPSHAPER) \
 		-i build/maps/base_27700/seavox.topojson name=seavox \
-		-dissolve + name=l2 target=seavox mrgid_l2 \
-		-dissolve + name=l3 target=seavox mrgid_l3 \
-		-dissolve + name=l4 target=seavox mrgid_l4 \
+		-dissolve + name=l2 target=seavox mrgid_l2 no-repair \
+		-dissolve + name=l3 target=seavox mrgid_l3 no-repair \
+		-dissolve + name=l4 target=seavox mrgid_l4 no-repair \
 		-filter target=l2 '"23637,".indexOf(mrgid_l2) > -1' \
 		-filter target=l3 '"23647,23649,23728,23729,23731".indexOf(mrgid_l3) > -1' \
 		-filter target=seavox '"24188,24192,24193,24195,24202,24210,24218".indexOf(mrgid_sr) > -1' \
