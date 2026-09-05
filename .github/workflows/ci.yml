@@ -12,6 +12,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # GitHub's default is 360 minutes; a stuck step (e.g. apt-get update
+    # hanging on a slow mirror, as happened once) shouldn't be able to sit
+    # unnoticed anywhere near that long.
+    timeout-minutes: 20
     # Playwright's own image for this exact pinned version: Chromium and
     # WebKit plus every OS-level shared library they need are already
     # installed, so `npm ci`'s postinstall (playwright install chromium
@@ -37,6 +41,7 @@ jobs:
           key: apt-make-zip-unzip-v1.62.1-jammy
 
       - if: steps.apt-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 3
         run: apt-get update
 
       - run: apt-get install -y --no-install-recommends make zip unzip
