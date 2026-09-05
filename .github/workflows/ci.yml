@@ -12,6 +12,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Playwright's own image for this exact pinned version: Chromium and
+    # WebKit plus every OS-level shared library they need are already
+    # installed, so `npm ci`'s postinstall (playwright install chromium
+    # webkit) finds them in place instead of downloading, and there's no
+    # separate install-deps/apt step needed at all.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-jammy
     steps:
       - uses: actions/checkout@v4
 
@@ -35,12 +42,18 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - run: npm ci --omit=dev
+      # Caches the installed/linked node_modules itself (setup-node's own
+      # cache above only covers npm's download cache, not the install), so
+      # an unchanged lockfile restores directly instead of npm ci
+      # reinstalling ~240 packages from scratch every push.
+      - uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
 
-      # postinstall only downloads the browser binaries; it doesn't install
-      # the OS-level shared libraries (gtk, gstreamer, etc.) they need to
-      # launch, which this runner image doesn't have preinstalled.
-      - run: npx playwright install-deps chromium webkit
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --omit=dev
 
       - uses: actions/setup-python@v5
         with:
