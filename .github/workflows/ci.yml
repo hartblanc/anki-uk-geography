@@ -22,6 +22,11 @@ jobs:
 
       - run: npm ci --omit=dev
 
+      # postinstall only downloads the browser binaries; it doesn't install
+      # the OS-level shared libraries (gtk, gstreamer, etc.) they need to
+      # launch, which this runner image doesn't have preinstalled.
+      - run: npx playwright install-deps chromium webkit
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
