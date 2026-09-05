@@ -15,6 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Keyed on the pinned-checksums manifest, not on nothing: a hit skips
+      # every curl (the slow part of `make`) and Make's recipes see the
+      # files already present as up to date, so verify_checksum.js doesn't
+      # even run this time either. That's fine — a cached file only got
+      # cached after passing verification once, so it's still exactly what
+      # was pinned. The cache key only changes (a miss, forcing a fresh
+      # fetch + verify against the new pin) when someone deliberately runs
+      # `make pin-data` and commits the result. This does NOT re-poll live
+      # upstream sources for drift on a cache hit; that's a separate concern
+      # from keeping every push fast.
+      - uses: actions/cache@v4
+        with:
+          path: build/maps/raw
+          key: raw-map-data-${{ hashFiles('src/data/raw_source_checksums.json') }}
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
