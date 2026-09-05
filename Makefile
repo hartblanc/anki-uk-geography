@@ -19,7 +19,7 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all screenshots webkit-check chromium-check FORCE
+.PHONY: all screenshots webkit-check chromium-check pin-data FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -47,6 +47,27 @@ chromium-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cit
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)
 # ==============================================================================
 
+# Most of these raw sources are live queries/downloads with no version or tag
+# to pin to. Each fetch recipe below verifies its result against a pinned
+# sha256 in src/data/raw_source_checksums.json (via verify_checksum.js),
+# failing the build if upstream data has changed instead of silently passing
+# a new dataset through the rest of the pipeline. When a source legitimately
+# needs refreshing (or is new), review the change and re-pin with `make
+# pin-data`, which re-fetches everything and records the new hashes.
+RAW_SOURCES := \
+	build/maps/raw/ons_itl1.geojson \
+	build/maps/raw/natural_earth.geojson \
+	build/maps/raw/scotland_council_areas.topojson \
+	build/maps/raw/gb_boundaries.geojson \
+	build/maps/raw/n_ire_counties.zip \
+	build/maps/raw/ni_cities.geojson \
+	build/maps/raw/gb_cities.zip \
+	build/maps/raw/seavox.geojson
+
+pin-data:
+	rm -f $(RAW_SOURCES)
+	$(MAKE) $(RAW_SOURCES) PIN=1
+
 # Stamp recording the SIMPLIFY_INTERVAL used for the last SVG render pass.
 # FORCE makes the stamp recipe run on every make invocation; the recipe only
 # rewrites the stamp when SIMPLIFY_INTERVAL changes, so unchanged runs do not
@@ -65,14 +86,18 @@ $(SIMPLIFY_STAMP): FORCE
 build/maps/raw/ons_itl1.geojson:
 	mkdir -p $(@D)
 	curl -sL 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ITL1_JAN_2025_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/ons_itl1.topojson: build/maps/raw/ons_itl1.geojson
 	mkdir -p $(@D)
 	$(MAPSHAPER) -i $< -proj EPSG:27700 -clean -rename-layers itl -o $@
 
+# Pinned to a tagged release, not `master`, so this doesn't silently move
+# out from under us the way a branch reference would.
 build/maps/raw/natural_earth.geojson:
 	mkdir -p $(@D)
-	curl -sL 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson' -o $@
+	curl -sL 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/natural_earth.topojson: build/maps/raw/natural_earth.geojson
 	mkdir -p $(@D)
@@ -81,6 +106,7 @@ build/maps/base_27700/natural_earth.topojson: build/maps/raw/natural_earth.geojs
 build/maps/raw/scotland_council_areas.topojson:
 	mkdir -p $(@D)
 	curl -L "https://martinjc.github.io/UK-GeoJSON/json/sco/topo_lad.json" -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_council_areas.topojson
 	mkdir -p $(@D)
@@ -95,6 +121,7 @@ build/maps/base_27700/scotland_council_areas.topojson: build/maps/raw/scotland_c
 build/maps/raw/gb_boundaries.geojson:
 	mkdir -p $(@D)
 	curl -sL 'https://services.arcgis.com/qHLhLQrcvEnxjtPr/arcgis/rest/services/OS_OpenBoundaryLine/FeatureServer/4/query?where=1%3D1&outFields=NAME%2CDESCRIPTIO&f=geojson&resultRecordCount=2000&resultOffset=0&outSR=27700&maxAllowableOffset=20' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/gb_boundaries.topojson: build/maps/raw/gb_boundaries.geojson
 	mkdir -p $(@D)
@@ -104,6 +131,7 @@ build/maps/raw/n_ire_counties.zip:
 	mkdir -p $(@D)
 	curl -L -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' \
 		'https://admin.opendatani.gov.uk/dataset/d0385f2d-6beb-4aff-87dc-f1bf357d792d/resource/636d6e61-593b-461c-ba5b-01214fecf6cb/download/osni_open_data_largescale_boundaries_county_boundaries.zip' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
 	mkdir -p $(@D)
@@ -112,6 +140,7 @@ build/maps/base_27700/n_ire_counties.topojson: build/maps/raw/n_ire_counties.zip
 build/maps/raw/ni_cities.geojson:
 	mkdir -p $(@D)
 	curl -sL -A 'Mozilla/5.0' 'https://admin.opendatani.gov.uk/dataset/d27903f1-15e6-4c07-8564-ddc655e9c549/resource/cd65c0eb-0b85-448a-be85-1725dd2aeb48/download/osni_open_data_-_gazetteer_-_place_names.geojson' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/ni_cities.topojson: build/maps/raw/ni_cities.geojson
 	mkdir -p $(@D)
@@ -128,6 +157,7 @@ build/maps/base_27700/ni_cities.topojson: build/maps/raw/ni_cities.geojson
 build/maps/raw/gb_cities.zip:
 	mkdir -p $(@D)
 	curl -L 'https://api.os.uk/downloads/v1/products/OpenNames/downloads?area=GB&format=CSV&redirect=' -o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/gb_cities.topojson: build/maps/raw/gb_cities.zip
 	rm -rf build/maps/.tmp/gb_cities
@@ -149,6 +179,7 @@ build/maps/raw/seavox.geojson:
 		--data-urlencode 'outputFormat=application/json' \
 		--data-urlencode 'CQL_FILTER=mrgid_l3 IN (23647,23649,23728,23729,23731) OR mrgid_sr IN (24188,24192,24193,24195,24202,24210,24218) OR mrgid_l4 IN (23738,23739,23742,23735) OR mrgid_l2 = 23637' \
 		-o $@
+	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/seavox.topojson: build/maps/raw/seavox.geojson
 	mkdir -p $(@D)

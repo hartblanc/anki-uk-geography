@@ -1,0 +1,10 @@
+{
+  "build/maps/raw/gb_boundaries.geojson": "c40c47ff6d71b44f6d07210dc256aec7f8db244303d6b70c9ce22f8b265b70be",
+  "build/maps/raw/gb_cities.zip": "6175912f1a3be7fffe556b4621a8d0686f1ea145e20ca61ce2b115a75a9bd69f",
+  "build/maps/raw/n_ire_counties.zip": "53c42595e2f8dee7722a33a62839d8355b02e8890b039885dfe4f8533b447d3e",
+  "build/maps/raw/natural_earth.geojson": "b340c0ecb7fd51c8a9b49c18deffec75a5a1f651a7eb38e232dc677a8e65de9d",
+  "build/maps/raw/ni_cities.geojson": "36fc99e9a20fbefacfd2d6a5daa840d4acf51ca7955939a5e4b0c1a999044aa5",
+  "build/maps/raw/ons_itl1.geojson": "b8dc160063d26e7a45df8247e5690e953961c80e087811d52d33dc85d94b27d5",
+  "build/maps/raw/scotland_council_areas.topojson": "8bc406e044aa0ae2b2281bbe833c7cc193519834e02d6ffcdf21bce31edfb9b7",
+  "build/maps/raw/seavox.geojson": "de7d9a8c360d38ecc18d3d2c07d93c46618483471d203a10750633a7dc4e4bed"
+}
