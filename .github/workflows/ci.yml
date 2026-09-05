@@ -40,8 +40,11 @@ jobs:
             /var/lib/apt/lists
           key: apt-make-zip-unzip-v1.62.1-jammy
 
+      # Observed anywhere from 19s to ~5 minutes across runs (mirror-speed
+      # variance, not a hang) — 10 minutes gives real slow runs headroom
+      # while still bounding a genuine stall.
       - if: steps.apt-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: apt-get update
 
       - run: apt-get install -y --no-install-recommends make zip unzip
