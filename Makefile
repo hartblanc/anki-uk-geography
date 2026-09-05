@@ -19,7 +19,7 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all screenshots webkit-check FORCE
+.PHONY: all screenshots webkit-check chromium-check FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
@@ -37,6 +37,11 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 # install` fetches the Playwright WebKit browser automatically.
 webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/check_cards.js --engine webkit
+
+# Same check, in Playwright's Chromium engine, standing in for AnkiDesktop's
+# QtWebEngine and AnkiDroid's WebView (both Chromium-based).
+chromium-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
+	node utils/uk_geog/check_cards.js --engine chromium
 
 # ==============================================================================
 # 1. INGEST & NORMALIZE EARLY (All source files converted to EPSG:27700 TopoJSON)

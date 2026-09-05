@@ -1,9 +1,9 @@
 name: CI
 
-# Builds the full deck and runs the WebKit render check on every push to
-# master and every PR, so a broken map-data pipeline or card template is
-# caught immediately instead of only at release time (see release.yml,
-# which only runs on tag push / manual dispatch).
+# Builds the full deck and runs the WebKit and Chromium render checks on
+# every push to master and every PR, so a broken map-data pipeline or card
+# template is caught immediately instead of only at release time (see
+# release.yml, which only runs on tag push / manual dispatch).
 on:
   push:
     branches: ["master"]
@@ -39,3 +39,5 @@ jobs:
       - run: make
 
       - run: make webkit-check
+
+      - run: make chromium-check
