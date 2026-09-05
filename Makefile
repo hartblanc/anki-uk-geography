@@ -289,7 +289,7 @@ build/maps/layers/extra_land.svg: build/maps/extra_land.topojson build/maps/canv
 		$(PROJ_INIT) \
 		-simplify interval=$(SIMPLIFY_INTERVAL) target=extra_land \
 		-o $@ target=extra_land format=svg id-field=name fit-extent=canvas
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@ > $@.tmp && mv $@.tmp $@
 
 build/maps/layers/county.svg: build/maps/county.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
@@ -304,7 +304,7 @@ build/maps/layers/county.svg: build/maps/county.topojson build/maps/extra_land.t
 		-simplify variable interval="name == 'City of London' ? 0 : '$(SIMPLIFY_INTERVAL)'" target=county \
 		-each 'id="county-" + name' target=county \
 		-o $@ target=county format=svg id-field=id fit-extent=canvas
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@ > $@.tmp && mv $@.tmp $@
 
 build/maps/layers/region.svg: build/maps/region.topojson build/maps/extra_land.topojson build/maps/canvas.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
@@ -319,7 +319,7 @@ build/maps/layers/region.svg: build/maps/region.topojson build/maps/extra_land.t
 		-simplify interval=$(SIMPLIFY_INTERVAL) target=region \
 		-each 'id="region-" + name' target=region \
 		-o $@ target=region format=svg id-field=id fit-extent=canvas
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@ > $@.tmp && mv $@.tmp $@
 
 build/maps/layers/city.svg: build/maps/city.topojson
 	mkdir -p $(MAP_LAYER_DIR)
@@ -328,7 +328,7 @@ build/maps/layers/city.svg: build/maps/city.topojson
 		-style target=city fill="#000" r=7 \
 		-each 'id="city-" + name' target=city \
 		-o $@ target=city format=svg id-field=id fit-extent=canvas
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@ > $@.tmp && mv $@.tmp $@
 
 build/maps/layers/bow.svg: build/maps/bow.topojson $(SIMPLIFY_STAMP)
 	mkdir -p $(MAP_LAYER_DIR)
@@ -340,7 +340,7 @@ build/maps/layers/bow.svg: build/maps/bow.topojson $(SIMPLIFY_STAMP)
 		-simplify interval=$(SIMPLIFY_INTERVAL) target=bow \
 		-each 'id="bow-" + name' target=bow \
 		-o $@ format=svg id-field=id
-	sed -i '' 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@
+	sed 's/<svg /<svg preserveAspectRatio="xMidYMin meet" /' $@ > $@.tmp && mv $@.tmp $@
 
 build/maps/layers/extra_land.min.svg: build/maps/layers/extra_land.svg src/svgo.config.js
 	$(SVGO) --config=src/svgo.config.js $< -o $@
