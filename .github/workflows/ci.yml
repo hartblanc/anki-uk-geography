@@ -91,7 +91,11 @@ jobs:
 
       - run: pipenv install --deploy
 
-      - run: make
+      # Verified locally: -j produces byte-identical intermediate data to a
+      # serial build (only the final .apkg's zip/sqlite timestamps differ,
+      # which is already true between two serial builds too) and cut the
+      # local build from ~50s to ~30s.
+      - run: make -j$(nproc)
 
       - run: make webkit-check
 
