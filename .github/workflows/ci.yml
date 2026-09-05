@@ -24,7 +24,22 @@ jobs:
 
       # Unlike the full ubuntu-latest runner (see release.yml), Playwright's
       # image is a minimal browser-testing image and doesn't ship make/zip.
-      - run: apt-get update && apt-get install -y --no-install-recommends make zip unzip
+      # apt-get update's index refresh (not the tiny package downloads
+      # themselves) is the slow part, so cache the index + downloaded debs
+      # and skip the update entirely once cached — safe here since make/
+      # zip/unzip are base Ubuntu packages that essentially never move.
+      - uses: actions/cache@v4
+        id: apt-cache
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: apt-make-zip-unzip-v1.62.1-jammy
+
+      - if: steps.apt-cache.outputs.cache-hit != 'true'
+        run: apt-get update
+
+      - run: apt-get install -y --no-install-recommends make zip unzip
 
       # Keyed on the pinned-checksums manifest, not on nothing: a hit skips
       # every curl (the slow part of `make`) and Make's recipes see the
