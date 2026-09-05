@@ -1,0 +1,36 @@
+name: CI
+
+# Builds the full deck and runs the WebKit render check on every push to
+# master and every PR, so a broken map-data pipeline or card template is
+# caught immediately instead of only at release time (see release.yml,
+# which only runs on tag push / manual dispatch).
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - run: npm ci --omit=dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pipenv"
+
+      - run: pip install pipenv
+
+      - run: pipenv install --deploy
+
+      - run: make
+
+      - run: make webkit-check
