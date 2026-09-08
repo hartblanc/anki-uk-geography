@@ -160,13 +160,11 @@ build/maps/raw/gb_cities.zip:
 	node utils/uk_geog/verify_checksum.js $@ $(if $(PIN),--pin)
 
 build/maps/base_27700/gb_cities.topojson: build/maps/raw/gb_cities.zip
-	rm -rf build/maps/.tmp/gb_cities
-	mkdir -p $(@D) build/maps/.tmp/gb_cities
-	unzip -q $< -d build/maps/.tmp/gb_cities
-	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Doc/OS_Open_Names_Header.csv > build/maps/gb_cities_temp.csv
-	cut -d ',' -f 3,4,5,6,8,9,10 build/maps/.tmp/gb_cities/Data/* | grep ,City, >> build/maps/gb_cities_temp.csv
+	mkdir -p $(@D)
+	unzip -p $< 'Doc/OS_Open_Names_Header.csv' | cut -d ',' -f 3,4,5,6,8,9,10 > build/maps/gb_cities_temp.csv
+	unzip -p $< 'Data/*' | grep -h ',populatedPlace,City,' | cut -d ',' -f 3,4,5,6,8,9,10 >> build/maps/gb_cities_temp.csv
 	$(MAPSHAPER) -i build/maps/gb_cities_temp.csv -points x=GEOMETRY_X y=GEOMETRY_Y -clean -o $@
-	rm -rf build/maps/.tmp/gb_cities build/maps/gb_cities_temp.csv
+	rm -f build/maps/gb_cities_temp.csv
 
 build/maps/raw/seavox.geojson:
 	mkdir -p $(@D)
