@@ -281,7 +281,6 @@ build/maps/bow.topojson build/bow.csv: build/maps/base_27700/seavox.topojson bui
 		$(PROJ_INIT) \
 		-dissolve2 gap-fill-area=1km2 target=land \
 		-erase source=land target=bow \
-		-each "if (name == 'St George\'s Channel') name = 'St Georges Channel'" target=bow \
 		-o build/maps/bow.topojson target=bow \
 		-filter-fields name target=bow\
 		-o build/bow.csv target=bow
