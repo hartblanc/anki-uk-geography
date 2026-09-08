@@ -7,7 +7,7 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 - Documentation for anki can be found at: anki.mintlify.app/llms.txt
 
 ## Testing
-- Build the deck using `make -j16`
+- Build the deck using `make -j$(nproc)`
 - **Take a screenshot of an Anki card** - `node utils/uk_geog/capture_screenshots.js [options]`.
   This is the only entrypoint for card screenshots; use it whether or not
   an MCP session is connected. Key options: `--dark`, `--only LIST`,
