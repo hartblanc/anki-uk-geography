@@ -10,7 +10,7 @@
   "dependencies": {
     "mapshaper": "^0.7.58",
     "playwright": "^1.62.1",
-    "svgo": "^4.0"
+    "svgo": "^4.1"
   },
   "overrides": {
     "adm-zip": "^0.6.0",
