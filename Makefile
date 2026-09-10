@@ -1,5 +1,4 @@
 # TODO: make new deck for motorways
-# TODO: think about what to do for deviceScaleFactor and page pool to improve screenshot resolution.
 # TODO: think about how to manage mustache synatx in prettier for card templates
 
 SHELL:=/bin/bash

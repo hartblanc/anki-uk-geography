@@ -3,7 +3,7 @@
     "browser": {
       "type": "stdio",
       "command": "node",
-      "args": ["utils/uk_geog/browser_mcp.js", "--cdp-pool-size"],
+      "args": ["utils/browser_ops/mcp.js"],
       "env": {}
     }
   }

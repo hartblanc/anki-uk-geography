@@ -13,21 +13,53 @@
  *   node utils/uk_geog/check_cards.js [options]
  */
 
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-
 const {
   DEFAULT_DECK,
   prepareCard,
-  cardHtmlUrl,
   resolveRenderRequests,
 } = require("./cards.js");
-const { runMany } = require("./page_pool.js");
+const {
+  defineOperation,
+  loadConfig,
+  DEFAULT_CONCURRENCY,
+} = require("../browser_ops");
 
-// Measured cost of loadPage()'s work (navigate + observe) against an
-// already-running browser, in milliseconds. Used to determine pool size.
-const TASK_COST_MS = 15;
+const DEFAULT_ENGINE = loadConfig().defaultEngine;
+
+/**
+ * Load `html` and report console errors/warnings, uncaught page errors, and
+ * whether the load failed. Returns `{navError, consoleIssues, pageErrors}`.
+ */
+const checkOperation = defineOperation(module, {
+  name: "check",
+  async run(page, { html, waitUntil = "load", timeout = 30000 }) {
+    const consoleMessages = [];
+    const pageErrors = [];
+
+    const onConsole = (msg) =>
+      consoleMessages.push({ type: msg.type(), text: msg.text() });
+    const onPageError = (err) => pageErrors.push(err.message || String(err));
+
+    page.on("console", onConsole);
+    page.on("pageerror", onPageError);
+
+    let navError = null;
+    try {
+      await page.setContent(html, { waitUntil, timeout });
+    } catch (err) {
+      navError = err.message || String(err);
+    }
+
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+
+    const consoleIssues = consoleMessages
+      .filter((msg) => msg.type === "error" || msg.type === "warning")
+      .map((msg) => `${msg.type}: ${msg.text}`);
+
+    return { navError, consoleIssues, pageErrors };
+  },
+});
 
 const USAGE = `Usage: check_cards.js [options]
 
@@ -47,8 +79,8 @@ function parseArgs(argv) {
   const args = {
     deck: DEFAULT_DECK,
     sample: [],
-    concurrency: os.cpus().length,
-    engine: "chromium",
+    concurrency: DEFAULT_CONCURRENCY,
+    engine: DEFAULT_ENGINE,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -83,42 +115,6 @@ function parseArgs(argv) {
   return args;
 }
 
-/**
- * Set content of `page` to html and observe what happened: console messages,
- * uncaught page errors, and whether navigation itself failed. Returns
- * `{navError, consoleMessages, pageErrors}`. Always removes its listeners
- * before returning, since the page will be reused for another render
- * afterward.
- */
-async function loadPage(
-  page,
-  { html, waitUntil = "load", timeout = 30000 } = {},
-) {
-  const consoleMessages = [];
-  const pageErrors = [];
-
-  const onConsole = (msg) => {
-    consoleMessages.push({ type: msg.type(), text: msg.text() });
-  };
-  const onPageError = (err) => {
-    pageErrors.push(err.message || String(err));
-  };
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
-
-  let navError = null;
-  try {
-    await page.setContent(html, { waitUntil, timeout });
-  } catch (err) {
-    navError = err.message || String(err);
-  }
-
-  page.off("console", onConsole);
-  page.off("pageerror", onPageError);
-
-  return { navError, consoleMessages, pageErrors };
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -137,39 +133,27 @@ async function main() {
     return;
   }
 
-  const results = await runMany(
-    requests,
-    async (page, req, index) => {
-      const { html } = prepareCard({
-        deckPath: args.deck,
-        template: req.template,
-        side: req.side,
-        dark: req.dark,
-        samples: req.samples,
-      });
+  const items = requests.map((req) => ({
+    html: prepareCard({
+      deckPath: args.deck,
+      template: req.template,
+      side: req.side,
+      dark: req.dark,
+      samples: req.samples,
+    }).html,
+  }));
 
-      const { navError, consoleMessages, pageErrors } = await loadPage(page, {
-        html,
-      });
-      const consoleIssues = consoleMessages
-        .filter((msg) => msg.type === "error" || msg.type === "warning")
-        .map((msg) => `${msg.type}: ${msg.text}`);
+  const checked = await checkOperation.run(items, {
+    concurrency: args.concurrency,
+    engine: args.engine,
+  });
 
-      return {
-        template: req.template,
-        side: req.side,
-        dark: req.dark,
-        navError,
-        consoleIssues,
-        pageErrors,
-      };
-    },
-    {
-      concurrency: args.concurrency,
-      engine: args.engine,
-      taskCostMs: TASK_COST_MS,
-    },
-  );
+  const results = checked.map((result, i) => ({
+    template: requests[i].template,
+    side: requests[i].side,
+    dark: requests[i].dark,
+    ...result,
+  }));
 
   let failures = 0;
   for (const r of results) {

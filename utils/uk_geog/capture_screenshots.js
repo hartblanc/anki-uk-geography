@@ -24,8 +24,6 @@
  *     --stitch build/screenshots/dark-mode-grid.png
  */
 
-const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
@@ -37,6 +35,10 @@ const {
   resolveRenderRequests,
 } = require("./cards.js");
 const { renderMany } = require("./render_screenshot.js");
+const { loadConfig, DEFAULT_CONCURRENCY } = require("../browser_ops");
+
+const DEFAULT_ENGINE = loadConfig().defaultEngine;
+const DEFAULT_SCALE = 1;
 
 const DEFAULT_OUT = path.join(REPO_ROOT, "build", "screenshots");
 
@@ -49,6 +51,8 @@ Options:
   --only LIST        Comma-separated template names to capture
   --sample SPEC      TEMPLATE:FIELD=VALUE note selector; repeatable
   --concurrency N    Number of parallel browser pages (default: CPU core count)
+  --scale N          Device scale factor; 2 doubles each PNG's pixel
+                     dimensions for a sharper image (default: 1)
   --stitch PATH      Stitch captured front/back pairs into a 2-column grid
   --engine NAME      Browser engine: chromium (default), firefox, webkit
   --help             Show this help
@@ -61,9 +65,10 @@ function parseArgs(argv) {
     dark: false,
     only: null,
     sample: [],
-    concurrency: os.cpus().length,
+    concurrency: DEFAULT_CONCURRENCY,
+    scale: DEFAULT_SCALE,
     stitch: null,
-    engine: "chromium",
+    engine: DEFAULT_ENGINE,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -88,6 +93,13 @@ function parseArgs(argv) {
         args.concurrency = parseInt(argv[++i], 10);
         if (!Number.isInteger(args.concurrency) || args.concurrency < 1) {
           console.error("--concurrency must be a positive integer");
+          process.exit(2);
+        }
+        break;
+      case "--scale":
+        args.scale = Number(argv[++i]);
+        if (!(args.scale > 0)) {
+          console.error("--scale must be a positive number");
           process.exit(2);
         }
         break;
@@ -154,10 +166,7 @@ async function main() {
     return;
   }
 
-  // HTML generation doesn't touch a page or the browser at all, so it
-  // happens here as plain preprocessing - one scratch HTML file per
-  // request, keyed by its position so concurrent renders never collide.
-  const items = requests.map((req, index) => {
+  const items = requests.map((req) => {
     const { html } = prepareCard({
       deckPath: args.deck,
       template: req.template,
@@ -172,12 +181,15 @@ async function main() {
       dark: req.dark,
       filename: req.filename,
     });
-    return { html, outPath, template: req.template, side: req.side };
+    return {
+      html,
+      outPath,
+      scale: args.scale,
+      template: req.template,
+      side: req.side,
+    };
   });
 
-  // Renders everything in parallel over a small pool of browser pages,
-  // reusing each one across cards instead of paying per-screenshot page
-  // creation cost.
   const results = await renderMany(items, {
     concurrency: args.concurrency,
     engine: args.engine,
@@ -208,11 +220,7 @@ async function main() {
   }
 }
 
-/**
- * Resolve the output PNG path for a rendered card, honouring an explicit
- * filename override or falling back to the `<template>-<side>[-dark].png`
- * convention.
- */
+/** Output PNG path: `filename` if given, else `<template>-<side>[-dark].png`. */
 function cardPngPath({ outDir, template, side, dark, filename }) {
   const finalFilename = filename
     ? ensurePngExtension(path.basename(String(filename)))

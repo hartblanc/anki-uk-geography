@@ -2,95 +2,88 @@
 "use strict";
 
 /**
- * Renders a URL (file:// or http(s)://) to a PNG screenshot using Playwright.
+ * Render URLs (file:// or http(s)://) to PNG screenshots.
  *
- * renderMany(items, {concurrency, engine, onRendered}) is the only exported
- * entry point: renders a batch of `{url, html, outPath, viewport?, fullPage?,
- * waitUntil?, timeout?}` items (plus any extra fields you want carried
- * through) in parallel over a pool of pages, returning each item merged
- * with its result (`{png, outPath}`). `onRendered(result, item, index)`, if
- * given, fires as each finishes - that's completion order, not `items`
- * order.
- *
+ * renderMany(items, {concurrency, engine, scale, onRendered}) renders a
+ * batch of `{url, html, outPath, viewport?, scale?, fullPage?, waitUntil?,
+ * timeout?}` items, returning each merged with its result in `items` order.
+ * Extra fields on an item are carried through to its result.
  *
  * Usage:
  *   node utils/uk_geog/render_screenshot.js --url URL --out PATH [--url URL --out PATH ...]
- *     [--viewport WIDTHxHEIGHT] [--full-page] [--wait-until EVENT] [--timeout MS]
- *     [--concurrency N] [--engine chromium|firefox|webkit]
+ *     [--viewport WIDTHxHEIGHT] [--scale N] [--full-page] [--wait-until EVENT]
+ *     [--timeout MS] [--concurrency N] [--engine chromium|firefox|webkit]
  */
 
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const {
+  defineOperation,
+  loadConfig,
+  DEFAULT_CONCURRENCY,
+} = require("../browser_ops");
 
-const { runMany } = require("./page_pool.js");
-
+const DEFAULT_ENGINE = loadConfig().defaultEngine;
 const DEFAULT_VIEWPORT = { width: 800, height: 1159 };
-
-// Measured cost of renderToFile()'s work (navigate + screenshot) against an
-// already-running browser, in milliseconds - fed to page_pool.js's
-// pool-sizing so a batch opens the right number of pages.
-const TASK_COST_MS = 50;
+const DEFAULT_SCALE = 1;
 
 /**
- * Navigate `page` to `url`, setContent to html, and save a screenshot to
- * `outPath`. The entire rendering concern. Returns `{png, outPath}`.
+ * Navigate to `url` and/or set `html`, then save a PNG to `outPath`.
+ * An item's `scale` is applied by the pool, not here.
  */
-async function renderToFile(
-  page,
-  {
-    url,
-    html,
-    outPath,
-    viewport = DEFAULT_VIEWPORT,
-    fullPage = false,
-    waitUntil = "load",
-    timeout = 30000,
-  },
-) {
-  await page.setViewportSize(viewport);
-  if (url) {
-    await page.goto(url, { waitUntil, timeout });
-  }
-  if (html) {
-    await page.setContent(html, { waitUntil, timeout });
-  }
-
-  const png = await page.screenshot({ path: outPath, type: "png", fullPage });
-  return { png, outPath };
-}
-
-/**
- * Render every item in `items` (each renderToFile()'s own options, plus any
- * extra fields you want carried through to the result - handy for tagging
- * each render with its own metadata) in parallel, over a pool of pages
- * sized for the batch. Returns each item merged with `{png, outPath}`, in
- * `items` order. `onRendered(result, item, index)`, if given, fires as
- * each finishes - that's completion order, not `items` order.
- */
-async function renderMany(items, { concurrency, engine, onRendered } = {}) {
-  return runMany(
-    items,
-    async (page, item, index) => {
-      const result = { ...item, ...(await renderToFile(page, item)) };
-      if (onRendered) onRendered(result, item, index);
-      return result;
+const renderOperation = defineOperation(module, {
+  name: "render",
+  async run(
+    page,
+    {
+      url,
+      html,
+      outPath,
+      viewport = DEFAULT_VIEWPORT,
+      fullPage = false,
+      waitUntil = "load",
+      timeout = 30000,
     },
-    { concurrency, engine, taskCostMs: TASK_COST_MS },
-  );
+  ) {
+    await page.setViewportSize(viewport);
+    if (url) {
+      await page.goto(url, { waitUntil, timeout });
+    }
+    if (html) {
+      await page.setContent(html, { waitUntil, timeout });
+    }
+    await page.screenshot({ path: outPath, type: "png", fullPage });
+    return { outPath };
+  },
+});
+
+/** Render `items` in parallel, each merged with `{outPath}`. */
+async function renderMany(
+  items,
+  { concurrency, engine, scale, onRendered } = {},
+) {
+  const results = await renderOperation.run(items, {
+    concurrency,
+    engine,
+    scale,
+    onResult:
+      onRendered &&
+      ((result, item, index) =>
+        onRendered({ ...item, ...result }, item, index)),
+  });
+  return results.map((result, i) => ({ ...items[i], ...result }));
 }
 
 const USAGE = `Usage: render_screenshot.js --url URL --out PATH [--url URL --out PATH ...] [options]
 
 Renders one or more file:// or http(s):// URLs to PNGs - pass --url/--out as
-many times as needed, matched in order. Connects to the browser
-browser_mcp.js has running for this repo, if any, otherwise launches and
-closes its own headless browser.
+many times as needed, matched in order. Uses the browser host if one is
+running for this repo, otherwise launches and closes its own browser.
 
 Options:
   --url URL            Page to render (file:// or http(s)://); repeatable
   --out PATH           Output PNG path; repeatable, one per --url, in order
   --viewport WxH       Viewport size, e.g. 800x1159 (default: 800x1159)
+  --scale N            Device scale factor; 2 doubles the PNG's pixel
+                       dimensions for a sharper image (default: 1)
   --full-page          Capture the full scrollable page, not just the viewport
   --wait-until EVENT   Playwright waitUntil event (default: load)
   --timeout MS         Navigation timeout in ms (default: 30000)
@@ -104,11 +97,12 @@ function parseArgs(argv) {
     url: [],
     out: [],
     viewport: null,
+    scale: DEFAULT_SCALE,
     fullPage: false,
     waitUntil: "load",
     timeout: 30000,
-    concurrency: os.cpus().length,
-    engine: "chromium",
+    concurrency: DEFAULT_CONCURRENCY,
+    engine: DEFAULT_ENGINE,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -123,6 +117,13 @@ function parseArgs(argv) {
       case "--viewport":
         args.viewport = argv[++i];
         break;
+      case "--scale":
+        args.scale = Number(argv[++i]);
+        if (!(args.scale > 0)) {
+          console.error("--scale must be a positive number");
+          process.exit(2);
+        }
+        break;
       case "--full-page":
         args.fullPage = true;
         break;
@@ -134,6 +135,10 @@ function parseArgs(argv) {
         break;
       case "--concurrency":
         args.concurrency = parseInt(argv[++i], 10);
+        if (!Number.isInteger(args.concurrency) || args.concurrency < 1) {
+          console.error("--concurrency must be a positive integer");
+          process.exit(2);
+        }
         break;
       case "--engine":
         args.engine = argv[++i];
@@ -182,6 +187,7 @@ async function main() {
     url,
     outPath: args.out[i],
     viewport,
+    scale: args.scale,
     fullPage: args.fullPage,
     waitUntil: args.waitUntil,
     timeout: args.timeout,
