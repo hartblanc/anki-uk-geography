@@ -24,11 +24,14 @@ all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \
 		--dark \
+		--scale 2 \
 		--only "City - Map,City - County,BoW - Map" \
 		--sample "City - Map:City=Gloucester" \
 		--sample "City - County:City=Gloucester" \
 		--sample "BoW - Map:BoW=Bristol Channel" \
 		--stitch build/screenshots/dark-mode-grid.png
+	# Quantise to a 256-colour palette to shrink the file.
+	magick build/screenshots/dark-mode-grid.png +dither -colors 256 build/screenshots/dark-mode-grid.png
 
 # Renders every note template (front/back, light/dark) in Playwright's real
 # WebKit engine, standing in for AnkiMobile's WebKit-based webview, and fails

@@ -29,7 +29,7 @@ To import the deck into anki, you will need the CrowdAnki add-on installed.
 
 ## Generating screenshots
 
-`make screenshots` renders the stitched dark-mode example grid (City - Map and City - County for Gloucester, BoW - Map for Bristol Channel) to `build/screenshots/dark-mode-grid.png`:
+`make screenshots` renders the stitched dark-mode example grid (City - Map and City - County for Gloucester, BoW - Map for Bristol Channel) to `build/screenshots/dark-mode-grid.png`, at 2x scale and reduced to a 256-colour palette:
 
 ```bash
 make screenshots
@@ -46,6 +46,7 @@ For more control (dark mode, specific cards/sample notes, or a stitched grid), u
 ```bash
 node utils/uk_geog/capture_screenshots.js \
   --dark \
+  --scale 2 \
   --only "City - Map,City - County,BoW - Map" \
   --sample "City - Map:City=Gloucester" \
   --sample "City - County:City=Gloucester" \
@@ -56,7 +57,7 @@ node utils/uk_geog/capture_screenshots.js \
 Additional dependencies beyond the normal build:
 
 - **Playwright's Chromium** – installed by `npm install` (see Set-up above); required for `make screenshots`
-- **ImageMagick** (`montage`) – only required for `--stitch` grids
+- **ImageMagick** (`montage`, `magick`) – required for `--stitch` grids and `make screenshots`
 
 ## SVG IDs and anki templates
 So how does Anki know which region to highlight on each card? and which colour to

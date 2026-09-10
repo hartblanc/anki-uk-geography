@@ -122,12 +122,14 @@ function parseArgs(argv) {
   return args;
 }
 
-function stitch(captured, outPng, dark) {
+function stitch(captured, outPng, dark, scale) {
   const files = [];
   for (const [, front, back] of captured) {
     files.push(front, back);
   }
   const background = dark ? "#2f2f31" : "white";
+  // Scaled with the cards, so the grid is the same shape at any --scale.
+  const gap = Math.round(4 * scale);
   execFileSync(
     "montage",
     [
@@ -135,7 +137,7 @@ function stitch(captured, outPng, dark) {
       "-tile",
       `2x${captured.length}`,
       "-geometry",
-      "+4+4",
+      `+${gap}+${gap}`,
       "-background",
       background,
       outPng,
@@ -216,7 +218,7 @@ async function main() {
   }
 
   if (args.stitch && captured.length) {
-    stitch(captured, args.stitch, args.dark);
+    stitch(captured, args.stitch, args.dark, args.scale);
   }
 }
 
