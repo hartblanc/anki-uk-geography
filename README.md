@@ -34,5 +34,5 @@ This deck has benefited massively from the excellent work of others including:
 - Map data from the various sources in the Makefile (see [LICENSES.md](LICENSES.md) for licences and attributions)
 - Knowledge from [Wikipedia](https://www.wikipedia.org/)
 - Open source project structure copied from [Ultimate Geography](https://ankiweb.net/shared/info/2109889812)
-- Ideas from existing Anki decks inclding [Ultimate Geography](https://ankiweb.net/shared/info/2109889812), [Counties of the United Kingdom](https://ankiweb.net/shared/info/1376524951), and [[Vector Maps] The United States of America](https://ankiweb.net/shared/info/1226689493).
+- Ideas from existing Anki decks including [Ultimate Geography](https://ankiweb.net/shared/info/2109889812), [Counties of the United Kingdom](https://ankiweb.net/shared/info/1376524951), and [[Vector Maps] The United States of America](https://ankiweb.net/shared/info/1226689493).
 - Existing software that this project benefits from includes: [crowdanki](https://github.com/Stvad/CrowdAnki), [BrainBrew](https://github.com/ohare93/brain-brew), and of course [Anki](https://apps.ankiweb.net/)
