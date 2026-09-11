@@ -10,11 +10,9 @@
  * into a page in turn, so state left by one card can break the next.
  * Each template's front and back are shown twice through, in one session.
  *
- * Sessions aren't isolated from each other either: browser_ops may run
- * several on the same page (see its README), so a leak in one can just as
- * easily surface in the next session sharing that page as in its own
- * repeat. A failure's session and card are still reported correctly; only
- * which *other* session caused it is not.
+ * A session tears itself down when it finishes, so its leaks don't reach
+ * whichever session runs next - browser_ops may run several sessions on
+ * one page (see its README on batch isolation).
  *
  * Works with any engine (--engine chromium|firefox|webkit, default chromium).
  * WebKit runs as AnkiMobile on an iPhone and an iPad unless --client says
@@ -101,6 +99,10 @@ const checkOperation = defineOperation(module, {
 
     page.off("console", onConsole);
     page.off("pageerror", onPageError);
+
+    // Leave the page blank so nothing of this session - globals, timers,
+    // listeners - reaches whichever session runs on it next.
+    await page.goto("about:blank").catch(() => {});
 
     return { navError, showings };
   },
