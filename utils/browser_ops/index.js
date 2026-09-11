@@ -275,19 +275,16 @@ const discard = (page) =>
     .catch(() => {});
 
 /**
- * Ready-to-use pages for one (engine, context options), kept topped up to
- * `target` so a batch usually finds enough waiting for it.
+ * Pages for one (engine, context options). A pool keeps `target` pages
+ * ready between batches; that's 0 unless warm() set it.
  */
 class PagePool {
-  constructor(browser, engine, context, keepReady) {
+  constructor(browser, engine, context) {
     this.browser = browser;
     this.engine = engine;
     this.context = context;
-    // Only a pool that outlives the batch benefits from rebuilding pages.
-    this.keepReady = keepReady;
     this.ready = [];
-    // What warm() asks for, if anything; otherwise a sensible default.
-    this.target = keepReady ? DEFAULT_CONCURRENCY : 0;
+    this.target = 0;
     this.refilling = null;
   }
 
@@ -314,7 +311,7 @@ class PagePool {
   // the background so the next batch finds them ready.
   release(pages) {
     for (const page of pages) discard(page);
-    if (this.keepReady) this.refill();
+    this.refill();
   }
 
   refill() {
@@ -337,8 +334,7 @@ class PagePool {
     return this.refilling;
   }
 
-  // Keep exactly `count` pages ready from now on. Set by warm(), so asking
-  // for fewer than the default really does hold fewer.
+  // Keep exactly `count` pages ready from now on.
   async ensureReady(count) {
     this.target = count;
     await Promise.all(this.ready.splice(count).map(discard));
@@ -375,8 +371,8 @@ function pickPageCount({
  * Owns browsers and their page pools, and runs operations against them.
  * One browser per engine, one page pool per (engine, context options).
  *
- * `persistent` keeps pages ready between batches - true on the host, false
- * for a one-shot local call.
+ * `persistent` is true on the host, false for a one-shot local call. Only
+ * pools named by warm() keep pages ready between batches.
  */
 class BrowserPool {
   constructor({ persistent = false } = {}) {
@@ -423,9 +419,7 @@ class BrowserPool {
     let pending = this.pools.get(key);
     if (!pending) {
       pending = this.browserFor(engine)
-        .then(
-          (browser) => new PagePool(browser, engine, context, this.persistent),
-        )
+        .then((browser) => new PagePool(browser, engine, context))
         .catch((err) => {
           this.pools.delete(key);
           throw err;
@@ -539,7 +533,7 @@ class BrowserPool {
             concurrency,
             engine,
             costMs,
-            reusable: this.persistent,
+            reusable: pool.target > 0,
           }),
         );
         leased.push({ pool, pages, queue });

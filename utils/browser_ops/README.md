@@ -112,15 +112,16 @@ it. Progress output looks the same, just less incremental.
 
 ## Each batch gets fresh pages
 
-A batch leases its pages from a pool of ready ones, and they are discarded
-when it finishes — never handed to another batch. Each page has a browser
+A batch leases its pages from a pool, and they are discarded when it
+finishes — never handed to another batch. Each page has a browser
 context to itself, which is what lets it be thrown away cleanly, so nothing
 an operation leaves behind can reach the next one: cookies, storage,
 `addInitScript`, listeners, emulation, routes, viewport, running timers.
 
-Replacements are built in the background after a batch returns its pages, so
-the cost normally lands between batches rather than inside one. `warm` keeps
-a set ready from startup.
+A pool named in `warm` keeps a set of pages ready from startup, and builds
+replacements in the background after a batch returns its pages, so the cost
+normally lands between batches rather than inside one. Any other pool keeps
+nothing ready: a batch builds its pages when it starts.
 
 Within a batch there is no isolation: a worker keeps its page for the whole
 batch, so items running on it follow one another on the same page. An
@@ -178,7 +179,7 @@ A `make watch` target or a plain daemon works equally well — MCP is just a
 convenient thing to hang it on, since the editor keeps it alive.
 
 Browsers are launched lazily, per engine, the first time something asks. A
-WebKit run warms WebKit; it doesn't have to be nominated up front.
+WebKit run leaves WebKit open; it doesn't have to be nominated up front.
 
 ### Opening browsers at startup
 
@@ -192,18 +193,19 @@ module.exports = {
 };
 ```
 
-`warm` also sets how many pages are kept ready from then on, so it decides
-how much memory sits idle. On this machine a
-WebKit browser alone is 76MB, while each of its pages is ~113MB (Chromium
+`warm` also sets how many pages are kept ready from then on, and only the
+pools it names keep any, so it decides how much memory sits idle. Using an
+engine or context that isn't warmed opens pages for that batch alone, and
+leaves only the browser behind. On this machine a WebKit browser alone is 76MB, while each of its pages is ~113MB (Chromium
 ~78MB, Firefox ~234MB). Warming the browser with few pages is the cheap
 middle ground — `{engine: "webkit", pages: 2}` holds ~490MB and runs a
 40-card check in 1.09s, against ~1090MB and 0.82s for 8.
 
 Naming an engine is usually enough. Pages and context default to what an
 ordinary batch uses — `defaultContext`, and as many pages as `concurrency`
-defaults to — because a persistent pool grows to `min(concurrency, batch
-size)`, so that's exactly what a full-size batch will ask for. Warming fewer
-doesn't avoid the work, it just moves page creation onto the first command.
+defaults to — since a batch asks for `min(concurrency, batch size)` pages.
+Warming fewer holds less memory, but a bigger batch builds the difference
+itself every time it runs.
 
 Pass `{engine, context, pages}` instead when you want pages with particular
 context options ready — `{engine: "chromium", context: {deviceScaleFactor:
