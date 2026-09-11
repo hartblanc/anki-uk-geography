@@ -4,9 +4,9 @@
  * Deck and card-HTML utilities for Anki's CrowdAnki export format: load a
  * deck.json, find a note that satisfies a template's required fields,
  * render a template's `{{Field}}`/`{{#Field}}...{{/Field}}` syntax against
- * it, and wrap the result in Anki's HTML card shell (front/back,
- * light/dark). Has no browser automation dependency - the output is a
- * written HTML file, for something else to open and render.
+ * it, and wrap the result in a page shaped like an Anki client's reviewer
+ * (front/back, light/dark). Has no browser automation dependency - the
+ * output is HTML, for something else to open and render.
  *
  * `samples` throughout is a list of `"TEMPLATE:FIELD=VALUE"` strings (or
  * just `"FIELD=VALUE"` when it's already scoped to one template) used to
@@ -76,32 +76,78 @@ function findNote(notes, fieldNames, required, sample) {
   return null;
 }
 
-function wrapHtml(css, body, dark) {
-  const bodyClass = dark ? ' class="nightMode"' : "";
-  const darkCss = dark
-    ? `
-body.nightMode {
+/**
+ * Anki clients a card can be rendered as. `htmlClass` and `mobile` shape the
+ * page like that client's reviewer; `context` is the Playwright context
+ * options that emulate its device. Mobile viewports are AnkiMobile's
+ * approximate card area.
+ */
+const CLIENTS = {
+  desktop: { htmlClass: "", mobile: false, context: {} },
+  iphone: {
+    htmlClass: "webkit safari mobile ios iphone js retina orientation_portrait",
+    mobile: true,
+    context: {
+      viewport: { width: 393, height: 659 },
+      screen: { width: 393, height: 852 },
+      deviceScaleFactor: 3,
+      isMobile: true,
+      hasTouch: true,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    },
+  },
+  ipad: {
+    htmlClass: "webkit safari mobile ios ipad js retina orientation_portrait",
+    mobile: true,
+    context: {
+      viewport: { width: 820, height: 1010 },
+      screen: { width: 820, height: 1180 },
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      userAgent:
+        "Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    },
+  },
+};
+
+// Stand-in for the reviewer's night-mode colours.
+const NIGHT_CSS = `.card.nightMode {
   background-color: #2f2f31;
   color: #d0d0d0;
+}`;
+
+function clientFor(name) {
+  const client = CLIENTS[name];
+  if (!client) {
+    throw new Error(
+      `Unknown client: ${name} (expected one of ${Object.keys(CLIENTS).join(", ")})`,
+    );
+  }
+  return client;
 }
-body.nightMode .card {
-  background-color: #2f2f31;
-  color: #d0d0d0;
-}
-`
+
+/**
+ * A page shaped like `client`'s reviewer, with `content` in #qa and
+ * `bodyClass` on body. Omit both for an empty page to show cards in.
+ */
+function pageHtml({ client = "desktop", bodyClass = "card", content = "" }) {
+  const { htmlClass, mobile } = clientFor(client);
+  const viewport = mobile
+    ? '<meta name="viewport" id="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=10,user-scalable=1">\n'
     : "";
   return `<!doctype html>
-<html>
+<html${htmlClass ? ` class="${htmlClass}"` : ""}>
 <head>
 <meta charset="utf-8">
-<style>
-${css}
-${darkCss}
+${viewport}<style>
+${NIGHT_CSS}
 </style>
 </head>
-<body${bodyClass}>
-<div class="card">
-${body}
+<body class="${bodyClass}">
+<div id="qa">
+${content}
 </div>
 </body>
 </html>
@@ -138,10 +184,11 @@ function loadDeck(deckPath) {
   };
 }
 
-// Find a usable note for `template` and render it into wrapped HTML - the
-// non-I/O core of writeCardHtml() below. Throws (with a `.status` of 404)
-// if the template doesn't exist or no note satisfies it.
-function prepareCard({ deckPath, template, side, dark, samples }) {
+// Find a usable note for `template` and render it. Returns `{html, content,
+// bodyClass}`: the whole page for `client` (default "desktop"), or what
+// goes in #qa and on body to show it in an existing one. Throws (with a
+// `.status` of 404) if the template doesn't exist or no note satisfies it.
+function prepareCard({ deckPath, template, side, dark, samples, client }) {
   const { deck, fieldNames, css, templatesByName } = loadDeck(deckPath);
   const tmpl = templatesByName[String(template || "")];
   if (!tmpl) {
@@ -170,9 +217,10 @@ function prepareCard({ deckPath, template, side, dark, samples }) {
   const actualSide = side === "back" ? "back" : "front";
   const isDark = Boolean(dark);
   const source = actualSide === "back" ? tmpl.afmt : tmpl.qfmt;
-  const html = wrapHtml(css, renderTemplate(source, fields), isDark);
+  const content = `<style>\n${css}\n</style>\n${renderTemplate(source, fields)}`;
+  const bodyClass = `card card${tmpl.ord + 1}${isDark ? " nightMode night_mode" : ""}`;
 
-  return { html };
+  return { html: pageHtml({ client, bodyClass, content }), content, bodyClass };
 }
 
 /**
@@ -303,6 +351,8 @@ function resolveRenderRequests({
 module.exports = {
   REPO_ROOT,
   DEFAULT_DECK,
+  CLIENTS,
+  pageHtml,
   prepareCard,
   resolveRenderRequests,
 };
