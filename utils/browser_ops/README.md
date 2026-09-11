@@ -183,6 +183,31 @@ convenient thing to hang it on, since the editor keeps it alive.
 Browsers are launched lazily, per engine, the first time something asks. A
 WebKit run leaves WebKit open; it doesn't have to be nominated up front.
 
+### More than one browser
+
+An engine normally runs as a single browser process, with every page pool
+for it - whatever their `context` - sharing that one process. Some work has
+a cost that doesn't spread over pages, because it happens once per browser
+rather than once per page: PNG-encoding a screenshot, say, runs on a single
+thread of the browser process no matter how many pages are asking for one.
+More pages can't parallelize that part; more browsers can.
+
+```js
+module.exports = {
+  browsers: { chromium: 2 },
+};
+```
+
+Page pools round-robin over an engine's instances - an operation still just
+gets a page and has no way to tell, or ask, which instance it came from.
+Instances are fixed at whatever `browsers` says: they're launched once, the
+first time the engine is used, and never launched again to meet load - only
+a crashed instance is replaced, to hold the count steady rather than let it
+drop. So this is a number to set deliberately, not something that grows on
+its own, and each instance is a full extra browser process - GPU and
+network processes included - so it's worth it only for the work that's
+actually bottlenecked on one.
+
 ### Opening browsers at startup
 
 Lazy is fine, but the first call then pays for the launch — 89ms for
@@ -248,6 +273,7 @@ module.exports = {
   launchArgs: { chromium: ["--disable-gpu", "--hide-scrollbars"] },
   defaultContext: { viewport: { width: 1280, height: 720 } },
   defaultEngine: "chromium",
+  browsers: {},
   warm: [],
 };
 ```

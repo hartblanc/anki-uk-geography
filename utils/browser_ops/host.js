@@ -86,7 +86,8 @@ async function startHost({ onLog, warm } = {}) {
     onWarm: (r) =>
       log(
         r.ok
-          ? `warmed ${r.engine}${r.context ? ` ${JSON.stringify(r.context)}` : ""} ` +
+          ? `warmed ${r.engine}${r.instances > 1 ? ` x${r.instances}` : ""}` +
+              `${r.context ? ` ${JSON.stringify(r.context)}` : ""} ` +
               `(${r.pages} page${r.pages === 1 ? "" : "s"}) in ${r.ms}ms`
           : `failed to warm ${r.engine}: ${r.error}`,
       ),

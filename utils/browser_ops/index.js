@@ -38,6 +38,10 @@ const DEFAULT_CONFIG = {
   // `context`, then an item's, override them key by key.
   defaultContext: { viewport: { width: 1280, height: 720 } },
   defaultEngine: "chromium",
+  // Browser instances per engine; page pools round-robin over them. Every
+  // engine defaults to 1 - more only helps work with a bottleneck inside a
+  // single browser process (see README).
+  browsers: {},
   // Engine names, or {engine, context, pages}, opened when a host starts.
   // Empty means every browser is launched on first use.
   warm: [],
@@ -99,8 +103,21 @@ function loadConfig() {
       ...DEFAULT_CONFIG.defaultContext,
       ...(overrides.defaultContext || {}),
     },
+    browsers: {
+      ...DEFAULT_CONFIG.browsers,
+      ...(overrides.browsers || {}),
+    },
   };
   return cachedConfig;
+}
+
+// Configured instance count for `engine`, at least 1.
+function instanceCount(engine) {
+  const n = loadConfig().browsers[engine] ?? 1;
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`browsers.${engine} must be a positive integer, got ${n}`);
+  }
+  return n;
 }
 
 // Socket the host listens on, one per project root.
@@ -275,8 +292,8 @@ const discard = (page) =>
     .catch(() => {});
 
 /**
- * Pages for one (engine, context options). A pool keeps `target` pages
- * ready between batches; that's 0 unless warm() set it.
+ * Pages for one (engine, browser instance, context options). A pool keeps
+ * `target` pages ready between batches; that's 0 unless warm() set it.
  */
 class PagePool {
   constructor(browser, engine, context) {
@@ -347,6 +364,92 @@ class PagePool {
 }
 
 /**
+ * Pages for one (engine, context options), round-robinned over however many
+ * browser instances the engine has - `run` and `warm` deal only in pages,
+ * never an instance.
+ */
+class PageGroup {
+  constructor(browserPool, engine, context, count) {
+    this.browserPool = browserPool;
+    this.engine = engine;
+    this.context = context;
+    this.count = count;
+    this.owner = new Map(); // page -> instance index it was leased from
+    this.next = 0; // round-robin cursor, carried across calls
+    this.warmed = false;
+  }
+
+  poolFor(index) {
+    return this.browserPool.instancePoolFor(this.engine, index, this.context);
+  }
+
+  // `count` pages, spread round-robin over the instances. If one instance's
+  // share fails, any pages already taken from the others go straight back
+  // rather than leaking.
+  async lease(count) {
+    const share = new Array(this.count).fill(0);
+    for (let i = 0; i < count; i++) share[this.next++ % this.count]++;
+    const settled = await Promise.allSettled(
+      share.map(async (want, i) => {
+        if (!want) return [];
+        const pages = await (await this.poolFor(i)).lease(want);
+        for (const page of pages) this.owner.set(page, i);
+        return pages;
+      }),
+    );
+    const failed = settled.find((s) => s.status === "rejected");
+    if (failed) {
+      this.release(
+        settled.flatMap((s) => (s.status === "fulfilled" ? s.value : [])),
+      );
+      throw failed.reason;
+    }
+    return settled.flatMap((s) => s.value);
+  }
+
+  // Give pages back to whichever instance leased them.
+  release(pages) {
+    const byIndex = new Map();
+    for (const page of pages) {
+      const i = this.owner.get(page);
+      this.owner.delete(page);
+      if (!byIndex.has(i)) byIndex.set(i, []);
+      byIndex.get(i).push(page);
+    }
+    for (const [i, pagesForInstance] of byIndex) {
+      this.poolFor(i)
+        .then((pool) => pool.release(pagesForInstance))
+        .catch(() => {
+          // Instance is gone and couldn't be relaunched; nothing to release.
+        });
+    }
+  }
+
+  // Keep `count` pages ready in total, spread evenly over the instances.
+  // `warmed` only once every instance has at least one, so a group split
+  // too thin to cover all of them isn't sized as if it were fully warm.
+  async ensureReady(count) {
+    const base = Math.floor(count / this.count);
+    const extra = count % this.count;
+    this.warmed = base > 0;
+    await Promise.all(
+      Array.from({ length: this.count }, async (_, i) => {
+        await (await this.poolFor(i)).ensureReady(base + (i < extra ? 1 : 0));
+      }),
+    );
+  }
+
+  async close() {
+    await Promise.all(
+      Array.from({ length: this.count }, async (_, i) => {
+        const pool = await this.poolFor(i).catch(() => null);
+        if (pool) await pool.close();
+      }),
+    );
+  }
+}
+
+/**
  * Pages to lease for `itemCount` items, capped at `concurrency`.
  * Throwaway pools take `sqrt(itemCount * costMs / newPageCost)` once both
  * costs are known; everything else takes the cap.
@@ -369,7 +472,9 @@ function pickPageCount({
 
 /**
  * Owns browsers and their page pools, and runs operations against them.
- * One browser per engine, one page pool per (engine, context options).
+ * Each engine has `browsers.<engine>` instances (default 1, see config);
+ * one page pool per (engine, instance, context options), round-robinned by
+ * a PageGroup so `run` and `warm` only ever deal with pages.
  *
  * `persistent` is true on the host, false for a one-shot local call. Only
  * pools named by warm() keep pages ready between batches.
@@ -377,49 +482,59 @@ function pickPageCount({
 class BrowserPool {
   constructor({ persistent = false } = {}) {
     this.persistent = persistent;
-    // Both maps hold the promise of the thing, so concurrent callers share
-    // one launch rather than starting duplicates.
-    this.browsers = new Map(); // engine -> Promise<Browser>
-    this.pools = new Map(); // `${engine}:${contextKey}` -> Promise<PagePool>
+    // Every map holds the promise of the thing, so concurrent callers share
+    // one launch or pool build rather than starting duplicates.
+    this.browsers = new Map(); // engine -> Promise<Browser>[], fixed length
+    this.pools = new Map(); // `${engine}:${index}:${contextKey}` -> Promise<PagePool>
+    this.groups = new Map(); // `${engine}:${contextKey}` -> PageGroup
   }
 
-  // Drop a browser and every pool built on it, so the next call starts
-  // fresh. `pending` guards against evicting a newer replacement.
-  forget(engine, pending) {
-    if (this.browsers.get(engine) === pending) this.browsers.delete(engine);
+  // Drop one instance and the pools built on it, so the next call to
+  // instancesFor() relaunches just that instance.
+  forget(engine, index, pending) {
+    const instances = this.browsers.get(engine);
+    if (instances && instances[index] === pending) instances[index] = undefined;
     for (const key of [...this.pools.keys()]) {
-      if (key.startsWith(`${engine}:`)) this.pools.delete(key);
+      if (key.startsWith(`${engine}:${index}:`)) this.pools.delete(key);
     }
   }
 
-  browserFor(engine) {
-    let pending = this.browsers.get(engine);
-    if (!pending) {
-      pending = browserTypeFor(engine)
+  // `engine`'s browser instances: `browsers.<engine>` from config (default
+  // 1), launched once each on first use. Never opens more than that to meet
+  // load - only relaunches a slot forget() cleared.
+  instancesFor(engine) {
+    let instances = this.browsers.get(engine);
+    if (!instances) {
+      instances = new Array(instanceCount(engine));
+      this.browsers.set(engine, instances);
+    }
+    for (let i = 0; i < instances.length; i++) {
+      if (instances[i]) continue;
+      const pending = browserTypeFor(engine)
         .launch({
           headless: true,
           args: loadConfig().launchArgs[engine] ?? [],
         })
         .then((browser) => {
-          browser.on("disconnected", () => this.forget(engine, pending));
+          browser.on("disconnected", () => this.forget(engine, i, pending));
           return browser;
         })
         .catch((err) => {
-          this.browsers.delete(engine);
+          this.forget(engine, i, pending);
           throw err;
         });
-      this.browsers.set(engine, pending);
+      instances[i] = pending;
     }
-    return pending;
+    return instances;
   }
 
-  // `context` is what contextOptions() returns.
-  pagePoolFor(engine, context) {
-    const key = `${engine}:${contextKey(context)}`;
+  // One instance's pages for `context` (what contextOptions() returns).
+  instancePoolFor(engine, index, context) {
+    const key = `${engine}:${index}:${contextKey(context)}`;
     let pending = this.pools.get(key);
     if (!pending) {
-      pending = this.browserFor(engine)
-        .then((browser) => new PagePool(browser, engine, context))
+      pending = this.instancesFor(engine)
+        [index].then((browser) => new PagePool(browser, engine, context))
         .catch((err) => {
           this.pools.delete(key);
           throw err;
@@ -429,13 +544,25 @@ class BrowserPool {
     return pending;
   }
 
+  // `context` is what contextOptions() returns.
+  pageGroupFor(engine, context) {
+    const key = `${engine}:${contextKey(context)}`;
+    let group = this.groups.get(key);
+    if (!group) {
+      group = new PageGroup(this, engine, context, instanceCount(engine));
+      this.groups.set(key, group);
+    }
+    return group;
+  }
+
   /**
    * Open browsers and pages before any request arrives.
    *
    * `targets` are engine names, or `{engine, context, pages}` to override the
-   * defaults (`defaultContext`, DEFAULT_CONCURRENCY pages). Failures are
-   * reported to `onWarm({engine, context, pages, ms, ok, error})`, never
-   * thrown; `context` is the target's own.
+   * defaults (`defaultContext`, DEFAULT_CONCURRENCY pages). `pages` is split
+   * evenly over the engine's instances (see `browsers` in the config).
+   * Failures are reported to `onWarm({engine, context, pages, instances, ms,
+   * ok, error})`, never thrown; `context` is the target's own.
    */
   async warm(targets = [], { onWarm } = {}) {
     await Promise.all(
@@ -449,13 +576,14 @@ class BrowserPool {
             pages = DEFAULT_CONCURRENCY,
           } = typeof target === "string" ? { engine: target } : (target ?? {}));
           assertEngine(engine);
-          const pool = await this.pagePoolFor(engine, contextOptions(context));
-          await pool.ensureReady(pages);
+          const group = this.pageGroupFor(engine, contextOptions(context));
+          await group.ensureReady(pages);
           if (onWarm) {
             onWarm({
               engine,
               context,
               pages,
+              instances: instanceCount(engine),
               ms: Date.now() - started,
               ok: true,
             });
@@ -499,14 +627,14 @@ class BrowserPool {
     // first item, and reuse that for later batches in this process.
     let costMs = measuredCost.get(op);
     if (!this.persistent && costMs == null && items.length > 1) {
-      const pool = await this.pagePoolFor(engine, contextOf(items[0]));
-      const [page] = await pool.lease(1);
+      const group = this.pageGroupFor(engine, contextOf(items[0]));
+      const [page] = await group.lease(1);
       const started = Date.now();
       try {
         results[0] = await op.run(page, items[0]);
         costMs = Math.max(1, Date.now() - started);
       } finally {
-        pool.release([page]);
+        group.release([page]);
       }
       measuredCost.set(op, costMs);
       firstJob = 1;
@@ -523,7 +651,7 @@ class BrowserPool {
       queues.get(key).queue.push(i);
     }
 
-    const leased = []; // {pool, pages, queue}
+    const leased = []; // {group, pages, queue}
     try {
       // Split `concurrency` between the queues by size, one page at least.
       let budget = concurrency;
@@ -535,17 +663,17 @@ class BrowserPool {
         );
         budget -= share;
         unassigned -= queue.length;
-        const pool = await this.pagePoolFor(engine, context);
-        const pages = await pool.lease(
+        const group = this.pageGroupFor(engine, context);
+        const pages = await group.lease(
           pickPageCount({
             itemCount: queue.length,
             concurrency: share,
             engine,
             costMs,
-            reusable: pool.target > 0,
+            reusable: group.warmed,
           }),
         );
-        leased.push({ pool, pages, queue });
+        leased.push({ group, pages, queue });
       }
 
       // Each worker keeps one page for the whole batch and pulls from its
@@ -572,26 +700,31 @@ class BrowserPool {
       await Promise.all(workers);
       return results;
     } finally {
-      for (const { pool, pages } of leased) pool.release(pages);
+      for (const { group, pages } of leased) group.release(pages);
     }
   }
 
   async close() {
-    for (const pending of this.pools.values()) {
+    for (const group of this.groups.values()) {
       try {
-        await (await pending).close();
+        await group.close();
       } catch {
         // Never built, or already gone.
       }
     }
+    this.groups.clear();
     this.pools.clear();
-    for (const pending of this.browsers.values()) {
-      try {
-        await (await pending).close();
-      } catch {
-        // Never launched, or already gone.
-      }
-    }
+    await Promise.all(
+      [...this.browsers.values()].flatMap((instances) =>
+        instances.filter(Boolean).map(async (pending) => {
+          try {
+            await (await pending).close();
+          } catch {
+            // Never launched, or already gone.
+          }
+        }),
+      ),
+    );
     this.browsers.clear();
   }
 }
