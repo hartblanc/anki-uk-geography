@@ -6,9 +6,15 @@
  * any render throws a JS error or logs a console error/warning. Never takes
  * a screenshot.
  *
- * Cards are shown the way Anki's reviewer shows them: one page per session,
- * with each card swapped into it in turn, so state left by one card can
- * break the next. Each template's front and back are shown twice through.
+ * Cards are shown the way Anki's reviewer shows them: each card swapped
+ * into a page in turn, so state left by one card can break the next.
+ * Each template's front and back are shown twice through, in one session.
+ *
+ * Sessions aren't isolated from each other either: browser_ops may run
+ * several on the same page (see its README), so a leak in one can just as
+ * easily surface in the next session sharing that page as in its own
+ * repeat. A failure's session and card are still reported correctly; only
+ * which *other* session caused it is not.
  *
  * Works with any engine (--engine chromium|firefox|webkit, default chromium).
  * WebKit runs as AnkiMobile on an iPhone and an iPad unless --client says
