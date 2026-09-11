@@ -50,19 +50,23 @@ async function startHost({ onLog, warm } = {}) {
 
   const server = net.createServer((socket) => {
     socket.setEncoding("utf8");
-    let buffer = "";
+    // Chunks of the line received so far.
+    let partial = [];
     // Answer in order, so a client can't be handed someone else's reply.
     let queue = Promise.resolve();
 
     socket.on("data", (chunk) => {
-      buffer += chunk;
+      let start = 0;
       let newline;
-      while ((newline = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, newline);
-        buffer = buffer.slice(newline + 1);
+      while ((newline = chunk.indexOf("\n", start)) >= 0) {
+        partial.push(chunk.slice(start, newline));
+        const line = partial.join("");
+        partial = [];
+        start = newline + 1;
         if (!line.trim()) continue;
         queue = queue.then(() => handle(pool, socket, line, log));
       }
+      partial.push(chunk.slice(start));
     });
 
     socket.on("error", () => {});

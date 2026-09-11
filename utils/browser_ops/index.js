@@ -600,7 +600,7 @@ function requestFromHost(address, items, opts) {
   return new Promise((resolve, reject) => {
     const socket = net.connect(hostSocketPath());
     socket.setEncoding("utf8");
-    let buffer = "";
+    const received = [];
     let settled = false;
 
     const finish = (fn, value) => {
@@ -625,12 +625,12 @@ function requestFromHost(address, items, opts) {
     });
 
     socket.on("data", (chunk) => {
-      buffer += chunk;
-      const newline = buffer.indexOf("\n");
+      const newline = chunk.indexOf("\n");
+      received.push(newline < 0 ? chunk : chunk.slice(0, newline));
       if (newline < 0) return;
       let message;
       try {
-        message = JSON.parse(buffer.slice(0, newline));
+        message = JSON.parse(received.join(""));
       } catch {
         return finish(reject, new Error("Malformed reply from browser host"));
       }
