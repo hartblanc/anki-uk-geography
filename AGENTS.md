@@ -18,9 +18,11 @@ Run any of these with `--help` for the full list of options.
   doubles each PNG's pixel dimensions), `--concurrency N`, `--stitch PATH`,
   `--out DIR`, `--engine chromium|firefox|webkit`.
 - **Check cards for JS/console errors** - `node utils/uk_geog/check_cards.js [options]`.
-  Takes no screenshots, and always covers every template x side x theme.
-  Options: `--sample`, `--concurrency`, `--engine`. Running it against WebKit
-  stands in for AnkiMobile's webview.
+  Takes no screenshots, and always covers every template x side x theme,
+  showing cards one after another in one page as Anki's reviewer does.
+  Options: `--sample`, `--concurrency`, `--engine`,
+  `--client desktop|iphone|ipad`. On WebKit it emulates AnkiMobile on an
+  iPhone and an iPad by default; other engines run as desktop Anki.
 - **Screenshot any page** - `node utils/uk_geog/render_screenshot.js --url URL --out PATH`,
   repeatable for several pages in one call. Any `file://` or `http(s)://`
   URL. Also takes `--scale N` and `--engine`.

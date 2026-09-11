@@ -34,14 +34,16 @@ screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities
 	magick build/screenshots/dark-mode-grid.png +dither -colors 256 build/screenshots/dark-mode-grid.png
 
 # Renders every note template (front/back, light/dark) in Playwright's real
-# WebKit engine, standing in for AnkiMobile's WebKit-based webview, and fails
-# if any render throws a JS error or the zoombox fails to populate. `npm
-# install` fetches the Playwright WebKit browser automatically.
+# WebKit engine, emulating AnkiMobile on an iPhone and an iPad: its page,
+# screen size, pixel density and touch media queries, with cards shown one
+# after another in one page as its reviewer does. Fails if any render throws
+# a JS error or logs a console error. `npm install` fetches the Playwright
+# WebKit browser automatically.
 webkit-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/check_cards.js --engine webkit
 
-# Same check, in Playwright's Chromium engine, standing in for AnkiDesktop's
-# QtWebEngine and AnkiDroid's WebView (both Chromium-based).
+# Same check, in Playwright's Chromium engine as desktop Anki, standing in for
+# AnkiDesktop's QtWebEngine and AnkiDroid's WebView (both Chromium-based).
 chromium-check: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/check_cards.js --engine chromium
 

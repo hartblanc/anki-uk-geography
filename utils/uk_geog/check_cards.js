@@ -6,8 +6,13 @@
  * any render throws a JS error or logs a console error/warning. Never takes
  * a screenshot.
  *
- * Works with any engine (--engine chromium|firefox|webkit, default chromium);
- * running it against WebKit stands in for AnkiMobile's WebKit-based webview.
+ * Cards are shown the way Anki's reviewer shows them: one page per session,
+ * with each card swapped into it in turn, so state left by one card can
+ * break the next. Each template's front and back are shown twice through.
+ *
+ * Works with any engine (--engine chromium|firefox|webkit, default chromium).
+ * WebKit runs as AnkiMobile on an iPhone and an iPad unless --client says
+ * otherwise; other engines run as desktop Anki.
  *
  * Usage:
  *   node utils/uk_geog/check_cards.js [options]
@@ -15,6 +20,8 @@
 
 const {
   DEFAULT_DECK,
+  CLIENTS,
+  pageHtml,
   prepareCard,
   resolveRenderRequests,
 } = require("./cards.js");
@@ -25,27 +32,63 @@ const {
 } = require("../browser_ops");
 
 const DEFAULT_ENGINE = loadConfig().defaultEngine;
+const ROUNDS = 2;
+
+// Show a card as Anki's reviewer does: swap #qa's contents and the body's
+// classes, then re-create each script so it runs.
+function showCard({ content, bodyClass }) {
+  document.body.className = bodyClass;
+  const qa = document.getElementById("qa");
+  qa.innerHTML = content;
+  for (const old of qa.querySelectorAll("script")) {
+    const script = document.createElement("script");
+    for (const { name, value } of old.attributes) {
+      script.setAttribute(name, value);
+    }
+    script.textContent = old.textContent;
+    old.replaceWith(script);
+  }
+}
+
+const settle = () =>
+  new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
 
 /**
- * Load `html` and report console errors/warnings, uncaught page errors, and
- * whether the load failed. Returns `{navError, consoleIssues, pageErrors}`.
+ * Load `shell`, then show `cards` ({content, bodyClass}) in it one after
+ * another, `rounds` times through. Returns `{navError, showings}`, with
+ * `{consoleIssues, pageErrors}` for each card shown, in order.
  */
 const checkOperation = defineOperation(module, {
   name: "check",
-  async run(page, { html, waitUntil = "load", timeout = 30000 }) {
-    const consoleMessages = [];
-    const pageErrors = [];
+  async run(page, { shell, cards, rounds = 1, timeout = 30000 }) {
+    const showings = [];
+    let current;
+    const next = () => {
+      current = { consoleIssues: [], pageErrors: [] };
+      showings.push(current);
+    };
 
-    const onConsole = (msg) =>
-      consoleMessages.push({ type: msg.type(), text: msg.text() });
-    const onPageError = (err) => pageErrors.push(err.message || String(err));
+    const onConsole = (msg) => {
+      if (msg.type() === "error" || msg.type() === "warning") {
+        current.consoleIssues.push(`${msg.type()}: ${msg.text()}`);
+      }
+    };
+    const onPageError = (err) =>
+      current.pageErrors.push(err.message || String(err));
 
     page.on("console", onConsole);
     page.on("pageerror", onPageError);
 
+    // Anything the shell itself reports lands on the first card.
+    next();
     let navError = null;
     try {
-      await page.setContent(html, { waitUntil, timeout });
+      await page.setContent(shell, { timeout });
+      for (let n = 0; n < rounds * cards.length; n++) {
+        if (n > 0) next();
+        await page.evaluate(showCard, cards[n % cards.length]);
+        await page.evaluate(settle);
+      }
     } catch (err) {
       navError = err.message || String(err);
     }
@@ -53,25 +96,25 @@ const checkOperation = defineOperation(module, {
     page.off("console", onConsole);
     page.off("pageerror", onPageError);
 
-    const consoleIssues = consoleMessages
-      .filter((msg) => msg.type === "error" || msg.type === "warning")
-      .map((msg) => `${msg.type}: ${msg.text}`);
-
-    return { navError, consoleIssues, pageErrors };
+    return { navError, showings };
   },
 });
 
 const USAGE = `Usage: check_cards.js [options]
 
 Renders every note template (front/back, light/dark) and fails if any
-render throws a JS error or logs a console error/warning. Doesn't take or
-save any screenshots.
+render throws a JS error or logs a console error/warning. Cards are shown
+one after another in the same page, as Anki's reviewer does. Doesn't take
+or save any screenshots.
 
 Options:
   --deck PATH        CrowdAnki deck.json (default: built deck)
   --sample SPEC      TEMPLATE:FIELD=VALUE note selector; repeatable
   --concurrency N    Number of parallel browser pages (default: CPU core count)
   --engine NAME      Browser engine: chromium (default), firefox, webkit
+  --client NAME      Anki client to emulate: ${Object.keys(CLIENTS).join(", ")};
+                     repeatable (default: iphone and ipad on webkit,
+                     otherwise desktop)
   --help             Show this help
 `;
 
@@ -81,6 +124,7 @@ function parseArgs(argv) {
     sample: [],
     concurrency: DEFAULT_CONCURRENCY,
     engine: DEFAULT_ENGINE,
+    client: [],
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -102,6 +146,15 @@ function parseArgs(argv) {
       case "--engine":
         args.engine = argv[++i];
         break;
+      case "--client":
+        args.client.push(argv[++i]);
+        if (!CLIENTS[args.client.at(-1)]) {
+          console.error(
+            `--client must be one of: ${Object.keys(CLIENTS).join(", ")}`,
+          );
+          process.exit(2);
+        }
+        break;
       case "--help":
       case "-h":
         args.help = true;
@@ -111,6 +164,9 @@ function parseArgs(argv) {
         console.error(USAGE);
         process.exit(2);
     }
+  }
+  if (!args.client.length) {
+    args.client = args.engine === "webkit" ? ["iphone", "ipad"] : ["desktop"];
   }
   return args;
 }
@@ -133,47 +189,71 @@ async function main() {
     return;
   }
 
-  const items = requests.map((req) => ({
-    html: prepareCard({
+  // One session per client, template and theme, showing its front and back.
+  const groups = new Map();
+  for (const req of requests) {
+    const key = `${req.template}\n${req.dark}`;
+    if (!groups.has(key)) groups.set(key, []);
+    const { content, bodyClass } = prepareCard({
       deckPath: args.deck,
       template: req.template,
       side: req.side,
       dark: req.dark,
       samples: req.samples,
-    }).html,
-  }));
-
-  const checked = await checkOperation.run(items, {
-    concurrency: args.concurrency,
-    engine: args.engine,
-  });
-
-  const results = checked.map((result, i) => ({
-    template: requests[i].template,
-    side: requests[i].side,
-    dark: requests[i].dark,
-    ...result,
-  }));
-
-  let failures = 0;
-  for (const r of results) {
-    const problems = [];
-    if (r.navError) problems.push(`navigation failed: ${r.navError}`);
-    if (r.pageErrors.length)
-      problems.push(`JS errors: ${r.pageErrors.join(" | ")}`);
-    if (r.consoleIssues.length)
-      problems.push(`console: ${r.consoleIssues.join(" | ")}`);
-
-    if (problems.length) {
-      failures++;
-      console.error(
-        `[FAIL] ${r.template} ${r.side}${r.dark ? " (dark)" : ""}: ${problems.join("; ")}`,
-      );
+    });
+    groups.get(key).push({ req, content, bodyClass });
+  }
+  const sessions = [];
+  for (const client of args.client) {
+    for (const renders of groups.values()) {
+      sessions.push({ client, dark: renders[0].req.dark, renders });
     }
   }
 
+  const checked = await checkOperation.run(
+    sessions.map(({ client, dark, renders }) => ({
+      shell: pageHtml({ client }),
+      cards: renders.map(({ content, bodyClass }) => ({ content, bodyClass })),
+      rounds: ROUNDS,
+      context: {
+        ...CLIENTS[client].context,
+        colorScheme: dark ? "dark" : "light",
+      },
+    })),
+    { concurrency: args.concurrency, engine: args.engine },
+  );
+
+  let total = 0;
+  let failures = 0;
+  sessions.forEach(({ client, renders }, s) => {
+    const { navError, showings } = checked[s];
+    renders.forEach(({ req }, i) => {
+      total++;
+      const problems = [];
+      if (navError) problems.push(`page failed: ${navError}`);
+      for (let n = i; n < showings.length; n += renders.length) {
+        const { consoleIssues, pageErrors } = showings[n];
+        const when = n < renders.length ? "" : "shown again: ";
+        if (pageErrors.length) {
+          problems.push(`${when}JS errors: ${pageErrors.join(" | ")}`);
+        }
+        if (consoleIssues.length) {
+          problems.push(`${when}console: ${consoleIssues.join(" | ")}`);
+        }
+      }
+
+      if (problems.length) {
+        failures++;
+        console.error(
+          `[FAIL] ${client} ${req.template} ${req.side}${req.dark ? " (dark)" : ""}: ${problems.join("; ")}`,
+        );
+      }
+    });
+  });
+
   console.log(
-    `\n${args.engine} check: ${results.length - failures}/${results.length} renders clean.`,
+    `\n${args.engine} check (${args.client.join(", ")}): ` +
+      `${total - failures}/${total} renders clean.`,
   );
   if (failures > 0) {
     process.exitCode = 1;
