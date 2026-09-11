@@ -35,5 +35,8 @@ and needs no direct interaction. It keeps browsers warm so the commands
 above start faster; nothing about them changes when it isn't connected, and
 concurrent calls are safe either way.
 
-Settings live in `browser-ops.config.js`. The component, and how to add a
-browser operation, are documented in `utils/browser_ops/README.md`.
+Settings live in `browser-ops.config.js`; its `defaultContext` holds the
+Playwright context options (viewport, colour scheme, locale, ...) every page
+starts with. `--scale` is passed on as `context: {deviceScaleFactor}`, which
+a batch or item can set alongside any other option. The component, and how
+to add a browser operation, are documented in `utils/browser_ops/README.md`.

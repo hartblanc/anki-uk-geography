@@ -186,7 +186,6 @@ async function main() {
     return {
       html,
       outPath,
-      scale: args.scale,
       template: req.template,
       side: req.side,
     };
@@ -195,6 +194,7 @@ async function main() {
   const results = await renderMany(items, {
     concurrency: args.concurrency,
     engine: args.engine,
+    context: { deviceScaleFactor: args.scale },
     onRendered: (result) => console.log(`Captured ${result.outPath}`),
   });
 

@@ -34,16 +34,29 @@ const path = require("path");
 
 const DEFAULT_CONFIG = {
   launchArgs: { chromium: ["--disable-gpu", "--hide-scrollbars"] },
-  // What a fresh page starts as; operations may set their own.
-  defaultViewport: { width: 1280, height: 720 },
+  // Playwright browser-context options every page starts with. A batch's
+  // `context`, then an item's, override them key by key.
+  defaultContext: { viewport: { width: 1280, height: 720 } },
   defaultEngine: "chromium",
-  // Engine names, or {engine, scale, pages}, opened when a host starts.
+  // Engine names, or {engine, context, pages}, opened when a host starts.
   // Empty means every browser is launched on first use.
   warm: [],
 };
 
 const ENGINE_NAMES = ["chromium", "firefox", "webkit"];
-const DEFAULT_SCALE = 1;
+
+// Context options equal to these are dropped, as Playwright uses them anyway.
+const PLAYWRIGHT_DEFAULTS = {
+  deviceScaleFactor: 1,
+  isMobile: false,
+  hasTouch: false,
+  javaScriptEnabled: true,
+  offline: false,
+  colorScheme: "light",
+  reducedMotion: "no-preference",
+  forcedColors: "none",
+  contrast: "no-preference",
+};
 
 // Default `concurrency`, and the default page count for warming.
 const DEFAULT_CONCURRENCY = os.cpus().length;
@@ -82,6 +95,10 @@ function loadConfig() {
       ...DEFAULT_CONFIG.launchArgs,
       ...(overrides.launchArgs || {}),
     },
+    defaultContext: {
+      ...DEFAULT_CONFIG.defaultContext,
+      ...(overrides.defaultContext || {}),
+    },
   };
   return cachedConfig;
 }
@@ -104,6 +121,42 @@ function assertEngine(engine) {
 // Keep this require lazy: callers served by the host never load Playwright.
 function browserTypeFor(engine) {
   return require("playwright")[assertEngine(engine)];
+}
+
+/**
+ * Context options for a page: the config's `defaultContext`, overridden by
+ * each of `layers` in turn, key by key. Undefined values are ignored.
+ */
+function contextOptions(...layers) {
+  const merged = {};
+  for (const layer of [loadConfig().defaultContext, ...layers]) {
+    if (layer == null) continue;
+    if (typeof layer !== "object" || Array.isArray(layer)) {
+      throw new Error(
+        "context must be an object of Playwright context options",
+      );
+    }
+    for (const [key, value] of Object.entries(layer)) {
+      if (value !== undefined) merged[key] = value;
+    }
+  }
+  for (const [key, value] of Object.entries(PLAYWRIGHT_DEFAULTS)) {
+    if (merged[key] === value) delete merged[key];
+  }
+  return merged;
+}
+
+// The same for equal options, whatever order their keys are in.
+function contextKey(options) {
+  return JSON.stringify(options, (_, value) =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(
+          Object.keys(value)
+            .sort()
+            .map((key) => [key, value[key]]),
+        )
+      : value,
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -203,16 +256,13 @@ function newPageCost(engine) {
  * A page for one batch to use, thrown away afterwards.
  *
  * Each page gets its own context because that is the only way to shed
- * cookies, storage and init scripts, and because deviceScaleFactor is fixed
+ * cookies, storage and init scripts, and because context options are fixed
  * when a context is created. Closing the page means closing its context;
  * callers never handle the context themselves.
  */
-async function createPage(browser, engine, scale, viewport) {
+async function createPage(browser, engine, options) {
   const started = Date.now();
-  const context = await browser.newContext({
-    deviceScaleFactor: scale,
-    viewport,
-  });
+  const context = await browser.newContext(options);
   const page = await context.newPage();
   recordPageCost(engine, Date.now() - started);
   return page;
@@ -225,15 +275,14 @@ const discard = (page) =>
     .catch(() => {});
 
 /**
- * Ready-to-use pages for one (engine, scale), kept topped up to `target` so
- * a batch usually finds enough waiting for it.
+ * Ready-to-use pages for one (engine, context options), kept topped up to
+ * `target` so a batch usually finds enough waiting for it.
  */
 class PagePool {
-  constructor(browser, engine, scale, viewport, keepReady) {
+  constructor(browser, engine, context, keepReady) {
     this.browser = browser;
     this.engine = engine;
-    this.scale = scale;
-    this.viewport = viewport;
+    this.context = context;
     // Only a pool that outlives the batch benefits from rebuilding pages.
     this.keepReady = keepReady;
     this.ready = [];
@@ -253,7 +302,7 @@ class PagePool {
       taken.push(
         ...(await Promise.all(
           Array.from({ length: shortfall }, () =>
-            createPage(this.browser, this.engine, this.scale, this.viewport),
+            createPage(this.browser, this.engine, this.context),
           ),
         )),
       );
@@ -274,7 +323,7 @@ class PagePool {
     if (wanted <= 0) return Promise.resolve();
     this.refilling = Promise.all(
       Array.from({ length: wanted }, () =>
-        createPage(this.browser, this.engine, this.scale, this.viewport)
+        createPage(this.browser, this.engine, this.context)
           .then((page) => this.ready.push(page))
           .catch((err) =>
             process.emitWarning(
@@ -324,7 +373,7 @@ function pickPageCount({
 
 /**
  * Owns browsers and their page pools, and runs operations against them.
- * One browser per engine, one page pool per (engine, scale factor).
+ * One browser per engine, one page pool per (engine, context options).
  *
  * `persistent` keeps pages ready between batches - true on the host, false
  * for a one-shot local call.
@@ -335,7 +384,7 @@ class BrowserPool {
     // Both maps hold the promise of the thing, so concurrent callers share
     // one launch rather than starting duplicates.
     this.browsers = new Map(); // engine -> Promise<Browser>
-    this.pools = new Map(); // `${engine}:${scale}` -> Promise<PagePool>
+    this.pools = new Map(); // `${engine}:${contextKey}` -> Promise<PagePool>
   }
 
   // Drop a browser and every pool built on it, so the next call starts
@@ -368,20 +417,14 @@ class BrowserPool {
     return pending;
   }
 
-  pagePoolFor(engine, scale) {
-    const key = `${engine}:${scale}`;
+  // `context` is what contextOptions() returns.
+  pagePoolFor(engine, context) {
+    const key = `${engine}:${contextKey(context)}`;
     let pending = this.pools.get(key);
     if (!pending) {
       pending = this.browserFor(engine)
         .then(
-          (browser) =>
-            new PagePool(
-              browser,
-              engine,
-              scale,
-              loadConfig().defaultViewport,
-              this.persistent,
-            ),
+          (browser) => new PagePool(browser, engine, context, this.persistent),
         )
         .catch((err) => {
           this.pools.delete(key);
@@ -395,28 +438,29 @@ class BrowserPool {
   /**
    * Open browsers and pages before any request arrives.
    *
-   * `targets` are engine names, or `{engine, scale, pages}` to override the
-   * defaults (scale 1, DEFAULT_CONCURRENCY pages). Failures are reported to
-   * `onWarm({engine, scale, pages, ms, ok, error})`, never thrown.
+   * `targets` are engine names, or `{engine, context, pages}` to override the
+   * defaults (`defaultContext`, DEFAULT_CONCURRENCY pages). Failures are
+   * reported to `onWarm({engine, context, pages, ms, ok, error})`, never
+   * thrown; `context` is the target's own.
    */
   async warm(targets = [], { onWarm } = {}) {
     await Promise.all(
       targets.map(async (target) => {
         const started = Date.now();
-        let engine, scale, pages;
+        let engine, context, pages;
         try {
           ({
             engine,
-            scale = DEFAULT_SCALE,
+            context,
             pages = DEFAULT_CONCURRENCY,
           } = typeof target === "string" ? { engine: target } : (target ?? {}));
           assertEngine(engine);
-          const pool = await this.pagePoolFor(engine, scale);
+          const pool = await this.pagePoolFor(engine, contextOptions(context));
           await pool.ensureReady(pages);
           if (onWarm) {
             onWarm({
               engine,
-              scale,
+              context,
               pages,
               ms: Date.now() - started,
               ok: true,
@@ -424,7 +468,7 @@ class BrowserPool {
           }
         } catch (err) {
           if (onWarm) {
-            onWarm({ engine, scale, pages, ok: false, error: err.message });
+            onWarm({ engine, context, pages, ok: false, error: err.message });
           }
         }
       }),
@@ -433,7 +477,8 @@ class BrowserPool {
 
   /**
    * Run the operation at `address` over every item, in `items` order.
-   * An item's own `scale` overrides the batch's, so one batch may mix them.
+   * An item's own `context` overrides the batch's key by key, so one batch
+   * may mix them.
    *
    * Each worker keeps one page for the whole batch, so items running on it
    * follow one another without being isolated from each other. Isolation is
@@ -445,14 +490,14 @@ class BrowserPool {
     {
       engine = loadConfig().defaultEngine,
       concurrency = DEFAULT_CONCURRENCY,
-      scale: batchScale = DEFAULT_SCALE,
+      context: batchContext,
       onResult,
     } = {},
   ) {
     const op = lookupOperation(address);
     assertEngine(engine);
 
-    const scaleOf = (item) => item.scale ?? batchScale;
+    const contextOf = (item) => contextOptions(batchContext, item?.context);
     const results = new Array(items.length);
     let firstJob = 0;
 
@@ -460,7 +505,7 @@ class BrowserPool {
     // first item, and reuse that for later batches in this process.
     let costMs = measuredCost.get(op);
     if (!this.persistent && costMs == null && items.length > 1) {
-      const pool = await this.pagePoolFor(engine, scaleOf(items[0]));
+      const pool = await this.pagePoolFor(engine, contextOf(items[0]));
       const [page] = await pool.lease(1);
       const started = Date.now();
       try {
@@ -474,36 +519,36 @@ class BrowserPool {
       if (onResult) onResult(results[0], items[0], 0);
     }
 
-    // One queue of item indices per scale factor: a page's scale is fixed
-    // when it's created, so it can only work items that share it.
-    const queues = new Map();
+    // One queue of item indices per set of context options: they're fixed
+    // when a page is created, so it can only work items that share them.
+    const queues = new Map(); // contextKey -> {context, queue}
     for (let i = firstJob; i < items.length; i++) {
-      const scale = scaleOf(items[i]);
-      if (!queues.has(scale)) queues.set(scale, []);
-      queues.get(scale).push(i);
+      const context = contextOf(items[i]);
+      const key = contextKey(context);
+      if (!queues.has(key)) queues.set(key, { context, queue: [] });
+      queues.get(key).queue.push(i);
     }
 
-    const leased = new Map(); // scale -> {pool, pages}
-    for (const [scale, queue] of queues) {
-      const pool = await this.pagePoolFor(engine, scale);
-      const pages = await pool.lease(
-        pickPageCount({
-          itemCount: queue.length,
-          concurrency,
-          engine,
-          costMs,
-          reusable: this.persistent,
-        }),
-      );
-      leased.set(scale, { pool, pages });
-    }
-
+    const leased = []; // {pool, pages, queue}
     try {
+      for (const { context, queue } of queues.values()) {
+        const pool = await this.pagePoolFor(engine, context);
+        const pages = await pool.lease(
+          pickPageCount({
+            itemCount: queue.length,
+            concurrency,
+            engine,
+            costMs,
+            reusable: this.persistent,
+          }),
+        );
+        leased.push({ pool, pages, queue });
+      }
+
       // Each worker keeps one page for the whole batch and pulls from its
-      // scale's queue. The first failure stops the rest.
+      // context's queue. The first failure stops the rest.
       let failure = null;
-      const worker = async (scale, page) => {
-        const queue = queues.get(scale);
+      const worker = async (queue, page) => {
         while (!failure) {
           const index = queue.shift();
           if (index === undefined) return;
@@ -518,13 +563,13 @@ class BrowserPool {
       };
 
       const workers = [];
-      for (const [scale, { pages }] of leased) {
-        for (const page of pages) workers.push(worker(scale, page));
+      for (const { pages, queue } of leased) {
+        for (const page of pages) workers.push(worker(queue, page));
       }
       await Promise.all(workers);
       return results;
     } finally {
-      for (const { pool, pages } of leased.values()) pool.release(pages);
+      for (const { pool, pages } of leased) pool.release(pages);
     }
   }
 
@@ -600,7 +645,7 @@ function requestFromHost(address, items, opts) {
  * Run the operation at `address` over `items`. Callers reach this through
  * the handle `defineOperation` returns.
  *
- * Options: `engine`, `concurrency`, `scale`, `onResult(result, item, i)`.
+ * Options: `engine`, `concurrency`, `context`, `onResult(result, item, i)`.
  * `onResult` fires per item locally, once per result via the host.
  */
 async function runOp(address, items, opts = {}) {

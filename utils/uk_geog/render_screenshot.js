@@ -4,10 +4,11 @@
 /**
  * Render URLs (file:// or http(s)://) to PNG screenshots.
  *
- * renderMany(items, {concurrency, engine, scale, onRendered}) renders a
- * batch of `{url, html, outPath, viewport?, scale?, fullPage?, waitUntil?,
+ * renderMany(items, {concurrency, engine, context, onRendered}) renders a
+ * batch of `{url, html, outPath, viewport?, context?, fullPage?, waitUntil?,
  * timeout?}` items, returning each merged with its result in `items` order.
- * Extra fields on an item are carried through to its result.
+ * Extra fields on an item are carried through to its result. `context` is
+ * Playwright browser-context options, e.g. `{deviceScaleFactor: 2}`.
  *
  * Usage:
  *   node utils/uk_geog/render_screenshot.js --url URL --out PATH [--url URL --out PATH ...]
@@ -27,7 +28,7 @@ const DEFAULT_SCALE = 1;
 
 /**
  * Navigate to `url` and/or set `html`, then save a PNG to `outPath`.
- * An item's `scale` is applied by the pool, not here.
+ * An item's `context` is applied by the pool, not here.
  */
 const renderOperation = defineOperation(module, {
   name: "render",
@@ -58,12 +59,12 @@ const renderOperation = defineOperation(module, {
 /** Render `items` in parallel, each merged with `{outPath}`. */
 async function renderMany(
   items,
-  { concurrency, engine, scale, onRendered } = {},
+  { concurrency, engine, context, onRendered } = {},
 ) {
   const results = await renderOperation.run(items, {
     concurrency,
     engine,
-    scale,
+    context,
     onResult:
       onRendered &&
       ((result, item, index) =>
@@ -187,7 +188,6 @@ async function main() {
     url,
     outPath: args.out[i],
     viewport,
-    scale: args.scale,
     fullPage: args.fullPage,
     waitUntil: args.waitUntil,
     timeout: args.timeout,
@@ -196,6 +196,7 @@ async function main() {
   await renderMany(items, {
     concurrency: args.concurrency,
     engine: args.engine,
+    context: { deviceScaleFactor: args.scale },
     onRendered: (result) => console.log(`Captured ${result.outPath}`),
   });
 }

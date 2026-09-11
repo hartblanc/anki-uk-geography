@@ -60,11 +60,30 @@ any module can define one, including in code you don't own.
 | ------------- | ---------- | ---------------------------------------- |
 | `engine`      | `chromium` | `chromium`, `firefox` or `webkit`        |
 | `concurrency` | CPU count  | ceiling on pages worked at once          |
-| `scale`       | `1`        | device scale factor for the batch        |
+| `context`     | —          | browser-context options for the batch    |
 | `onResult`    | —          | `(result, item, index)` as each finishes |
 
-Any item may carry its own `scale`, overriding the batch's. One batch can
-mix scale factors freely.
+`context` takes any of Playwright's
+[`browser.newContext()` options](https://playwright.dev/docs/api/class-browser#browser-new-context)
+that survive `JSON.stringify` — `deviceScaleFactor`, `colorScheme`, `locale`,
+`timezoneId`, `isMobile`, `hasTouch`, `userAgent`, `reducedMotion` and so on:
+
+```js
+await screenshot.run(items, {
+  context: { deviceScaleFactor: 2, colorScheme: "dark" },
+});
+```
+
+Any item may carry its own `context` too. A page's options are
+`defaultContext` from the config, then the batch's `context`, then the
+item's, each overriding the last key by key. One batch can mix them freely,
+and items whose options come out equal share pages. An option set to
+Playwright's own default, like `deviceScaleFactor: 1`, counts as unset.
+
+`viewport` is a context option as well, but it's only the size a page
+starts at. To size pages per item, call `page.setViewportSize()` in the
+operation: items then still share pages, where a `viewport` in `context`
+gives each size its own.
 
 There is nothing to tune. How many pages a batch opens is worked out from
 the measured cost of the first item and of page creation itself, so an
@@ -180,14 +199,16 @@ WebKit browser alone is 76MB, while each of its pages is ~113MB (Chromium
 middle ground — `{engine: "webkit", pages: 2}` holds ~490MB and runs a
 40-card check in 1.09s, against ~1090MB and 0.82s for 8.
 
-Naming an engine is usually enough. Pages and scale factor default to what
-an ordinary batch uses — scale 1, and as many pages as `concurrency`
+Naming an engine is usually enough. Pages and context default to what an
+ordinary batch uses — `defaultContext`, and as many pages as `concurrency`
 defaults to — because a persistent pool grows to `min(concurrency, batch
 size)`, so that's exactly what a full-size batch will ask for. Warming fewer
 doesn't avoid the work, it just moves page creation onto the first command.
 
-Pass `{engine, scale, pages}` instead when you want a particular scale
-factor's context ready, or deliberately fewer pages than a batch will use. Pre-opening pages
+Pass `{engine, context, pages}` instead when you want pages with particular
+context options ready — `{engine: "chromium", context: {deviceScaleFactor:
+2}}` serves batches run with that same `context` — or deliberately fewer
+pages than a batch will use. Pre-opening pages
 is what matters for a batch: on this repo, a 40-card WebKit check went 2.66s
 → 1.87s by warming the browser, then → 0.87s by warming 8 pages with it,
 which is the same speed it runs at when fully warm.
@@ -221,14 +242,16 @@ directory above with a `package.json`):
 ```js
 module.exports = {
   launchArgs: { chromium: ["--disable-gpu", "--hide-scrollbars"] },
-  defaultViewport: { width: 1280, height: 720 },
+  defaultContext: { viewport: { width: 1280, height: 720 } },
   defaultEngine: "chromium",
   warm: [],
 };
 ```
 
-Every key is optional and falls back to the value shown. `BROWSER_OPS_ROOT`
-overrides root detection if your layout needs it.
+Every key is optional and falls back to the value shown. `defaultContext`
+is merged into the value shown key by key, so `{ colorScheme: "dark" }`
+keeps the default viewport. `BROWSER_OPS_ROOT` overrides root detection if
+your layout needs it.
 
 ## Notes
 
