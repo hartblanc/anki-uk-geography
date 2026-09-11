@@ -525,12 +525,21 @@ class BrowserPool {
 
     const leased = []; // {pool, pages, queue}
     try {
+      // Split `concurrency` between the queues by size, one page at least.
+      let budget = concurrency;
+      let unassigned = items.length - firstJob;
       for (const { context, queue } of queues.values()) {
+        const share = Math.max(
+          1,
+          Math.round((budget * queue.length) / unassigned),
+        );
+        budget -= share;
+        unassigned -= queue.length;
         const pool = await this.pagePoolFor(engine, context);
         const pages = await pool.lease(
           pickPageCount({
             itemCount: queue.length,
-            concurrency,
+            concurrency: share,
             engine,
             costMs,
             reusable: pool.target > 0,

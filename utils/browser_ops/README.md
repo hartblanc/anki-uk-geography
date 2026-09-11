@@ -77,8 +77,10 @@ await screenshot.run(items, {
 Any item may carry its own `context` too. A page's options are
 `defaultContext` from the config, then the batch's `context`, then the
 item's, each overriding the last key by key. One batch can mix them freely,
-and items whose options come out equal share pages. An option set to
-Playwright's own default, like `deviceScaleFactor: 1`, counts as unset.
+and items whose options come out equal share pages. A mixed batch splits
+`concurrency` between its sets of options, at least one page each. An
+option set to Playwright's own default, like `deviceScaleFactor: 1`, counts
+as unset.
 
 `viewport` is a context option as well, but it's only the size a page
 starts at. To size pages per item, call `page.setViewportSize()` in the
