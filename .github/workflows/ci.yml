@@ -67,7 +67,7 @@ jobs:
     # webkit) finds them in place instead of downloading, and there's no
     # separate install-deps/apt step needed at all.
     container:
-      image: mcr.microsoft.com/playwright:v1.62.1-jammy
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     steps:
       - uses: actions/checkout@v4
 
@@ -83,7 +83,7 @@ jobs:
           path: |
             /var/cache/apt/archives
             /var/lib/apt/lists
-          key: apt-make-zip-unzip-v1.62.1-jammy
+          key: apt-make-zip-unzip-v1.62.1-noble
 
       # Observed anywhere from 19s to ~5 minutes across runs (mirror-speed
       # variance, not a hang) — 10 minutes gives real slow runs headroom
@@ -129,7 +129,10 @@ jobs:
           python-version: "3.14"
           cache: "pipenv"
 
-      - run: pip install pipenv
+      # setup-python reuses the runner's cached Python, whose `pip` script's
+      # shebang points at a path that only exists outside this container.
+      # That Python is built for 24.04, hence the noble image above.
+      - run: python -m pip install pipenv
 
       - run: pipenv install --deploy
 
