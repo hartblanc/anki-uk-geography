@@ -19,10 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          bun-version-file: ".bun-version"
 
       # Unlike the build job's node_modules cache below, this needs the full
       # install (prettier/eslint are devDependencies) - keyed with a `-full`
@@ -31,12 +30,12 @@ jobs:
         id: node-modules-cache
         with:
           path: node_modules
-          key: node-modules-full-${{ hashFiles('package-lock.json') }}
+          key: node-modules-full-${{ hashFiles('bun.lock') }}
 
       # --ignore-scripts: this job never runs a browser, so skip the
       # postinstall step that downloads Playwright's Chromium/WebKit.
       - if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - uses: actions/setup-python@v5
         with:
@@ -64,7 +63,7 @@ jobs:
     timeout-minutes: 20
     # Playwright's own image for this exact pinned version: Chromium and
     # WebKit plus every OS-level shared library they need are already
-    # installed, so `npm ci`'s postinstall (playwright install chromium
+    # installed, so `bun install`'s postinstall (playwright install chromium
     # webkit) finds them in place instead of downloading, and there's no
     # separate install-deps/apt step needed at all.
     container:
@@ -110,23 +109,20 @@ jobs:
           path: build/maps/raw
           key: raw-map-data-${{ hashFiles('src/data/raw_source_checksums.json') }}
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          bun-version-file: ".bun-version"
 
-      # Caches the installed/linked node_modules itself (setup-node's own
-      # cache above only covers npm's download cache, not the install), so
-      # an unchanged lockfile restores directly instead of npm ci
-      # reinstalling ~240 packages from scratch every push.
+      # Caches the installed node_modules itself, so an unchanged lockfile
+      # restores directly instead of reinstalling ~330 packages every push.
       - uses: actions/cache@v4
         id: node-modules-cache
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+          key: node-modules-${{ hashFiles('bun.lock') }}
 
       - if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --omit=dev
+        run: bun install --frozen-lockfile --production
 
       - uses: actions/setup-python@v5
         with:

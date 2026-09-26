@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -19,7 +19,7 @@
  * otherwise; other engines run as desktop Anki.
  *
  * Usage:
- *   node utils/uk_geog/check_cards.js [options]
+ *   bun utils/uk_geog/check_cards.js [options]
  */
 
 const {

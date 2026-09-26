@@ -12,18 +12,18 @@ Context for AI agents and contributors working on the `anki-uk-geography` repo.
 Run any of these with `--help` for the full list of options.
 
 - **Build the deck** - `make -j$(nproc)`
-- **Screenshot Anki cards** - `node utils/uk_geog/capture_screenshots.js [options]`.
+- **Screenshot Anki cards** - `bun utils/uk_geog/capture_screenshots.js [options]`.
   The only entrypoint for card screenshots. Options: `--dark`, `--only LIST`,
   `--sample TEMPLATE:FIELD=VALUE`, `--scale N` (device scale factor; `2`
   doubles each PNG's pixel dimensions), `--concurrency N`, `--stitch PATH`,
   `--out DIR`, `--engine chromium|firefox|webkit`.
-- **Check cards for JS/console errors** - `node utils/uk_geog/check_cards.js [options]`.
+- **Check cards for JS/console errors** - `bun utils/uk_geog/check_cards.js [options]`.
   Takes no screenshots, and always covers every template x side x theme,
   showing cards one after another in one page as Anki's reviewer does.
   Options: `--sample`, `--concurrency`, `--engine`,
   `--client desktop|iphone|ipad`. On WebKit it emulates AnkiMobile on an
   iPhone and an iPad by default; other engines run as desktop Anki.
-- **Screenshot any page** - `node utils/uk_geog/render_screenshot.js --url URL --out PATH`,
+- **Screenshot any page** - `bun utils/uk_geog/render_screenshot.js --url URL --out PATH`,
   repeatable for several pages in one call. Any `file://` or `http(s)://`
   URL. Also takes `--scale N` and `--engine`.
 

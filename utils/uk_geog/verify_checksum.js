@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Verifies a downloaded raw data file against its pinned sha256 in
 // src/data/raw_source_checksums.json, or (with --pin) records the file's
 // current hash as the new pinned value. Used by the Makefile's raw data
@@ -90,7 +90,7 @@ const expected = manifest[key];
 if (!expected) {
   console.error(
     `No pinned checksum for ${key} (sha256 ${actual}).\n` +
-      `If this is a new source, pin it with: node ${scriptRel} ${file} --pin`,
+      `If this is a new source, pin it with: bun ${scriptRel} ${file} --pin`,
   );
   process.exit(1);
 }
@@ -98,7 +98,7 @@ if (actual !== expected) {
   console.error(
     `Checksum mismatch for ${key}:\n  expected ${expected}\n  got      ${actual}\n` +
       `The upstream data has changed. Inspect the new data, then accept it with:\n` +
-      `  node ${scriptRel} ${file} --pin`,
+      `  bun ${scriptRel} ${file} --pin`,
   );
   process.exit(1);
 }

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -11,11 +11,11 @@
  *
  * Examples:
  *   # All card types, light mode
- *   node utils/uk_geog/capture_screenshots.js
+ *   bun utils/uk_geog/capture_screenshots.js
  *
  *   # Dark mode for three specific cards, using named sample notes, stitched
  *   # into a 2-column (front, back) grid.
- *   node utils/uk_geog/capture_screenshots.js \
+ *   bun utils/uk_geog/capture_screenshots.js \
  *     --dark \
  *     --only "City - Map,City - County,BoW - Map" \
  *     --sample "City - Map:City=Gloucester" \
