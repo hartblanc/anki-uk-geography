@@ -411,7 +411,7 @@ build/maps/layers/bow.min.svg: build/maps/layers/bow.svg src/svgo.config.js
 # build_note_templates.py), so map changes sync as part of the note type instead
 # of relying on media files being re-synced to AnkiWeb.
 build/maps/cities.min.svg build/maps/counties.min.svg build/maps/regions.min.svg build/maps/bodies_of_water.min.svg: build/maps/layers/extra_land.min.svg build/maps/layers/county.min.svg build/maps/layers/city.min.svg build/maps/layers/region.min.svg build/maps/layers/bow.min.svg utils/uk_geog/build_composed_maps.py
-	python utils/uk_geog/build_composed_maps.py
+	pipenv run python utils/uk_geog/build_composed_maps.py
 
 # ==============================================================================
 # 4. NOTE TEMPLATE COMPILATION & BRAINBREW DECK GENERATION
@@ -424,7 +424,7 @@ define COMPILE_TEMPLATE
 	echo "--" >> "build/resolved_templates/$(1).template.html"
 	echo "" >> "build/resolved_templates/$(1).template.html"
 	cat "utils/uk_geog/templates/$(1).back.html" >> "build/resolved_templates/$(1).template.html"
-	python utils/uk_geog/build_note_templates.py "build/resolved_templates/$(1).template.html" -o=build/resolved_templates
+	pipenv run python utils/uk_geog/build_note_templates.py "build/resolved_templates/$(1).template.html" -o=build/resolved_templates
 	rm "build/resolved_templates/$(1).template.html"
 endef
 
@@ -459,7 +459,7 @@ build/resolved_templates/Map\ -\ BoW.html: build/maps/bodies_of_water.min.svg ut
 	$(call COMPILE_TEMPLATE,Map - BoW)
 
 build/uk_geog.csv: utils/uk_geog/aggregate_csvs.py build/region.csv build/county.csv build/city.csv build/bow.csv src/data/city.csv src/data/uk_geog.csv
-	python $< \
+	pipenv run python $< \
 		build/region.csv \
 		build/county.csv \
 		build/city.csv \

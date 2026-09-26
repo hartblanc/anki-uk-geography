@@ -14,9 +14,7 @@ repos:
       args: [--fix]
     - id: ruff-format
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    # Pinned to the last release still supporting Python 3.9 (this repo's
-    # target version, per Pipfile) - mypy 2.x requires 3.10+.
-    rev: v1.19.1
+    rev: v2.3.1
     hooks:
     - id: mypy
       args: [--disallow-incomplete-defs, --disallow-untyped-defs, --ignore-missing-imports]
