@@ -28,9 +28,10 @@ all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
 # rather than just staged files. The formatters (ruff format, prettier)
 # rewrite files in place; a non-zero exit means something is still wrong
 # after that (e.g. a real mypy or eslint error) and needs a manual look.
-# Card templates in utils/uk_geog/templates are deliberately left out of
-# prettier's scope: its HTML parser doesn't understand Anki's {{Field}}
-# mustache syntax.
+# Card templates in utils/uk_geog/templates are formatted by prettier via
+# prettier-plugin-mustache (see prettier.config.js), which understands
+# Anki's {{Field}}/{{#Field}}...{{/Field}} syntax; the older, unbuilt
+# UK_Constituencies templates aren't (see prettier.config.js for why).
 lint:
 	pipenv run pre-commit run --all-files
 

@@ -1,12 +1,12 @@
 <style>
-  [id="bow-{{BoW}}"] {
+  [id="bow-{{ BoW }}"] {
     fill: #07b;
   }
 </style>
 <div id="fitcontent">
   <header>
     <div class="type">Body of Water</div>
-    <div class="value value--top">{{BoW}}</div>
+    <div class="value value--top">{{ BoW }}</div>
 
     <hr />
 
@@ -19,7 +19,7 @@
     <script>
       setupZoombox({
         mapId: "map",
-        targetId: "bow-{{BoW}}",
+        targetId: "bow-{{ BoW }}",
         zsize: 100,
       });
     </script>
@@ -27,5 +27,5 @@
 </div>
 <script data-anki-inline src="utils/uk_geog/snippets/move_to_front.js"></script>
 <script>
-  moveToFront("bow-{{BoW}}");
+  moveToFront("bow-{{ BoW }}");
 </script>

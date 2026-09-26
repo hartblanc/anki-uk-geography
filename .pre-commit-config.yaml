@@ -31,6 +31,14 @@ repos:
       language: system
       types_or: [javascript, css, json]
       exclude: ^package-lock\.json$
+    - id: prettier-mustache
+      # Separate hook: `types_or` above matches by content-sniffed file
+      # type, which never includes html, and card templates need the
+      # mustache parser (see prettier.config.js) rather than plain html.
+      name: prettier (Anki card templates)
+      entry: node_modules/.bin/prettier --write
+      language: system
+      files: ^utils/uk_geog/templates/.*\.html$
     - id: eslint
       name: eslint
       entry: node_modules/.bin/eslint

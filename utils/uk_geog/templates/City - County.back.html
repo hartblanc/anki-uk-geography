@@ -1,8 +1,8 @@
 <style>
-  .city:not([id="city-{{City}}"]) {
+  .city:not([id="city-{{ City }}"]) {
     visibility: hidden;
   }
-  [id="city-{{City}}"] .city-marker {
+  [id="city-{{ City }}"] .city-marker {
     fill: #d00;
   }
 </style>
@@ -10,19 +10,19 @@
 <div id="fitcontent">
   <header>
     <div class="type">City</div>
-    <div class="value value--top">{{City}}</div>
+    <div class="value value--top">{{ City }}</div>
 
     <hr />
 
     <div class="type">County?</div>
-    <div class="center">{{MacroLocation}}</div>
+    <div class="center">{{ MacroLocation }}</div>
   </header>
   <div class="center">
-    <img data-anki-inline src="build/maps/cities.min.svg">
+    <img data-anki-inline src="build/maps/cities.min.svg" />
   </div>
 </div>
 <script>
-  var selectedCountiesNames = "{{MacroLocation}}".split(" / ");
+  var selectedCountiesNames = "{{ MacroLocation }}".split(" / ");
 
   for (var i = 0; i < selectedCountiesNames.length; i++) {
     var county = document.getElementById("county-" + selectedCountiesNames[i]);

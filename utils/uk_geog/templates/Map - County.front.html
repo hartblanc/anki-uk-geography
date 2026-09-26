@@ -1,28 +1,28 @@
 {{#County}}
-<style>
-  [id="county-{{County}}"] {
-    fill: #d00;
-  }
-</style>
+  <style>
+    [id="county-{{ County }}"] {
+      fill: #d00;
+    }
+  </style>
 
-<div id="fitcontent">
-  <header>
-    <div class="type">County?</div>
+  <div id="fitcontent">
+    <header>
+      <div class="type">County?</div>
 
-    <hr />
+      <hr />
 
-    <div class="type">Location on the map</div>
-  </header>
-  <div class="center">
-    <img data-anki-inline src="build/maps/counties.min.svg">
-    <svg id="zoombox" viewBox="0 0 800 1159"></svg>
-    <script data-anki-inline src="utils/uk_geog/snippets/zoombox.js"></script>
-    <script>
-      setupZoombox({
-        mapId: "map",
-        targetId: "county-{{County}}",
-      });
-    </script>
+      <div class="type">Location on the map</div>
+    </header>
+    <div class="center">
+      <img data-anki-inline src="build/maps/counties.min.svg">
+      <svg id="zoombox" viewBox="0 0 800 1159"></svg>
+      <script data-anki-inline src="utils/uk_geog/snippets/zoombox.js"></script>
+      <script>
+        setupZoombox({
+          mapId: "map",
+          targetId: "county-{{ County }}",
+        });
+      </script>
+    </div>
   </div>
-</div>
 {{/County}}

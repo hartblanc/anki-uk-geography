@@ -1,8 +1,8 @@
 <style>
-  .city:not([id="city-{{City}}"]) {
+  .city:not([id="city-{{ City }}"]) {
     visibility: hidden;
   }
-  [id="city-{{City}}"] .city-marker {
+  [id="city-{{ City }}"] .city-marker {
     fill: #d00;
   }
 </style>
@@ -10,7 +10,7 @@
 <div id="fitcontent">
   <header>
     <div class="type">City?</div>
-    <div id="city-answer" class="center">{{City}}</div>
+    <div id="city-answer" class="center">{{ City }}</div>
 
     <hr />
 

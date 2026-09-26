@@ -1,5 +1,5 @@
 <style>
-  [id="region-{{MacroLocation}}"] {
+  [id="region-{{ MacroLocation }}"] {
     fill: #d00;
     fill-opacity: 0.5;
   }
@@ -14,12 +14,12 @@
 <div id="fitcontent">
   <header>
     <div class="type">County</div>
-    <div class="value value--top">{{County}}</div>
+    <div class="value value--top">{{ County }}</div>
 
     <hr />
 
     <div class="type">Region?</div>
-    <div class="center">{{MacroLocation}}</div>
+    <div class="center">{{ MacroLocation }}</div>
   </header>
   <div class="center">
     <img data-anki-inline src="build/maps/regions.min.svg">
@@ -29,7 +29,7 @@
 <script data-anki-inline src="utils/uk_geog/snippets/zoombox.js"></script>
 <script>
   (function () {
-    var countyEl = document.getElementById("county-{{County}}");
+    var countyEl = document.getElementById("county-{{ County }}");
     var regionsSvg = document.getElementById("regions_map");
 
     if (countyEl && regionsSvg) {

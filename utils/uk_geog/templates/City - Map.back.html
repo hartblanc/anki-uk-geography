@@ -1,12 +1,12 @@
 <style>
-  [id="city-{{City}}"] .city-marker {
+  [id="city-{{ City }}"] .city-marker {
     fill: #d00;
   }
 </style>
 <div id="fitcontent">
   <header>
     <div class="type">City</div>
-    <div class="value value--top">{{City}}</div>
+    <div class="value value--top">{{ City }}</div>
 
     <hr />
 
@@ -26,7 +26,7 @@
     // the highlighted city to the end of its group, the other member of the
     // pair would cover it.
     (function () {
-      var cityEl = document.querySelector('[id="city-{{City}}"]');
+      var cityEl = document.querySelector('[id="city-{{ City }}"]');
       if (cityEl && cityEl.parentElement) {
         cityEl.parentElement.appendChild(cityEl);
       }
@@ -34,8 +34,8 @@
 
     var zoomMap = setupZoombox({
       mapId: "map",
-      targetId: "city-{{City}}",
-      current: "{{City}}",
+      targetId: "city-{{ City }}",
+      current: "{{ City }}",
       zoomNames: [
         "Salford",
         "Manchester",
@@ -50,9 +50,7 @@
     // setupZoombox has already scaled stroke widths (county borders, ring
     // strokes) generically.
     if (zoomMap) {
-      var cityGroup = document.querySelector(
-        '[id="city-{{City}}"]'
-      );
+      var cityGroup = document.querySelector('[id="city-{{ City }}"]');
       var cityCircle = cityGroup && cityGroup.querySelector(".city-marker");
       var ringCircle = cityGroup && cityGroup.querySelector(".city-ring");
       if (cityCircle && ringCircle) {
@@ -62,16 +60,12 @@
         var markerR = parseFloat(cityCircle.getAttribute("r")) * markerScale;
         var ringR = parseFloat(ringCircle.getAttribute("r")) * markerScale;
 
-        zoomMap
-          .querySelectorAll('.city-marker')
-          .forEach(function (circle) {
-            circle.setAttribute("r", markerR);
-          });
-        zoomMap
-          .querySelectorAll('.city-ring')
-          .forEach(function (circle) {
-            circle.setAttribute("r", ringR);
-          });
+        zoomMap.querySelectorAll(".city-marker").forEach(function (circle) {
+          circle.setAttribute("r", markerR);
+        });
+        zoomMap.querySelectorAll(".city-ring").forEach(function (circle) {
+          circle.setAttribute("r", ringR);
+        });
       }
     }
   })();

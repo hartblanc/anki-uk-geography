@@ -1,12 +1,12 @@
 <style>
-  [id="county-{{County}}"] {
+  [id="county-{{ County }}"] {
     fill: #d00;
   }
 </style>
 <div id="fitcontent">
   <header>
     <div class="type">County</div>
-    <div class="value value--top">{{County}}</div>
+    <div class="value value--top">{{ County }}</div>
 
     <hr />
 
@@ -19,7 +19,7 @@
     <script>
       setupZoombox({
         mapId: "map",
-        targetId: "county-{{County}}",
+        targetId: "county-{{ County }}",
       });
     </script>
   </div>

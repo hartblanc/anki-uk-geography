@@ -41,11 +41,17 @@ const REQUIRED_FIELDS = {
 
 function renderTemplate(template, fields) {
   // Sections first ({{#Field}}...{{/Field}}), then simple substitutions.
+  // Whitespace around the field name is insignificant in real Anki (see
+  // classify_handle() in rslib/src/template.rs), and prettier-plugin-mustache
+  // writes substitutions as {{ Field }}, so both must be tolerated here too.
   let out = template.replace(
-    /\{\{#(\w+)\}\}(.*?)\{\{\/\1\}\}/gs,
+    /\{\{\s*#\s*(\w+)\s*\}\}(.*?)\{\{\s*\/\s*\1\s*\}\}/gs,
     (match, name, inner) => (String(fields[name] || "").trim() ? inner : ""),
   );
-  out = out.replace(/\{\{(\w+)\}\}/g, (match, name) => fields[name] ?? "");
+  out = out.replace(
+    /\{\{\s*(\w+)\s*\}\}/g,
+    (match, name) => fields[name] ?? "",
+  );
   return out;
 }
 
