@@ -1,5 +1,7 @@
 # TODO: make new deck for motorways
-# TODO: think about how to manage mustache synatx in prettier for card templates
+# TODO: migrate to bun once mapshaper is in
+# TODO: extract broswer_ops as a package.
+# TODO: Reorganise the files a bit
 
 SHELL:=/bin/bash
 MAPSHAPER := ./node_modules/.bin/mapshaper
@@ -18,8 +20,19 @@ SIMPLIFY_INTERVAL := 250m
 # before unit-aware operations (e.g. -simplify) that run after file I/O.
 PROJ_INIT := -proj init=EPSG:27700 'target=*'
 
-.PHONY: all screenshots webkit-check chromium-check pin-data FORCE
+.PHONY: all screenshots webkit-check chromium-check lint pin-data FORCE
 all: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities.apkg
+
+# Runs every formatter/linter (ruff, mypy, prettier, eslint, plus basic
+# whitespace/yaml/json hygiene checks) via pre-commit, on the whole repo
+# rather than just staged files. The formatters (ruff format, prettier)
+# rewrite files in place; a non-zero exit means something is still wrong
+# after that (e.g. a real mypy or eslint error) and needs a manual look.
+# Card templates in utils/uk_geog/templates are deliberately left out of
+# prettier's scope: its HTML parser doesn't understand Anki's {{Field}}
+# mustache syntax.
+lint:
+	pipenv run pre-commit run --all-files
 
 screenshots: build/United\ Kingdom\ Geography\ -\ Regions\ Counties\ and\ Cities/deck.json
 	node utils/uk_geog/capture_screenshots.js \

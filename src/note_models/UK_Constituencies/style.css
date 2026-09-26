@@ -2,7 +2,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -36,7 +37,7 @@ svg {
   object-fit: contain;
 }
 
-#center { 
+#center {
   flex: 1;
   display: flex;
   align-items: center;
@@ -55,7 +56,11 @@ svg {
   width: 100%;
 }
 
-header, .type, .info, .value, hr {
+header,
+.type,
+.info,
+.value,
+hr {
   flex: 0 0 auto;
 }
 

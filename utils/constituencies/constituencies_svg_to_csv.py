@@ -1,4 +1,4 @@
-""" methods associtated with generating the anki-dm data.csv file """
+"""methods associtated with generating the anki-dm data.csv file"""
 
 import csv
 import json
@@ -78,7 +78,6 @@ def build_deck_csv(anki_dm_src_path: Path, guids: Optional[Sequence[str]] = None
 
 
 if __name__ == "__main__":
-
     SRC_FOLDER = Path("anki_dm", "src")
 
     # with (SRC_FOLDER / "data.csv").open(mode="r") as curr_datafile:

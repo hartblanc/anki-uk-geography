@@ -25,7 +25,6 @@
  */
 
 const path = require("path");
-const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
 
 const {

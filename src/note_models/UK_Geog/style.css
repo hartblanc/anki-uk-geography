@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -24,12 +25,12 @@ body,
 
 /* 2. Target the .center div that wraps your SVG */
 #fitcontent > .center {
-  flex: 1;             /* Forces this container to take up all remaining vertical space */
-  width: 100%;         /* Spans full width */
-  display: flex;       /* Allows neat centering of the SVG inside it */
+  flex: 1; /* Forces this container to take up all remaining vertical space */
+  width: 100%; /* Spans full width */
+  display: flex; /* Allows neat centering of the SVG inside it */
   justify-content: center;
   align-items: center;
-  min-height: 0;       /* CRITICAL: Allows flex child to shrink/scale down without overflowing */
+  min-height: 0; /* CRITICAL: Allows flex child to shrink/scale down without overflowing */
   position: relative;
 }
 
@@ -76,8 +77,9 @@ body,
   paint-order: stroke fill;
 }
 
-.night_mode .extra-land, .nightMode .extra-land {
-  fill:  #555;
+.night_mode .extra-land,
+.nightMode .extra-land {
+  fill: #555;
 }
 
 .card {

@@ -29,4 +29,3 @@ templates:
     html_file: build/resolved_templates/Map - Region.html
   - name: Region - Map
     html_file: build/resolved_templates/Region - Map.html
-

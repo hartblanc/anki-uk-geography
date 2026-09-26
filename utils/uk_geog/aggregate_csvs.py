@@ -1,10 +1,9 @@
-""" methods associtated with generating the anki-dm data.csv file """
+"""methods associtated with generating the anki-dm data.csv file"""
 
 import argparse
 import csv
 from pathlib import Path
 from typing import TypeVar
-
 
 region_country = {
     "Scotland": "Scotland",
@@ -32,7 +31,7 @@ fieldnames = [
 ]
 
 
-def key(d):
+def key(d: dict) -> tuple[str, ...]:
     return tuple([d.get(k, "") for k in fieldnames])
 
 
@@ -72,10 +71,11 @@ def build_deck_csv(
     for county_name, region_name in county_regions:
         try:
             county_country[county_name] = region_country[region_name]
-        except KeyError:
+        except KeyError as err:
             raise Exception(
-                f"Key error, could not find region {region_name} in region_country for county {county_name}"
-            )
+                f"Key error, could not find region {region_name} "
+                f"in region_country for county {county_name}"
+            ) from err
 
         rows.append(
             {
@@ -115,9 +115,12 @@ def build_deck_csv(
                 "tags": f"City, {country}",
             }
         )
-    assert set([c for (c,) in city_names]) == set(
-        counties_by_city.keys()
-    ), f"city counties csv mappsing - cities in map: {set(counties_by_city.keys()) - set([c for (c,) in city_names])}, cities in map - city counties csv mapping: {set(counties_by_city.keys()) - set([c for (c,) in city_names])}"
+    cities_only = set(c for (c,) in city_names) - set(counties_by_city.keys())
+    mapping_only = set(counties_by_city.keys()) - set(c for (c,) in city_names)
+    assert not cities_only and not mapping_only, (
+        f"cities csv and city/county mapping csv disagree - only in cities csv: {cities_only}, "
+        f"only in city/county mapping csv: {mapping_only}"
+    )
 
     for row in rows:
         try:
@@ -163,7 +166,8 @@ if __name__ == "__main__":
         "city_county_csv",
         type=Path,
         help=(
-            "The path to a CSV file which contains the mapping between cities in the UK and their associated counties"
+            "The path to a CSV file which contains the mapping between cities "
+            "in the UK and their associated counties"
         ),
     )
     parser.add_argument(
@@ -182,7 +186,6 @@ if __name__ == "__main__":
         ),
     )
 
-    curr_guids = []
     args = parser.parse_args()
     with args.guids.open(mode="r") as curr_datafile:
         reader = csv.DictReader(curr_datafile)

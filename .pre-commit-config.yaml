@@ -1,23 +1,38 @@
 repos:
--   repo: https://github.com/asottile/seed-isort-config
-    rev: v2.2.0
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-    - id: seed-isort-config
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.7.0
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: check-merge-conflict
+    - id: check-yaml
+    - id: check-added-large-files
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
     hooks:
-    - id: isort
--   repo: https://github.com/ambv/black
-    rev: 20.8b1
-    hooks:
-    - id: black
-      language_version: python3.9
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
-    hooks:
-    - id: flake8
+    - id: ruff-check
+      args: [--fix]
+    - id: ruff-format
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.812
+    # Pinned to the last release still supporting Python 3.9 (this repo's
+    # target version, per Pipfile) - mypy 2.x requires 3.10+.
+    rev: v1.19.1
     hooks:
-    -   id: mypy
-        args: [--disallow-incomplete-defs, --disallow-untyped-defs, --ignore-missing-imports] 
+    - id: mypy
+      args: [--disallow-incomplete-defs, --disallow-untyped-defs, --ignore-missing-imports]
+-   repo: local
+    hooks:
+    # Run via the repo's own npm-installed binaries (language: system) rather
+    # than pre-commit's mirrors, which lag the real tools' releases. Requires
+    # `npm install` to have been run (see CONTRIBUTING.md).
+    - id: prettier
+      name: prettier
+      entry: node_modules/.bin/prettier --write
+      language: system
+      types_or: [javascript, css, json]
+      exclude: ^package-lock\.json$
+    - id: eslint
+      name: eslint
+      entry: node_modules/.bin/eslint
+      language: system
+      types: [javascript]

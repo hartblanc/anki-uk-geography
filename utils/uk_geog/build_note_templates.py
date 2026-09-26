@@ -93,7 +93,9 @@ class InlineReferenceParser(HTMLParser):
             # Self-closed <script data-anki-inline src="..." /> has an empty
             # body by construction; resolve it immediately.
             start, path, whitespace = self._pending_script
-            end = self._offset() + len(self.get_starttag_text())
+            starttag_text = self.get_starttag_text()
+            assert starttag_text is not None
+            end = self._offset() + len(starttag_text)
             self.references.append(Reference(start, end, "script", path, whitespace))
             self._pending_script = None
 
@@ -118,7 +120,9 @@ class InlineReferenceParser(HTMLParser):
         whitespace, replace_start = _leading_whitespace(self.contents, tag_start)
 
         if tag == "img":
-            tag_end = tag_start + len(self.get_starttag_text())
+            starttag_text = self.get_starttag_text()
+            assert starttag_text is not None
+            tag_end = tag_start + len(starttag_text)
             self.references.append(Reference(replace_start, tag_end, "img", path, whitespace))
         else:
             if self._pending_script is not None:

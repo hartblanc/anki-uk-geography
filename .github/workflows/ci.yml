@@ -3,13 +3,59 @@ name: CI
 # Builds the full deck and runs the WebKit and Chromium render checks on
 # every push to master and every PR, so a broken map-data pipeline or card
 # template is caught immediately instead of only at release time (see
-# release.yml, which only runs on tag push / manual dispatch).
+# release.yml, which only runs on tag push / manual dispatch). Also runs the
+# same formatting/linting (see `lint` below) that the local pre-commit hook
+# runs, so it's still enforced for anyone who skipped the hook or committed
+# with --no-verify.
 on:
   push:
     branches: ["master"]
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Unlike the build job's node_modules cache below, this needs the full
+      # install (prettier/eslint are devDependencies) - keyed with a `-full`
+      # suffix so the two caches never collide on the same lockfile hash.
+      - uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-full-${{ hashFiles('package-lock.json') }}
+
+      # --ignore-scripts: this job never runs a browser, so skip the
+      # postinstall step that downloads Playwright's Chromium/WebKit.
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pipenv"
+
+      - run: pip install pipenv
+
+      - run: pipenv install --deploy --dev
+
+      # pre-commit's own per-hook environments (ruff, mypy), keyed on the
+      # hook config so bumping a rev in .pre-commit-config.yaml invalidates it.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - run: pipenv run pre-commit run --all-files
+
   build:
     runs-on: ubuntu-latest
     # GitHub's default is 360 minutes; a stuck step (e.g. apt-get update

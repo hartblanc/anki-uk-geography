@@ -1,3 +1,4 @@
+/* exported setupZoombox */
 function setupZoombox(options) {
   var targetEl = document.getElementById(options.targetId);
   var zoombox = document.getElementById("zoombox");
@@ -47,7 +48,7 @@ function setupZoombox(options) {
       " " +
       zsize +
       " " +
-      zsize
+      zsize,
   );
 
   // Build the zoombox from a copy of the main map's contents. CSS can't style
@@ -64,7 +65,7 @@ function setupZoombox(options) {
   // indicator shown on the main map.
   var zoomIndicator = document.createElementNS(
     "http://www.w3.org/2000/svg",
-    "rect"
+    "rect",
   );
   zoomIndicator.setAttribute("class", "zoom-indicator");
   zoomIndicator.setAttribute("x", centerX - zsize / 2);

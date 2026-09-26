@@ -708,10 +708,10 @@
     rect.setAttributeNS(null, 'height', zsize)
     rect.setAttributeNS(null, 'style', 'stroke:#F43;stoke-width:5;fill-opacity:0')
     map.appendChild(rect)
-    
+
     var style = document.createElement('style');
     style.type = 'text/css'
-    
+
     var colours = ['blue', 'green', 'yellow']
     var counties = constituency.classList
     for (const [i, county] of counties.entries()){
@@ -724,7 +724,7 @@
           style.appendChild(document.createTextNode(css));
        }
     }
-    
+
     if (counties.length == 3) {
        css = `.${counties[0]}.${counties[1]}.${counties[2]} {fill: url(#blue_green_yellow_stripes)}`
        style.appendChild(document.createTextNode(css));
@@ -732,7 +732,7 @@
     css = `[id="{{Constituency}}"] {fill-opacity:0.8; stroke-opacity: 1;}`
     style.appendChild(document.createTextNode(css));
     document.getElementById("center").appendChild(style)
-</script> 
+</script>
 
 --
 
@@ -1445,10 +1445,10 @@
     rect.setAttributeNS(null, 'height', zsize)
     rect.setAttributeNS(null, 'style', 'stroke:#F43;stoke-width:5;fill-opacity:0')
     map.appendChild(rect)
-    
+
     var style = document.createElement('style');
     style.type = 'text/css'
-    
+
     var colours = ['blue', 'green', 'yellow']
     var counties = constituency.classList
     for (const [i, county] of counties.entries()){
@@ -1461,7 +1461,7 @@
           style.appendChild(document.createTextNode(css));
        }
     }
-    
+
     if (counties.length == 3) {
        css = `.${counties[0]}.${counties[1]}.${counties[2]} {fill: url(#blue_green_yellow_stripes)}`
        style.appendChild(document.createTextNode(css));
@@ -1469,5 +1469,4 @@
     css = `[id="{{Constituency}}"] {fill-opacity:0.8; stroke-opacity: 1;}`
     style.appendChild(document.createTextNode(css));
     document.getElementById("center").appendChild(style)
-</script> 
-
+</script>

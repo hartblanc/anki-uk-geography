@@ -20,7 +20,7 @@ def generate_anki_guid() -> str:
         # all printable characters minus quotes, backslash and separators
         return base62(num, _base91_extra_chars)
 
-    return base91(random.randint(0, 2 ** 64 - 1))
+    return base91(random.randint(0, 2**64 - 1))
 
 
 print(generate_anki_guid())

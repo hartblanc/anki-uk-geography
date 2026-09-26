@@ -5,12 +5,12 @@
          svg {
             text-rendering: optimizeSpeed;
          }
-         #center { 
+         #center {
             display: flex;
             align-items: center;
             justify-content: center;
          }
-         #fitcontent { 
+         #fitcontent {
             display: inline flow-root;
             position: relative;
          }
@@ -19,7 +19,7 @@
             top: 0;
             left: 0;
          }
-         
+
          body {
                margin: 0;
          }
@@ -67,9 +67,9 @@
       <header>
          <div class="type">Constituency</div>
          <div class="value value--top">?</div>
-      
+
          <hr>
-      
+
          <div class="type">Location on the map</div>
       </header>
       <div class="center">
@@ -752,7 +752,7 @@
           </svg>
           </div>
       </div>
-      
+
    </body>
    <script>
       zoombox = document.getElementById("zoombox")
@@ -774,10 +774,10 @@
       rect.setAttributeNS(null, 'height', zsize)
       rect.setAttributeNS(null, 'style', 'stroke:#F43;stoke-width:5;fill-opacity:0')
       map.appendChild(rect)
-      
+
       var style = document.createElement('style');
       style.type = 'text/css'
-      
+
       var colours = ['blue', 'green', 'yellow']
       var counties = constituency.classList
       for (const [i, county] of counties.entries()){
@@ -790,7 +790,7 @@
             style.appendChild(document.createTextNode(css));
          }
       }
-      
+
       if (counties.length == 3) {
          css = `.${counties[0]}.${counties[1]}.${counties[2]} {fill: url(#blue_green_yellow_stripes)}`
          style.appendChild(document.createTextNode(css));
@@ -798,5 +798,5 @@
       css = `[id="Upper Bann"] {fill-opacity:1; stroke-opacity: 1;}`
       style.appendChild(document.createTextNode(css));
       document.getElementById("center").appendChild(style)
-   </script> 
+   </script>
 </html>

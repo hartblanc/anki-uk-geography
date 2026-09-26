@@ -148,14 +148,12 @@ def validate_unique_ids(layers: dict) -> None:
                         f"expected prefix {expected_prefix!r}"
                     )
             ids.extend(layer_ids)
-        counts = {}
+        counts: dict[str, int] = {}
         for id_ in ids:
             counts[id_] = counts.get(id_, 0) + 1
         duplicates = sorted(id_ for id_, count in counts.items() if count > 1)
         if duplicates:
-            raise ValueError(
-                f"duplicate ids in composed map {map_name!r}: {duplicates!r}"
-            )
+            raise ValueError(f"duplicate ids in composed map {map_name!r}: {duplicates!r}")
 
 
 def compose_map(layers: dict, root_attrs: str, map_name: str) -> str:
@@ -177,6 +175,8 @@ def main() -> None:
         layers[layer_id] = layer
         if root_attrs is None:
             root_attrs = extract_root_attrs(svg)
+
+    assert root_attrs is not None, "LAYER_NAMES must not be empty"
 
     validate_unique_ids(layers)
 

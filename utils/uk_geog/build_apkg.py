@@ -1,4 +1,4 @@
-""" methods for converting a CrowdAnki export (deck.json + media/) into a distributable .apkg """
+"""methods for converting a CrowdAnki export (deck.json + media/) into a distributable .apkg"""
 
 import argparse
 import hashlib

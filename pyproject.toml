@@ -1,16 +1,14 @@
-[tool.black]
-line-length = 100 
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = ["build"]
+
+[tool.ruff.lint]
+# Roughly the old flake8 `select = B,C,E,F,W,T4,B9` plus isort (I).
+select = ["E", "F", "W", "B", "C90", "I"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
+
+[tool.ruff.lint.isort]
+known-third-party = ["lxml", "requests"]

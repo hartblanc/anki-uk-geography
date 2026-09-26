@@ -11,15 +11,21 @@ You're in the right place.
 4. install python and pipenv.
 5. In the root of the directory, run `pipenv install --dev` to install the python project env.
 6. optionally run `pipenv shell` to activate a new shell in the python environment.
+7. Run `pipenv run pre-commit install` to install the git pre-commit hook (one-time,
+   per clone - see below).
 
 Additional dependencies include:
 1. jq
 2. unzip
 3. curl
 
-Note that this repo uses git pre-commit hooks to maintain code style and to type
-lint (using flake8, black, isort, and mypy). These hooks are set up already so
-you don't need to do anything - they will be run automatically before each commit.
+Note that this repo uses [pre-commit](https://pre-commit.com/) to format and lint
+every changed file before each commit: Python via ruff (formatting + linting) and
+mypy (type checking), and JS/CSS/JSON via prettier and eslint - see
+`.pre-commit-config.yaml`. Step 7 above installs the git hook that runs it
+automatically; without that step nothing runs locally, though CI (`make lint`)
+still enforces it on every push. To check (and auto-fix what it can) without
+committing, run `make lint`.
 
 ## Building the deck
 Just run `make` in the root of the repo to build the deck.

@@ -5,12 +5,22 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "playwright install chromium webkit"
+    "postinstall": "playwright install chromium webkit",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,css,json}\"",
+    "format:check": "prettier --check \"**/*.{js,css,json}\""
   },
   "dependencies": {
     "mapshaper": "^0.7.58",
     "playwright": "^1.62.1",
     "svgo": "^4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9"
   },
   "overrides": {
     "adm-zip": "^0.6.0",
