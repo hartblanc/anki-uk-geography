@@ -7,7 +7,7 @@ You're in the right place.
 
 1. Install the CrowdAnki add-on in Anki.
 2. Fork and clone this repository on your machine.
-3. Install Node.js (see `.nvmrc` for version). Run `npm install` to install everything, including Playwright and its Chromium/WebKit browsers for screenshots and the WebKit render check (fetched automatically by a `postinstall` script).
+3. Install [Bun](https://bun.sh) (see `.bun-version` for version). Run `bun install` to install everything, including Playwright and its Chromium/WebKit browsers for screenshots and the WebKit render check (fetched automatically by a `postinstall` script).
 4. install python and pipenv.
 5. In the root of the directory, run `pipenv install --dev` to install the python project env.
 6. optionally run `pipenv shell` to activate a new shell in the python environment.
@@ -44,13 +44,13 @@ make screenshots
 To render every card type instead, run the script directly:
 
 ```bash
-node utils/uk_geog/capture_screenshots.js
+bun utils/uk_geog/capture_screenshots.js
 ```
 
 For more control (dark mode, specific cards/sample notes, or a stitched grid), use the script directly:
 
 ```bash
-node utils/uk_geog/capture_screenshots.js \
+bun utils/uk_geog/capture_screenshots.js \
   --dark \
   --scale 2 \
   --only "City - Map,City - County,BoW - Map" \
@@ -62,7 +62,7 @@ node utils/uk_geog/capture_screenshots.js \
 
 Additional dependencies beyond the normal build:
 
-- **Playwright's Chromium** – installed by `npm install` (see Set-up above); required for `make screenshots`
+- **Playwright's Chromium** – installed by `bun install` (see Set-up above); required for `make screenshots`
 - **ImageMagick** (`montage`, `magick`) – required for `--stitch` grids and `make screenshots`
 
 ## SVG IDs and anki templates

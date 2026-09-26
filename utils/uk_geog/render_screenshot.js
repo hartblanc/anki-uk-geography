@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -11,7 +11,7 @@
  * Playwright browser-context options, e.g. `{deviceScaleFactor: 2}`.
  *
  * Usage:
- *   node utils/uk_geog/render_screenshot.js --url URL --out PATH [--url URL --out PATH ...]
+ *   bun utils/uk_geog/render_screenshot.js --url URL --out PATH [--url URL --out PATH ...]
  *     [--viewport WIDTHxHEIGHT] [--scale N] [--full-page] [--wait-until EVENT]
  *     [--timeout MS] [--concurrency N] [--engine chromium|firefox|webkit]
  */

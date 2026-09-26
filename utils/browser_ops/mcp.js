@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -10,13 +10,13 @@
  * browser-ops.config.js; anything else launches on first use.
  *
  * Usage:
- *   node utils/browser_ops/mcp.js
+ *   bun utils/browser_ops/mcp.js
  *
  * Configure in .mcp.json:
  *   {
  *     "mcpServers": {
  *       "browser": {
- *         "command": "node",
+ *         "command": "bun",
  *         "args": ["utils/browser_ops/mcp.js"]
  *       }
  *     }

@@ -2,7 +2,7 @@
   "mcpServers": {
     "browser": {
       "type": "stdio",
-      "command": "node",
+      "command": "bun",
       "args": ["utils/browser_ops/mcp.js"],
       "env": {}
     }

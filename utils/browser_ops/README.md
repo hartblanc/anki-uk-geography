@@ -172,7 +172,7 @@ session. Point `.mcp.json` at it:
 ```json
 {
   "mcpServers": {
-    "browser": { "command": "node", "args": ["utils/browser_ops/mcp.js"] }
+    "browser": { "command": "bun", "args": ["utils/browser_ops/mcp.js"] }
   }
 }
 ```

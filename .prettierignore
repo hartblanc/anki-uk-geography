@@ -1,5 +1,4 @@
 .claude/
 build/
 node_modules/
-package-lock.json
 Pipfile.lock
