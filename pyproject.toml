@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py315"
 extend-exclude = ["build"]
 
 [tool.ruff.lint]
